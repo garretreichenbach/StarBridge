@@ -1,0 +1,17 @@
+{
+  "name": "StarBridge",
+  "author": "TheDerpGamer",
+  "description": "Discord to StarMade chat and link functionality.",
+  "version": "1.1.1",
+  "starmade_version": "0.202.110",
+  "client_mod": false,
+  "server_mod": true,
+  "main_class": "thederpgamer.starbridge.StarBridge",
+  "smd_resource_id": 9999,
+  "dependencies": [
+    -1
+  ],
+  "core_mod": false,
+  "requires_class_resize": false,
+  "hard_load_all_classes": false
+}
