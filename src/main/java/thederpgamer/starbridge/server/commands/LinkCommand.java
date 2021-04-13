@@ -1,9 +1,11 @@
-package thederpgamer.starbridge.server.bot.commands;
+package thederpgamer.starbridge.server.commands;
 
 import api.mod.StarMod;
 import api.mod.config.PersistentObjectUtil;
 import api.utils.game.chat.CommandInterface;
-import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
+import net.dv8tion.jda.api.entities.Command;
+import net.dv8tion.jda.api.events.interaction.SlashCommandEvent;
+import net.dv8tion.jda.api.requests.restaction.CommandUpdateAction;
 import org.jetbrains.annotations.Nullable;
 import org.schema.game.common.data.player.PlayerState;
 import thederpgamer.starbridge.StarBridge;
@@ -19,14 +21,7 @@ import thederpgamer.starbridge.utils.MessageType;
  * @author Garret Reichenbach
  * @since 04/09/2021
  */
-public class LinkCommand implements DiscordCommand, CommandInterface {
-
-    private final String[] permissions = {
-            "*",
-            "chat.*",
-            "chat.command.*",
-            "chat.command.link"
-    };
+public class LinkCommand implements CommandInterface, DiscordCommand {
 
     @Override
     public String getCommand() {
@@ -69,26 +64,34 @@ public class LinkCommand implements DiscordCommand, CommandInterface {
     }
 
     @Override
-    public void execute(MessageReceivedEvent event) {
-        String[] split = event.getMessage().getContentDisplay().replace("/", "").split(" ");
+    public void execute(SlashCommandEvent event) {
+        String message = event.getCommandPath().trim().replace("/", " ").toLowerCase();
+        String[] split = message.split(" ");
         if(split.length == 2) {
             try {
                 PlayerData playerData = StarBridge.instance.botThread.getBot().getLinkRequest(Integer.parseInt(split[1]));
                 if(playerData != null) {
-                    playerData.setDiscordId(event.getAuthor().getIdLong());
+                    playerData.setDiscordId(event.getUser().getIdLong());
                     ServerDatabase.updatePlayerData(playerData);
                     PersistentObjectUtil.save(StarBridge.instance.getSkeleton());
-                    String logMessage = "Successfully linked user " + event.getAuthor().getName() + " to " + playerData.getPlayerName() + ".";
+                    String logMessage = "Successfully linked user " + event.getUser().getName() + " to " + playerData.getPlayerName();
                     StarBridge.instance.botThread.getBot().removeLinkRequest(playerData);
-                    StarBridge.instance.botThread.getBot().sendTimedMessageFromBot(logMessage, 15);
+                    event.reply(logMessage).queue();
                     LogUtils.logMessage(MessageType.INFO, logMessage);
-                    event.getMessage().delete().queue();
+                    event.getHook().deleteOriginal().queue();
                     return;
                 }
             } catch(Exception e) {
                 e.printStackTrace();
             }
         }
-        StarBridge.instance.botThread.getBot().sendTimedMessageFromBot("Sorry " + event.getAuthor().getName() + ", but that link code is invalid.", 15);
+        event.reply("Sorry, but that link code is invalid").queue();
+    }
+
+    @Override
+    public CommandUpdateAction.CommandData getCommandData() {
+        CommandUpdateAction.CommandData commandData = new CommandUpdateAction.CommandData(getCommand(), getDescription());
+        commandData.addOption(new CommandUpdateAction.OptionData(Command.OptionType.INTEGER, "link code", "The link code to use").setRequired(true));
+        return commandData;
     }
 }

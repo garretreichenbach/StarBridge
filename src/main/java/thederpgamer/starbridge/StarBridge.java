@@ -1,5 +1,6 @@
 package thederpgamer.starbridge;
 
+import api.ModPlayground;
 import api.listener.Listener;
 import api.listener.events.faction.FactionCreateEvent;
 import api.listener.events.faction.FactionRelationChangeEvent;
@@ -9,13 +10,18 @@ import api.mod.StarMod;
 import api.mod.config.FileConfiguration;
 import api.mod.config.PersistentObjectUtil;
 import api.utils.StarRunnable;
+import api.utils.game.chat.CommandInterface;
+import api.utils.other.HashList;
 import net.dv8tion.jda.api.exceptions.RateLimitedException;
 import thederpgamer.starbridge.server.ServerDatabase;
 import thederpgamer.starbridge.server.bot.BotThread;
 import thederpgamer.starbridge.server.bot.DiscordBot;
-import thederpgamer.starbridge.server.bot.commands.LinkCommand;
-import thederpgamer.starbridge.server.bot.commands.ListCommand;
+import thederpgamer.starbridge.server.commands.ClearCommand;
+import thederpgamer.starbridge.server.commands.HelpDiscordCommand;
+import thederpgamer.starbridge.server.commands.LinkCommand;
+import thederpgamer.starbridge.server.commands.ListCommand;
 import thederpgamer.starbridge.utils.LogUtils;
+import java.lang.reflect.Field;
 
 /**
  * StarBridge.java
@@ -43,8 +49,8 @@ public class StarBridge extends StarMod {
             "bot-avatar: BOT AVATAR",
             "server-id: SERVER ID",
             "chat-webhook: WEBHOOK",
-            "chat-channel-id: CHANNEL ID",
-            "command-channel-id: CHANNEL ID"
+            "channel-id: CHANNEL ID",
+            "admin-role-id: ADMIN ROLE ID"
     };
     public boolean debugMode = false;
     public long autoSaveFrequency = 10000;
@@ -54,8 +60,8 @@ public class StarBridge extends StarMod {
     public String botAvatar;
     public long serverId;
     public String chatWebhook;
-    public long chatChannelId;
-    public long commandChannelId;
+    public long channelId;
+    public long adminRoleId;
 
     //Data
     public BotThread botThread;
@@ -64,6 +70,7 @@ public class StarBridge extends StarMod {
     public void onEnable() {
         instance = this;
         initConfig();
+        doOverwrites();
         initialize();
         registerCommands();
         registerListeners();
@@ -82,22 +89,22 @@ public class StarBridge extends StarMod {
         botAvatar = "https://" + config.getString("bot-avatar");
         serverId = config.getLong("server-id");
         chatWebhook = "https://" + config.getString("chat-webhook");
-        chatChannelId = config.getLong("chat-channel-id");
-        commandChannelId = config.getLong("command-channel-id");
+        channelId = config.getLong("channel-id");
+        adminRoleId = config.getLong("admin-role-id");
     }
 
     private void initialize() {
         LogUtils.initialize();
-        (botThread = new BotThread(botToken, chatWebhook, chatChannelId, commandChannelId)).start();
+        (botThread = new BotThread(botToken, chatWebhook, channelId)).start();
     }
 
     private void registerCommands() {
         StarLoader.registerCommand(new ListCommand());
         StarLoader.registerCommand(new LinkCommand());
+        StarLoader.registerCommand(new ClearCommand());
     }
 
     private void registerListeners() {
-
         StarLoader.registerListener(PlayerCustomCommandEvent.class, new Listener<PlayerCustomCommandEvent>() {
             @Override
             public void onEvent(PlayerCustomCommandEvent event) {
@@ -160,6 +167,19 @@ public class StarBridge extends StarMod {
                 getBot().handleEvent(event);
             }
         }, this);
+    }
+
+    private void doOverwrites() {
+        try {
+            Field commandsField = StarLoader.class.getDeclaredField("commands");
+            commandsField.setAccessible(true);
+            HashList<StarMod, CommandInterface> commands = (HashList<StarMod, CommandInterface>) commandsField.get(null);
+            commands.getList(ModPlayground.inst).remove(StarLoader.getCommand("help"));
+            commands.getList(ModPlayground.inst).add(new HelpDiscordCommand());
+            commandsField.set(null, commands);
+        } catch(NoSuchFieldException | IllegalAccessException | ClassCastException exception) {
+            exception.printStackTrace();
+        }
     }
 
     private void startRunners() {

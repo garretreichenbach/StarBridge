@@ -1,14 +1,14 @@
-package thederpgamer.starbridge.server.bot.commands;
+package thederpgamer.starbridge.server.commands;
 
 import api.common.GameServer;
 import api.mod.StarMod;
 import api.utils.game.PlayerUtils;
 import api.utils.game.chat.CommandInterface;
-import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
+import net.dv8tion.jda.api.entities.Command;
+import net.dv8tion.jda.api.events.interaction.SlashCommandEvent;
+import net.dv8tion.jda.api.requests.restaction.CommandUpdateAction;
 import org.schema.game.common.data.player.PlayerState;
 import thederpgamer.starbridge.StarBridge;
-import thederpgamer.starbridge.data.player.PlayerData;
-import thederpgamer.starbridge.server.ServerDatabase;
 
 import javax.annotation.Nullable;
 import java.util.Arrays;
@@ -21,13 +21,6 @@ import java.util.Arrays;
  * @since 04/08/2021
  */
 public class ListCommand implements CommandInterface, DiscordCommand {
-
-    private final String[] permissions = {
-            "*",
-            "chat.*",
-            "chat.command.*",
-            "chat.command.list"
-    };
 
     @Override
     public String getCommand() {
@@ -60,7 +53,6 @@ public class ListCommand implements CommandInterface, DiscordCommand {
         else if(args[0].equalsIgnoreCase("players") || args[0].equalsIgnoreCase("p")) command = "list players";
         else if(args[0].equalsIgnoreCase("staff") || args[0].equalsIgnoreCase("s")) command = "list staff";
         if(command != null) {
-            PlayerData playerData = ServerDatabase.getPlayerData(sender.getName());
             switch(command) {
                 case "list players":
                     StringBuilder playerBuilder = new StringBuilder();
@@ -92,8 +84,8 @@ public class ListCommand implements CommandInterface, DiscordCommand {
     }
 
     @Override
-    public void execute(MessageReceivedEvent event) {
-        String message = event.getMessage().getContentDisplay();
+    public void execute(SlashCommandEvent event) {
+        String message = event.getCommandPath().trim().replace("/", " ").toLowerCase();
         String command = null;
         String[] split = message.split(" ");
         String[] args = Arrays.copyOfRange(split, 1, split.length);
@@ -114,7 +106,17 @@ public class ListCommand implements CommandInterface, DiscordCommand {
                         if(playerState.isAdmin()) builder.append(playerState.getName()).append(" [").append(playerState.getFactionName()).append("]\n");
                     }
             }
-            StarBridge.instance.botThread.getBot().sendTimedMessageFromBot(builder.toString().trim(), 15);
+            event.reply(builder.toString().trim()).queue();
         }
+    }
+
+    @Override
+    public CommandUpdateAction.CommandData getCommandData() {
+        CommandUpdateAction.CommandData commandData = new CommandUpdateAction.CommandData(getCommand(), getDescription());
+        CommandUpdateAction.OptionData optionData = new CommandUpdateAction.OptionData(Command.OptionType.STRING, "list", "The data to list");
+        optionData.addChoice("players", "players");
+        optionData.addChoice("staff", "staff");
+        commandData.addOption(optionData);
+        return commandData;
     }
 }
