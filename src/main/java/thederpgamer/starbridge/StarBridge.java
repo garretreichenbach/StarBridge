@@ -9,6 +9,8 @@ import api.mod.StarMod;
 import api.mod.config.FileConfiguration;
 import api.mod.config.PersistentObjectUtil;
 import api.utils.StarRunnable;
+import net.dv8tion.jda.api.exceptions.RateLimitedException;
+import thederpgamer.starbridge.server.ServerDatabase;
 import thederpgamer.starbridge.server.bot.BotThread;
 import thederpgamer.starbridge.server.bot.DiscordBot;
 import thederpgamer.starbridge.server.bot.commands.LinkCommand;
@@ -173,5 +175,30 @@ public class StarBridge extends StarMod {
 
     public DiscordBot getBot() {
         return botThread.getBot();
+    }
+
+    public String getAvatarURL(String playerName) {
+        if(ServerDatabase.getPlayerData(playerName) != null) {
+            long discordId = ServerDatabase.getPlayerData(playerName).getDiscordId();
+            if(discordId != -1) {
+                try {
+                    return getBot().bot.retrieveUserById(discordId).complete(true).getEffectiveAvatarUrl();
+                } catch(RateLimitedException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+        return botAvatar;
+    }
+
+    public String getEmoteURL(String emoteName) {
+        return getBot().bot.getEmotesByName(emoteName, true).get(0).getImageUrl();
+    }
+
+    public long getUserId(String playerName) {
+        if(ServerDatabase.getPlayerData(playerName) != null) {
+            return ServerDatabase.getPlayerData(playerName).getDiscordId();
+        }
+        return -1;
     }
 }

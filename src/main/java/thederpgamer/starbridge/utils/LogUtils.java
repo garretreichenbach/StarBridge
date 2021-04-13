@@ -26,7 +26,7 @@ public class LogUtils {
                 for(File logFile : logsFolder.listFiles()) {
                     String fileName = logFile.getName().replace(".txt", "");
                     int logNumber = Integer.parseInt(fileName.substring(fileName.indexOf("log") + 3));
-                    if(logNumber < StarBridge.instance.maxWorldLogs - 1) logFile.renameTo(new File("log" + (logNumber + 1)));
+                    if(logNumber < StarBridge.instance.maxWorldLogs - 1) logFile.renameTo(new File(logFolderPath + "/log" + (logNumber + 1) + ".txt"));
                     else logFile.delete();
                 }
             }

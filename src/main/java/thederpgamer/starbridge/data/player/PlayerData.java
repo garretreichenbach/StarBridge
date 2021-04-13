@@ -32,7 +32,7 @@ public class PlayerData implements Serializable {
     }
 
     public String getFactionName() {
-        return (getFaction() == null) ? "No Faction" : getFaction().getName();
+        return (getFaction() == null) ? "Non-Aligned" : getFaction().getName();
     }
 
     public Faction getFaction() {

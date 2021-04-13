@@ -112,7 +112,7 @@ public class DiscordBot extends ListenerAdapter {
     }
 
     public String getBotName() {
-        return bot.getSelfUser().getName();
+        return StarBridge.instance.botName;
     }
 
     public void handleEvent(Event event) {
@@ -123,8 +123,19 @@ public class DiscordBot extends ListenerAdapter {
             PlayerChatEvent playerChatEvent = (PlayerChatEvent) event;
             if(!playerChatEvent.getMessage().sender.startsWith("[DISCORD]: ") && !playerChatEvent.getText().equals(lastMessage)) {
                 PlayerData playerData = ServerDatabase.getPlayerData(playerChatEvent.getMessage().sender);
-                if(playerData != null) sendMessageFromServer(playerData, playerChatEvent.getText());
-                else LogUtils.logMessage(MessageType.ERROR, "Player " + playerChatEvent.getMessage().sender + " doesn't exist in database!");
+                if(StarLoader.getModFromName("BetterChat") != null) {
+                    StringBuilder builder = new StringBuilder();
+                    char[] charArray = playerChatEvent.getText().toCharArray();
+                    for(int i = 0; i < charArray.length; i ++) {
+                        if(charArray[i] == '&') i ++;
+                        else builder.append(charArray[i]);
+                    }
+                    if(playerData != null) sendMessageFromServer(playerData, builder.toString());
+                    else LogUtils.logMessage(MessageType.ERROR, "Player " + playerChatEvent.getMessage().sender + " doesn't exist in database!");
+                } else {
+                    if(playerData != null) sendMessageFromServer(playerData, playerChatEvent.getText());
+                    else LogUtils.logMessage(MessageType.ERROR, "Player " + playerChatEvent.getMessage().sender + " doesn't exist in database!");
+                }
             }
         } else if(event instanceof PlayerJoinWorldEvent) {
             PlayerJoinWorldEvent playerJoinWorldEvent = (PlayerJoinWorldEvent) event;
@@ -192,8 +203,10 @@ public class DiscordBot extends ListenerAdapter {
                         argIndex ++;
                     } else builder.append(word);
                 }
-                sendMessageFromBot(builder.toString().trim());
-                GameClient.getClientState().getChat().addToVisibleChat("[" + getBotName() + "] " + builder.toString().trim(), "[ALL]", false);
+                try {
+                    sendMessageFromBot(builder.toString().trim());
+                    GameClient.getClientState().getChat().addToVisibleChat("[" + getBotName() + "] " + builder.toString().trim(), "[ALL]", false);
+                } catch(Exception ignored) { }
             } else LogUtils.logMessage(MessageType.ERROR, "Invalid message arguments count! Should be " + argsCount / 2 + " arguments but only found " + args.length + ".");
         }
     }
@@ -221,7 +234,7 @@ public class DiscordBot extends ListenerAdapter {
                 e.printStackTrace();
             }
         } else resetWebhook();
-        chatWebhook.setUsername(playerData.getPlayerName());
+        chatWebhook.setUsername("[" + playerData.getFactionName() + "] " + playerData.getPlayerName());
         if(message.contains(":")) {
             StringBuilder builder = new StringBuilder();
             StringBuilder emoteBuilder = new StringBuilder();
