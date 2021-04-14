@@ -72,6 +72,7 @@ public class StarBridge extends StarMod {
         initConfig();
         doOverwrites();
         initialize();
+        registerPackets();
         registerCommands();
         registerListeners();
         startRunners();
@@ -96,6 +97,10 @@ public class StarBridge extends StarMod {
     private void initialize() {
         LogUtils.initialize();
         (botThread = new BotThread(botToken, chatWebhook, channelId)).start();
+    }
+
+    private void registerPackets() {
+
     }
 
     private void registerCommands() {
@@ -197,6 +202,8 @@ public class StarBridge extends StarMod {
         return botThread.getBot();
     }
 
+
+    //API Methods
     public String getAvatarURL(String playerName) {
         if(ServerDatabase.getPlayerData(playerName) != null) {
             long discordId = ServerDatabase.getPlayerData(playerName).getDiscordId();
@@ -220,5 +227,13 @@ public class StarBridge extends StarMod {
             return ServerDatabase.getPlayerData(playerName).getDiscordId();
         }
         return -1;
+    }
+
+    public void sendMessageToServer(String message) {
+        getBot().sendMessageToServer(message);
+    }
+
+    public void sendMessageToDiscord(String message) {
+        getBot().sendMessageToDiscord(message);
     }
 }

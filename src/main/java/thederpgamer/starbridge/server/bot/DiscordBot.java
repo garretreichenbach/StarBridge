@@ -208,7 +208,7 @@ public class DiscordBot extends ListenerAdapter {
                     } else builder.append(word);
                 }
                 try {
-                    sendMessageFromBot(builder.toString().trim());
+                    sendMessageToDiscord(builder.toString().trim());
                     GameClient.getClientState().getChat().addToVisibleChat("[" + getBotName() + "] " + builder.toString().trim(), "[GENERAL]", false);
                 } catch(Exception ignored) { }
             } else LogUtils.logMessage(MessageType.ERROR, "Invalid message arguments count! Should be " + argsCount / 2 + " arguments but only found " + args.length + ".");
@@ -259,7 +259,11 @@ public class DiscordBot extends ListenerAdapter {
         resetWebhook();
     }
 
-    public void sendMessageFromBot(String message) {
+    public void sendMessageToServer(String message) {
+        GameClient.getClientState().getChat().addToVisibleChat("[" + getBotName() + "] " + message.trim(), "[GENERAL]", false);
+    }
+
+    public void sendMessageToDiscord(String message) {
         chatWebhook.setContent(message);
         try {
             chatWebhook.execute();
@@ -302,12 +306,12 @@ public class DiscordBot extends ListenerAdapter {
 
     @Override
     public void onReady(@NotNull ReadyEvent event) {
-        sendMessageFromBot(serverStartMessage);
+        sendMessageToDiscord(serverStartMessage);
     }
 
     @Override
     public void onShutdown(@NotNull ShutdownEvent event) {
-        sendMessageFromBot(serverStopMessage);
+        sendMessageToDiscord(serverStopMessage);
     }
 
     @Override
@@ -326,7 +330,7 @@ public class DiscordBot extends ListenerAdapter {
     public void onMessageReceived(MessageReceivedEvent event) {
         String content = event.getMessage().getContentDisplay();
         if(content.length() > 0) {
-            if(!event.getAuthor().isBot()) {
+            if(!event.getAuthor().isBot() && !event.isWebhookMessage()) {
                 if(event.getChannel().getIdLong() == channelId) {
                     if(content.charAt(0) != '/') {
                         GameClient.getClientState().getChat().addToVisibleChat("[" + event.getAuthor().getName() + "] " + event.getMessage().getContentDisplay(), "[GENERAL]", false);
