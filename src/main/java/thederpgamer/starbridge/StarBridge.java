@@ -16,11 +16,9 @@ import net.dv8tion.jda.api.exceptions.RateLimitedException;
 import thederpgamer.starbridge.server.ServerDatabase;
 import thederpgamer.starbridge.server.bot.BotThread;
 import thederpgamer.starbridge.server.bot.DiscordBot;
-import thederpgamer.starbridge.server.commands.ClearCommand;
-import thederpgamer.starbridge.server.commands.HelpDiscordCommand;
-import thederpgamer.starbridge.server.commands.LinkCommand;
-import thederpgamer.starbridge.server.commands.ListCommand;
+import thederpgamer.starbridge.server.commands.*;
 import thederpgamer.starbridge.utils.LogUtils;
+
 import java.lang.reflect.Field;
 
 /**
@@ -50,7 +48,8 @@ public class StarBridge extends StarMod {
             "server-id: SERVER ID",
             "chat-webhook: WEBHOOK",
             "channel-id: CHANNEL ID",
-            "admin-role-id: ADMIN ROLE ID"
+            "admin-role-id: ADMIN ROLE ID",
+            "default-shutdown-timer: 15"
     };
     public boolean debugMode = false;
     public long autoSaveFrequency = 10000;
@@ -62,6 +61,7 @@ public class StarBridge extends StarMod {
     public String chatWebhook;
     public long channelId;
     public long adminRoleId;
+    public int defaultShutdownTimer = 15;
 
     //Data
     public BotThread botThread;
@@ -92,6 +92,7 @@ public class StarBridge extends StarMod {
         chatWebhook = "https://" + config.getString("chat-webhook");
         channelId = config.getLong("channel-id");
         adminRoleId = config.getLong("admin-role-id");
+        defaultShutdownTimer = config.getConfigurableInt("default-shutdown-timer", 15);
     }
 
     private void initialize() {
@@ -107,6 +108,7 @@ public class StarBridge extends StarMod {
         StarLoader.registerCommand(new ListCommand());
         StarLoader.registerCommand(new LinkCommand());
         StarLoader.registerCommand(new ClearCommand());
+        StarLoader.registerCommand(new StopCommand());
     }
 
     private void registerListeners() {

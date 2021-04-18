@@ -48,7 +48,7 @@ public class LinkCommand implements CommandInterface, DiscordCommand {
     }
 
     @Override
-    public boolean onCommand(PlayerState playerState, String[] strings) {
+    public boolean onCommand(PlayerState playerState, String[] args) {
         StarBridge.instance.botThread.getBot().addLinkRequest(playerState);
         return true;
     }
@@ -60,7 +60,7 @@ public class LinkCommand implements CommandInterface, DiscordCommand {
 
     @Override
     public StarMod getMod() {
-        return null;
+        return StarBridge.instance;
     }
 
     @Override

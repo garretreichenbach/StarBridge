@@ -273,7 +273,7 @@ public class DiscordBot extends ListenerAdapter {
         resetWebhook();
     }
 
-    private void resetWebhook() {
+    public void resetWebhook() {
         chatWebhook.setUsername(getBotName());
         chatWebhook.setAvatarUrl(StarBridge.instance.botAvatar);
         chatWebhook.setContent("");
@@ -304,14 +304,22 @@ public class DiscordBot extends ListenerAdapter {
         return null;
     }
 
+    public void sendServerStartMessage() {
+        sendMessageToDiscord(serverStartMessage);
+    }
+
+    public void sendServerStopMessage() {
+        sendMessageToDiscord(serverStopMessage);
+    }
+
     @Override
     public void onReady(@NotNull ReadyEvent event) {
-        sendMessageToDiscord(serverStartMessage);
+        sendServerStartMessage();
     }
 
     @Override
     public void onShutdown(@NotNull ShutdownEvent event) {
-        sendMessageToDiscord(serverStopMessage);
+        sendServerStopMessage();
     }
 
     @Override
