@@ -91,7 +91,7 @@ public class DiscordBot extends ListenerAdapter {
 
         CommandUpdateAction commands = bot.updateCommands();
         for(CommandInterface commandInterface : StarLoader.getAllCommands()) {
-            if(commandInterface instanceof DiscordCommand) commands.addCommands(((DiscordCommand) commandInterface).getCommandData());
+            if(commandInterface instanceof DiscordCommand) commands.addCommands(((DiscordCommand) commandInterface).getCommandData()).queue();
         }
         commands.queue();
     }

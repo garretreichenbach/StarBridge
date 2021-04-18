@@ -9,7 +9,6 @@ import org.jetbrains.annotations.Nullable;
 import org.schema.game.common.data.player.PlayerState;
 import thederpgamer.starbridge.StarBridge;
 import thederpgamer.starbridge.utils.LogUtils;
-
 import java.util.Arrays;
 
 /**

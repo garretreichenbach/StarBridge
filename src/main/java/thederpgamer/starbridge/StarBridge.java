@@ -71,10 +71,10 @@ public class StarBridge extends StarMod {
         instance = this;
         initConfig();
         doOverwrites();
-        initialize();
         registerPackets();
         registerCommands();
         registerListeners();
+        initialize();
         startRunners();
     }
 
