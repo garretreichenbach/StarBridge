@@ -18,7 +18,6 @@ import thederpgamer.starbridge.server.bot.BotThread;
 import thederpgamer.starbridge.server.bot.DiscordBot;
 import thederpgamer.starbridge.server.commands.*;
 import thederpgamer.starbridge.utils.LogUtils;
-
 import java.lang.reflect.Field;
 
 /**
@@ -72,7 +71,6 @@ public class StarBridge extends StarMod {
         initConfig();
         doOverwrites();
         registerPackets();
-        registerCommands();
         registerListeners();
         initialize();
         startRunners();
@@ -102,13 +100,6 @@ public class StarBridge extends StarMod {
 
     private void registerPackets() {
 
-    }
-
-    private void registerCommands() {
-        StarLoader.registerCommand(new ListCommand());
-        StarLoader.registerCommand(new LinkCommand());
-        StarLoader.registerCommand(new ClearCommand());
-        StarLoader.registerCommand(new StopCommand());
     }
 
     private void registerListeners() {

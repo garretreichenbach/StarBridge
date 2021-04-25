@@ -90,8 +90,8 @@ public class LinkCommand implements CommandInterface, DiscordCommand {
 
     @Override
     public CommandUpdateAction.CommandData getCommandData() {
-        CommandUpdateAction.CommandData commandData = new CommandUpdateAction.CommandData(getCommand(), getDescription());
-        commandData.addOption(new CommandUpdateAction.OptionData(Command.OptionType.INTEGER, "link code", "The link code to use").setRequired(true));
+        CommandUpdateAction.CommandData commandData = new CommandUpdateAction.CommandData(getCommand(), "Links your Discord and StarMade accounts using the provided link code");
+        commandData.addOption(new CommandUpdateAction.OptionData(Command.OptionType.INTEGER, "link_code", "The link code to use").setRequired(true));
         return commandData;
     }
 }

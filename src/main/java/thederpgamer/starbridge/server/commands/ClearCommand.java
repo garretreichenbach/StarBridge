@@ -85,6 +85,6 @@ public class ClearCommand implements CommandInterface, DiscordCommand {
 
     @Override
     public CommandUpdateAction.CommandData getCommandData() {
-        return new CommandUpdateAction.CommandData(getCommand(), getDescription());
+        return new CommandUpdateAction.CommandData(getCommand(), "Clears old data of the specified type");
     }
 }

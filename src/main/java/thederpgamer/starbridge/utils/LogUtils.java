@@ -2,7 +2,7 @@ package thederpgamer.starbridge.utils;
 
 import org.schema.game.network.objects.ChatMessage;
 import thederpgamer.starbridge.StarBridge;
-import thederpgamer.starbridge.server.ChatChannels;
+
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -88,10 +88,10 @@ public class LogUtils {
         if(messageType.equals(MessageType.CRITICAL)) System.exit(1);
     }
 
-    public static void logChat(ChatMessage chatMessage) {
+    public static void logChat(ChatMessage chatMessage, String channel) {
         try {
             StringBuilder builder = new StringBuilder();
-            String prefix = ChatChannels.fromChatChannel(chatMessage.getChannel()) + "[" + chatMessage.sender + "]: ";
+            String prefix = "[" + channel + "]" + "[" + chatMessage.sender + "]: ";
             builder.append(prefix);
             String message = chatMessage.text;
             String[] lines = message.split("\n");

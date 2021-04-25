@@ -36,7 +36,7 @@ public class HelpDiscordCommand extends HelpCommand implements DiscordCommand {
 
     @Override
     public CommandUpdateAction.CommandData getCommandData() {
-        CommandUpdateAction.CommandData commandData = new CommandUpdateAction.CommandData(getCommand(), getDescription());
+        CommandUpdateAction.CommandData commandData = new CommandUpdateAction.CommandData(getCommand(), "Displays description and usages for a specified command");
         commandData.addOption(new CommandUpdateAction.OptionData(Command.OptionType.STRING, "command", "The command's name or alias").setRequired(true));
         return commandData;
     }

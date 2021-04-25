@@ -9,7 +9,6 @@ import net.dv8tion.jda.api.events.interaction.SlashCommandEvent;
 import net.dv8tion.jda.api.requests.restaction.CommandUpdateAction;
 import org.schema.game.common.data.player.PlayerState;
 import thederpgamer.starbridge.StarBridge;
-
 import javax.annotation.Nullable;
 import java.util.Arrays;
 
@@ -100,11 +99,13 @@ public class ListCommand implements CommandInterface, DiscordCommand {
                     for(PlayerState playerState : GameServer.getServerState().getPlayerStatesByName().values()) {
                         builder.append(playerState.getName()).append(" [").append(playerState.getFactionName()).append("]\n");
                     }
+                    break;
                 case "list staff":
                     builder.append("Current Online Staff:\n");
                     for(PlayerState playerState : GameServer.getServerState().getPlayerStatesByName().values()) {
                         if(playerState.isAdmin()) builder.append(playerState.getName()).append(" [").append(playerState.getFactionName()).append("]\n");
                     }
+                    break;
             }
             event.reply(builder.toString().trim()).queue();
         }
@@ -112,7 +113,7 @@ public class ListCommand implements CommandInterface, DiscordCommand {
 
     @Override
     public CommandUpdateAction.CommandData getCommandData() {
-        CommandUpdateAction.CommandData commandData = new CommandUpdateAction.CommandData(getCommand(), getDescription());
+        CommandUpdateAction.CommandData commandData = new CommandUpdateAction.CommandData("list", "Lists the specified server info");
         CommandUpdateAction.OptionData optionData = new CommandUpdateAction.OptionData(Command.OptionType.STRING, "list", "The data to list");
         optionData.addChoice("players", "players");
         optionData.addChoice("staff", "staff");

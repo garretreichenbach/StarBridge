@@ -29,10 +29,11 @@ import thederpgamer.starbridge.data.config.ConfigFile;
 import thederpgamer.starbridge.data.player.PlayerData;
 import thederpgamer.starbridge.server.DiscordWebhook;
 import thederpgamer.starbridge.server.ServerDatabase;
-import thederpgamer.starbridge.server.commands.DiscordCommand;
+import thederpgamer.starbridge.server.commands.*;
 import thederpgamer.starbridge.utils.DataUtils;
 import thederpgamer.starbridge.utils.LogUtils;
 import thederpgamer.starbridge.utils.MessageType;
+
 import javax.security.auth.login.LoginException;
 import java.io.IOException;
 import java.util.*;
@@ -66,9 +67,9 @@ public class DiscordBot extends ListenerAdapter {
     private String factionLeaveMessage = ":heavy_minus_sign: %PLAYER_NAME% has left %FACTION_NAME%";
     private String factionAllyMessage = ":shield: %FACTION_NAME_1% is now allied with %FACTION_NAME_2%";
     private String factionWarMessage = ":crossed_swords: %FACTION_NAME_1% is now at war with %FACTION_NAME_2%";
-    private String playerKillByPlayerMessage = ":skull_crossbones: %PLAYER_NAME_1% [%PLAYER_1_FACTION_NAME%] was slain by %PLAYER_NAME_2% [%PLAYER_2_FACTION_NAME%]";
-    private String playerKillByEntityMessage = ":skull_crossbones: %PLAYER_NAME% [%PLAYER_FACTION_NAME%] was slain by %ENTITY_NAME% [%ENTITY_FACTION_NAME%]";
-    private String playerKillByOtherMessage = ":skull_crossbones: %PLAYER_NAME% [%PLAYER_FACTION_NAME%] has died";
+    private String playerKillByPlayerMessage = ":skull_crossbones: %PLAYER_NAME_1% %PLAYER_1_FACTION_NAME% was slain by %PLAYER_NAME_2% %PLAYER_2_FACTION_NAME%";
+    private String playerKillByEntityMessage = ":skull_crossbones: %PLAYER_NAME% %PLAYER_FACTION_NAME% was slain by %ENTITY_NAME% %ENTITY_FACTION_NAME%";
+    private String playerKillByOtherMessage = ":skull_crossbones: %PLAYER_NAME% %PLAYER_FACTION_NAME% has died";
 
     public DiscordBot(String token, String chatWebhook, long channelId) {
         this.token = token;
@@ -88,12 +89,7 @@ public class DiscordBot extends ListenerAdapter {
         } catch(LoginException exception) {
             exception.printStackTrace();
         }
-
-        CommandUpdateAction commands = bot.updateCommands();
-        for(CommandInterface commandInterface : StarLoader.getAllCommands()) {
-            if(commandInterface instanceof DiscordCommand) commands.addCommands(((DiscordCommand) commandInterface).getCommandData()).queue();
-        }
-        commands.queue();
+        registerCommands();
     }
 
     public void initializeConfig() {
@@ -112,6 +108,31 @@ public class DiscordBot extends ListenerAdapter {
         playerKillByEntityMessage = messageConfig.getConfigurableValue("player-kill-by-entity-message", playerKillByEntityMessage);
         playerKillByOtherMessage = messageConfig.getConfigurableValue("player-kill-by-other-message", playerKillByOtherMessage);
         messageConfig.saveConfig();
+    }
+
+    private void registerCommands() {
+        CommandInterface[] commandArray = new CommandInterface[] {
+                new ListCommand(),
+                new LinkCommand(),
+                new ClearCommand(),
+                new RestartCommand()
+        };
+        CommandUpdateAction commands = bot.updateCommands();
+
+        //Todo: Remove this later
+        long stopId = 0;
+        for(Command cmd : bot.retrieveCommands().complete()) {
+            if(cmd.getName().toLowerCase().contains("stop")) stopId = cmd.getIdLong();
+        }
+        if(stopId != 0) bot.deleteCommandById(stopId).queue();
+        //
+
+        for(CommandInterface commandInterface : commandArray) {
+            StarLoader.registerCommand(commandInterface);
+            commands.addCommands(((DiscordCommand) commandInterface).getCommandData()).queue();
+            LogUtils.logMessage(MessageType.INFO, "Registered command /" +  commandInterface.getCommand());
+        }
+        commands.queue();
     }
 
     public String getBotName() {
@@ -139,7 +160,7 @@ public class DiscordBot extends ListenerAdapter {
                     if(playerData != null) sendMessageFromServer(playerData, playerChatEvent.getText(), playerChatEvent.getMessage());
                     else LogUtils.logMessage(MessageType.ERROR, "Player " + playerChatEvent.getMessage().sender + " doesn't exist in database!");
                 }
-                LogUtils.logChat(playerChatEvent.getMessage());
+                LogUtils.logChat(playerChatEvent.getMessage(), "GENERAL");
             }
         } else if(event instanceof PlayerJoinWorldEvent) {
             PlayerJoinWorldEvent playerJoinWorldEvent = (PlayerJoinWorldEvent) event;
@@ -209,8 +230,11 @@ public class DiscordBot extends ListenerAdapter {
                 }
                 try {
                     sendMessageToDiscord(builder.toString().trim());
-                    GameClient.getClientState().getChat().addToVisibleChat("[" + getBotName() + "] " + builder.toString().trim(), "[GENERAL]", false);
-                } catch(Exception ignored) { }
+                    GameClient.getClientState().chat(GameClient.getClientState().getChat(), builder.toString().trim(), "[" + getBotName() + "]", false);
+                } catch(Exception exception) {
+                    exception.printStackTrace();
+                    LogUtils.logMessage(MessageType.ERROR, "Exception encountered while trying to send message from bot:\n" + exception.getMessage());
+                }
             } else LogUtils.logMessage(MessageType.ERROR, "Invalid message arguments count! Should be " + argsCount / 2 + " arguments but only found " + args.length + ".");
         }
     }
@@ -238,9 +262,11 @@ public class DiscordBot extends ListenerAdapter {
                         builder.append(c);
                         try {
                             Emote emote = bot.getEmotesByName(emoteBuilder.toString(), true).get(0);
-                            builder.append(emote.getIdLong());
+                            if(emote.getGuild() != null) {
+                                builder.append(emote.getIdLong());
+                                builder.append('>');
+                            } else builder.deleteCharAt(builder.lastIndexOf("<"));
                         } catch(Exception ignored) { }
-                        builder.append('>');
                         emoteMode = false;
                         emoteBuilder = new StringBuilder();
                         continue;
@@ -248,7 +274,7 @@ public class DiscordBot extends ListenerAdapter {
                 } else if(emoteMode) emoteBuilder.append(c);
                 builder.append(c);
             }
-            chatWebhook.setContent(builder.toString());
+            chatWebhook.setContent(builder.toString().trim());
         } else chatWebhook.setContent(message);
         try {
             chatWebhook.execute();
@@ -260,7 +286,7 @@ public class DiscordBot extends ListenerAdapter {
     }
 
     public void sendMessageToServer(String message) {
-        GameClient.getClientState().getChat().addToVisibleChat("[" + getBotName() + "] " + message.trim(), "[GENERAL]", false);
+        GameClient.getClientState().chat(GameClient.getClientState().getChat(), message.trim(), "[" + getBotName() + "]", false);
     }
 
     public void sendMessageToDiscord(String message) {
@@ -330,18 +356,21 @@ public class DiscordBot extends ListenerAdapter {
                 if(commandInterface instanceof DiscordCommand) ((DiscordCommand) commandInterface).execute(event);
                 else event.reply("This command is only available in-game").queue();
             } else event.reply("/" + event.getCommandPath().replace("/", " ") + " is not a valid command").queue();
-            event.getHook().deleteOriginal().queue();
         }
     }
 
     @Override
     public void onMessageReceived(MessageReceivedEvent event) {
-        String content = event.getMessage().getContentDisplay();
+        String content = event.getMessage().getContentDisplay().trim();
         if(content.length() > 0) {
             if(!event.getAuthor().isBot() && !event.isWebhookMessage()) {
                 if(event.getChannel().getIdLong() == channelId) {
                     if(content.charAt(0) != '/') {
-                        GameClient.getClientState().getChat().addToVisibleChat("[" + event.getAuthor().getName() + "] " + event.getMessage().getContentDisplay(), "[GENERAL]", false);
+                        GameClient.getClientState().chat(GameClient.getClientState().getChat(), content, "[" + event.getAuthor().getName() + "]", false);
+                        ChatMessage message = new ChatMessage();
+                        message.sender = event.getAuthor().getName();
+                        message.text = event.getMessage().getContentDisplay();
+                        LogUtils.logChat(message, "GENERAL");
                     } else event.getMessage().delete().queue();
                 }
             }
