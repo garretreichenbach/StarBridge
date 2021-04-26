@@ -353,7 +353,16 @@ public class DiscordBot extends ListenerAdapter {
         if(event.getGuild() != null) {
             CommandInterface commandInterface = StarLoader.getCommand(event.getName());
             if(commandInterface != null) {
-                if(commandInterface instanceof DiscordCommand) ((DiscordCommand) commandInterface).execute(event);
+                if(commandInterface instanceof DiscordCommand) {
+                    ((DiscordCommand) commandInterface).execute(event);
+                    if(!event.isAcknowledged()) {
+                        try {
+                            event.acknowledge(true).queue();
+                        } catch(Exception exception) {
+                            LogUtils.logException("An exception occurred while trying to acknowledge command \"/" + commandInterface.getCommand() + "\"", exception);
+                        }
+                    }
+                }
                 else event.reply("This command is only available in-game").queue();
             } else event.reply("/" + event.getCommandPath().replace("/", " ") + " is not a valid command").queue();
         }
