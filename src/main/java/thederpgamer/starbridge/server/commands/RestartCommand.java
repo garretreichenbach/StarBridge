@@ -10,6 +10,7 @@ import org.apache.commons.lang3.math.NumberUtils;
 import org.jetbrains.annotations.Nullable;
 import org.schema.game.common.data.player.PlayerState;
 import thederpgamer.starbridge.StarBridge;
+
 import java.util.Arrays;
 
 /**
@@ -122,6 +123,7 @@ public class RestartCommand implements CommandInterface, DiscordCommand {
         }
         event.getHook().deleteOriginal().queue();
         if(!valid) event.reply("Incorrect usage \"/" + message + "\". Use /help restart for proper usages.").queue();
+        else event.acknowledge(true).queue();
     }
 
     @Override
