@@ -1,7 +1,7 @@
 package thederpgamer.starbridge.server.bot;
 
-import api.common.GameClient;
 import api.common.GameCommon;
+import api.common.GameServer;
 import api.listener.events.Event;
 import api.listener.events.faction.FactionCreateEvent;
 import api.listener.events.faction.FactionRelationChangeEvent;
@@ -33,7 +33,6 @@ import thederpgamer.starbridge.server.commands.*;
 import thederpgamer.starbridge.utils.DataUtils;
 import thederpgamer.starbridge.utils.LogUtils;
 import thederpgamer.starbridge.utils.MessageType;
-
 import javax.security.auth.login.LoginException;
 import java.io.IOException;
 import java.util.*;
@@ -87,7 +86,7 @@ public class DiscordBot extends ListenerAdapter {
             initializeConfig();
             LogUtils.logMessage(MessageType.INFO, "Successfully initialized bot.");
         } catch(LoginException exception) {
-            exception.printStackTrace();
+            LogUtils.logException("An exception occurred while initializing the bot", exception);
         }
         registerCommands();
     }
@@ -118,14 +117,6 @@ public class DiscordBot extends ListenerAdapter {
                 new RestartCommand()
         };
         CommandUpdateAction commands = bot.updateCommands();
-
-        //Todo: Remove this later
-        long stopId = 0;
-        for(Command cmd : bot.retrieveCommands().complete()) {
-            if(cmd.getName().toLowerCase().contains("stop")) stopId = cmd.getIdLong();
-        }
-        if(stopId != 0) bot.deleteCommandById(stopId).queue();
-        //
 
         for(CommandInterface commandInterface : commandArray) {
             StarLoader.registerCommand(commandInterface);
@@ -166,7 +157,7 @@ public class DiscordBot extends ListenerAdapter {
             PlayerJoinWorldEvent playerJoinWorldEvent = (PlayerJoinWorldEvent) event;
             if(ServerDatabase.getPlayerData(playerJoinWorldEvent.getPlayerName()) == null) {
                 String serverName = (GameCommon.getGameState() != null) ? GameCommon.getGameState().getServerName() : "the server";
-                if(serverName.equals("NoName")) serverName = "the server";
+                if(serverName.equalsIgnoreCase("NoName")) serverName = "the server";
                 sendBotEventMessage(newPlayerMessage, playerJoinWorldEvent.getPlayerName(), serverName);
                 ServerDatabase.addNewPlayerData(playerJoinWorldEvent.getPlayerName());
             } else sendBotEventMessage(playerJoinMessage, playerJoinWorldEvent.getPlayerName());
@@ -229,11 +220,13 @@ public class DiscordBot extends ListenerAdapter {
                     } else builder.append(word);
                 }
                 try {
+
                     sendMessageToDiscord(builder.toString().trim());
-                    GameClient.getClientState().chat(GameClient.getClientState().getChat(), builder.toString().trim(), "[" + getBotName() + "]", false);
+                    sendMessageToServer(getBotName(), builder.toString().trim());
+                    //GameServer.getServerState().chat(GameServer.getServerState().getChat(), builder.toString().trim(), "[" + getBotName() + "]", false);
                 } catch(Exception exception) {
-                    exception.printStackTrace();
-                    LogUtils.logMessage(MessageType.ERROR, "Exception encountered while trying to send message from bot:\n" + exception.getMessage());
+                    LogUtils.logException("An exception encountered while trying to send a message from the bot", exception);
+                    //LogUtils.logMessage(MessageType.ERROR, "Exception encountered while trying to send message from bot:\n" + exception.getMessage());
                 }
             } else LogUtils.logMessage(MessageType.ERROR, "Invalid message arguments count! Should be " + argsCount / 2 + " arguments but only found " + args.length + ".");
         }
@@ -243,8 +236,8 @@ public class DiscordBot extends ListenerAdapter {
         if(playerData.getDiscordId() != -1) {
             try {
                 chatWebhook.setAvatarUrl(bot.retrieveUserById(playerData.getDiscordId()).complete(true).getEffectiveAvatarUrl());
-            } catch(RateLimitedException e) {
-                e.printStackTrace();
+            } catch(RateLimitedException exception) {
+                LogUtils.logException("An exception occurred while trying to send a message from the server", exception);
             }
         } else resetWebhook();
         chatWebhook.setUsername("[" + playerData.getFactionName() + "] " + playerData.getPlayerName());
@@ -266,7 +259,9 @@ public class DiscordBot extends ListenerAdapter {
                                 builder.append(emote.getIdLong());
                                 builder.append('>');
                             } else builder.deleteCharAt(builder.lastIndexOf("<"));
-                        } catch(Exception ignored) { }
+                        } catch(Exception exception) {
+                            LogUtils.logException("An exception occurred while trying to fetch emote \"" + emoteBuilder.substring(emoteBuilder.toString().indexOf(":"), emoteBuilder.toString().lastIndexOf(":")).trim() + "\"", exception);
+                        }
                         emoteMode = false;
                         emoteBuilder = new StringBuilder();
                         continue;
@@ -279,14 +274,19 @@ public class DiscordBot extends ListenerAdapter {
         try {
             chatWebhook.execute();
         } catch(IOException exception) {
-            exception.printStackTrace();
+            LogUtils.logException("An exception occurred while trying to send a message from the server", exception);
         }
         lastMessage = chatMessage;
         resetWebhook();
     }
 
-    public void sendMessageToServer(String message) {
-        GameClient.getClientState().chat(GameClient.getClientState().getChat(), message.trim(), "[" + getBotName() + "]", false);
+    public void sendMessageToServer(String sender, String message) {
+        try {
+            GameServer.getServerState().chat(GameServer.getServerState().getChat(), message.trim(), "[" + sender + "]", false);
+        } catch(Exception exception) {
+            LogUtils.logException("An exception occurred while trying to send a message to the server", exception);
+            //LogUtils.logMessage(MessageType.ERROR, "Failed to send message \"[" + sender + "]: " + message.trim() + "\"\nException: " + exception.getMessage());
+        }
     }
 
     public void sendMessageToDiscord(String message) {
@@ -294,7 +294,7 @@ public class DiscordBot extends ListenerAdapter {
         try {
             chatWebhook.execute();
         } catch(IOException exception) {
-            exception.printStackTrace();
+            LogUtils.logException("An exception occurred while trying to send a message from the server", exception);
         }
         resetWebhook();
     }
@@ -366,15 +366,20 @@ public class DiscordBot extends ListenerAdapter {
             if(!event.getAuthor().isBot() && !event.isWebhookMessage()) {
                 if(event.getChannel().getIdLong() == channelId) {
                     if(content.charAt(0) != '/') {
-                        GameClient.getClientState().chat(GameClient.getClientState().getChat(), content, "[" + event.getAuthor().getName() + "]", false);
-                        ChatMessage message = new ChatMessage();
-                        message.sender = event.getAuthor().getName();
-                        message.text = event.getMessage().getContentDisplay();
-                        LogUtils.logChat(message, "GENERAL");
+                        //GameServer.getServerState().chat(GameServer.getServerState().getChat(), content, "[" + event.getAuthor().getName() + "]", false);
+                        sendMessageToServer(event.getAuthor().getName(), content.trim());
+                        logChat(event.getAuthor().getName(), content.trim());
                     } else event.getMessage().delete().queue();
                 }
             }
         }
+    }
+
+    private void logChat(String sender, String message) {
+        ChatMessage chatMessage = new ChatMessage();
+        chatMessage.sender = sender;
+        chatMessage.text = message;
+        LogUtils.logChat(chatMessage, "GENERAL");
     }
 
     public boolean hasRole(Member member, long roleId) {

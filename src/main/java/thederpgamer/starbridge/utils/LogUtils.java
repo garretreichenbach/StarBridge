@@ -63,6 +63,10 @@ public class LogUtils {
         }
     }
 
+    public static void logException(String message, Exception exception) {
+        logMessage(MessageType.ERROR, message + ":\n" + exception.getMessage());
+    }
+
     public static void logMessage(MessageType messageType, String message) {
         String prefix = "[" + DateUtils.getTimeFormatted() + "] [StarBridge] " + messageType.prefix;
         try {

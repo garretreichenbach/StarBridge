@@ -223,7 +223,7 @@ public class StarBridge extends StarMod {
     }
 
     public void sendMessageToServer(String message) {
-        getBot().sendMessageToServer(message);
+        getBot().sendMessageToServer(getBot().getBotName(), message);
     }
 
     public void sendMessageToDiscord(String message) {
