@@ -3,13 +3,13 @@ package thederpgamer.starbridge.server.commands;
 import api.mod.StarMod;
 import api.utils.game.PlayerUtils;
 import api.utils.game.chat.CommandInterface;
+import net.dv8tion.jda.api.entities.Command;
 import net.dv8tion.jda.api.events.interaction.SlashCommandEvent;
 import net.dv8tion.jda.api.requests.restaction.CommandUpdateAction;
 import org.jetbrains.annotations.Nullable;
 import org.schema.game.common.data.player.PlayerState;
 import thederpgamer.starbridge.StarBridge;
 import thederpgamer.starbridge.utils.LogUtils;
-import java.util.Arrays;
 
 /**
  * ClearCommand
@@ -65,26 +65,17 @@ public class ClearCommand implements CommandInterface, DiscordCommand {
     @Override
     public void execute(SlashCommandEvent event) {
         String message = event.getCommandPath().trim().replace("/", " ").toLowerCase();
-        String[] split = message.split(" ");
-        String command = split[0];
-        if(split.length == 1 && (command.equalsIgnoreCase("clear") || command.equalsIgnoreCase("cl"))) {
+        String dataType = event.getOption("data_type").getAsString();
+        if(dataType.equalsIgnoreCase("logs") || dataType.equalsIgnoreCase("l")) {
             LogUtils.clearLogs();
             event.reply("Successfully cleared " + (StarBridge.instance.maxWorldLogs - 1) + " logs").queue();
-        } else {
-            String[] args = Arrays.copyOfRange(split, 1, split.length);
-            if(args.length == 1) {
-                if(args[0].equalsIgnoreCase("logs") || args[0].equalsIgnoreCase("l")) {
-                    LogUtils.clearLogs();
-                    event.reply("Successfully cleared " + (StarBridge.instance.maxWorldLogs - 1) + " logs").queue();
-                    return;
-                }
-            }
-        }
-        event.reply("Incorrect usage \"" + message + "\"\nUse /help clear for proper usages").queue();
+        } else event.reply("Incorrect usage \"/" + message + "\". Use /help clear for proper usages.").queue();
     }
 
     @Override
     public CommandUpdateAction.CommandData getCommandData() {
-        return new CommandUpdateAction.CommandData(getCommand(), "Clears old data of the specified type");
+        CommandUpdateAction.CommandData commandData = new CommandUpdateAction.CommandData(getCommand(), "Clears old data of the specified type");
+        commandData.addOption(new CommandUpdateAction.OptionData(Command.OptionType.STRING, "data_type", "The type of the data to clear").setRequired(true));
+        return commandData;
     }
 }

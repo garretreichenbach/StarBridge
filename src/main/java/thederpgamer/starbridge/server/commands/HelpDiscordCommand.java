@@ -20,18 +20,14 @@ public class HelpDiscordCommand extends HelpCommand implements DiscordCommand {
 
     @Override
     public void execute(SlashCommandEvent event) {
-        String message = event.getCommandPath().trim().replace("/", " ").toLowerCase();
-        String[] split = message.split(" ");
-        if(split.length == 2) {
-            String command = split[1].replace("/", "");
-            CommandInterface commandInterface = StarLoader.getCommand(command);
-            if(commandInterface != null) {
-                if(commandInterface.isAdminOnly()) {
-                    if(isAdmin(event.getMember())) event.reply(command + ":\n" + commandInterface.getDescription().replace("%COMMAND%", command)).queue();
-                    else event.reply("You don't have permission to view command " + command).queue();
-                } else event.reply(command + ":\n" + commandInterface.getDescription().replace("%COMMAND%", command)).queue();
-            } else event.reply(command + " is not a valid command.").queue();
-        } else event.reply("Incorrect usage \"" + message + "\"\n Use /help help for proper usages").queue();
+        String command = event.getOption("command").getAsString();
+        CommandInterface commandInterface = StarLoader.getCommand(command);
+        if(commandInterface != null) {
+            if(commandInterface.isAdminOnly()) {
+                if(isAdmin(event.getMember())) event.reply(command + ":\n" + commandInterface.getDescription().replace("%COMMAND%", command)).queue();
+                else event.reply("You don't have permission to view command " + command).queue();
+            } else event.reply(command + ":\n" + commandInterface.getDescription().replace("%COMMAND%", command)).queue();
+        } else event.reply(command + " is not a valid command.").queue();
     }
 
     @Override

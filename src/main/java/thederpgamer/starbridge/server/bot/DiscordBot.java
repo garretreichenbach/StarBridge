@@ -362,6 +362,10 @@ public class DiscordBot extends ListenerAdapter {
             CommandInterface commandInterface = StarLoader.getCommand(event.getName());
             if(commandInterface != null) {
                 if(commandInterface instanceof DiscordCommand) {
+                    if(commandInterface.isAdminOnly() && !hasRole(Objects.requireNonNull(event.getMember()), StarBridge.instance.adminRoleId)) {
+                        event.reply("You don't have permission to use this command!").queue();
+                        return;
+                    }
                     ((DiscordCommand) commandInterface).execute(event);
                     if(!event.isAcknowledged()) {
                         try {
@@ -370,8 +374,7 @@ public class DiscordBot extends ListenerAdapter {
                             LogUtils.logException("An exception occurred while trying to acknowledge command \"/" + commandInterface.getCommand() + "\"", exception);
                         }
                     }
-                }
-                else event.reply("This command is only available in-game").queue();
+                } else event.reply("This command is only available in-game").queue();
             } else event.reply("/" + event.getCommandPath().replace("/", " ") + " is not a valid command").queue();
         }
     }

@@ -72,14 +72,10 @@ public class InfoPlayerCommand implements CommandInterface, DiscordCommand {
 
     @Override
     public void execute(SlashCommandEvent event) {
-        String message = event.getCommandPath().trim().replace("/", " ").toLowerCase();
-        String[] split = message.split(" ");
-        if(split.length == 2) {
-            PlayerData playerData = ServerDatabase.getPlayerData(split[1]);
-            if(playerData != null) event.reply(formatPlayerData(playerData)).queue();
-            else event.reply("Player " + split[1] + "doesn't exist!").queue();
-        } else event.reply("Incorrect usage \"/" + message + "\". Use /help info_p for proper usages.").queue();
-        event.getHook().deleteOriginal().queue();
+        String playerName = event.getOption("player_name").getAsString();
+        PlayerData playerData = ServerDatabase.getPlayerData(playerName);
+        if(playerData != null) event.reply(formatPlayerData(playerData)).queue();
+        else event.reply("Player " + playerName + "doesn't exist!").queue();
     }
 
     @Override

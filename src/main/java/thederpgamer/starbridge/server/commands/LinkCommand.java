@@ -65,25 +65,22 @@ public class LinkCommand implements CommandInterface, DiscordCommand {
 
     @Override
     public void execute(SlashCommandEvent event) {
-        String message = event.getCommandPath().trim().replace("/", " ").toLowerCase();
-        String[] split = message.split(" ");
-        if(split.length == 2) {
-            try {
-                PlayerData playerData = StarBridge.instance.botThread.getBot().getLinkRequest(Integer.parseInt(split[1]));
-                if(playerData != null) {
-                    playerData.setDiscordId(event.getUser().getIdLong());
-                    ServerDatabase.updatePlayerData(playerData);
-                    PersistentObjectUtil.save(StarBridge.instance.getSkeleton());
-                    String logMessage = "Successfully linked user " + event.getUser().getName() + " to " + playerData.getPlayerName();
-                    StarBridge.instance.botThread.getBot().removeLinkRequest(playerData);
-                    event.reply(logMessage).queue();
-                    LogUtils.logMessage(MessageType.INFO, logMessage);
-                    event.getHook().deleteOriginal().queue();
-                    return;
-                }
-            } catch(Exception e) {
-                e.printStackTrace();
+        try {
+            int linkCode = Integer.parseInt(event.getOption("link_code").getAsString());
+            PlayerData playerData = StarBridge.instance.botThread.getBot().getLinkRequest(linkCode);
+            if(playerData != null) {
+                playerData.setDiscordId(event.getUser().getIdLong());
+                ServerDatabase.updatePlayerData(playerData);
+                PersistentObjectUtil.save(StarBridge.instance.getSkeleton());
+                String logMessage = "Successfully linked user " + event.getUser().getName() + " to " + playerData.getPlayerName();
+                StarBridge.instance.botThread.getBot().removeLinkRequest(playerData);
+                event.reply(logMessage).queue();
+                LogUtils.logMessage(MessageType.INFO, logMessage);
+                event.getHook().deleteOriginal().queue();
+                return;
             }
+        } catch(Exception exception) {
+            LogUtils.logException("Failed to link user " + event.getUser().getName() + " to an in-game account.", exception);
         }
         event.reply("Sorry, but that link code is invalid").queue();
     }

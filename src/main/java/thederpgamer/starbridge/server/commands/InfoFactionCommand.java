@@ -69,14 +69,10 @@ public class InfoFactionCommand implements CommandInterface, DiscordCommand {
 
     @Override
     public void execute(SlashCommandEvent event) {
-        String message = event.getCommandPath().trim().replace("/", " ").toLowerCase();
-        String[] split = message.split(" ");
-        if(split.length == 2) {
-            Faction faction = ServerDatabase.getFaction(split[1]);
-            if(faction != null) event.reply(formatFactionData(faction)).queue();
-            else event.reply("Faction " + split[1] + "doesn't exist!").queue();
-        } else event.reply("Incorrect usage \"/" + message + "\". Use /help info_f for proper usages.").queue();
-        event.getHook().deleteOriginal().queue();
+        String factionName = event.getOption("faction_name").getAsString();
+        Faction faction = ServerDatabase.getFaction(factionName);
+        if(faction != null) event.reply(formatFactionData(faction)).queue();
+        else event.reply("Faction " + factionName + "doesn't exist!").queue();
     }
 
     @Override

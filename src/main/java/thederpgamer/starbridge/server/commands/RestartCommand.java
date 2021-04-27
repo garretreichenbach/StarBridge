@@ -10,8 +10,8 @@ import org.apache.commons.lang3.math.NumberUtils;
 import org.jetbrains.annotations.Nullable;
 import org.schema.game.common.data.player.PlayerState;
 import thederpgamer.starbridge.StarBridge;
-
 import java.util.Arrays;
+import java.util.Objects;
 
 /**
  * RestartCommand
@@ -90,40 +90,33 @@ public class RestartCommand implements CommandInterface, DiscordCommand {
     public void execute(SlashCommandEvent event) {
         String message = event.getCommandPath().trim().replace("/", " ").toLowerCase();
         String[] split = message.split(" ");
-        boolean valid = false;
-        if(split.length >= 1 && split.length < 3) {
-            if(split[0].equalsIgnoreCase("restart")) {
-                if(split.length == 1) {
+        if(split.length == 1) {
+            StarBridge.instance.getBot().resetWebhook();
+            StarBridge.instance.getBot().sendMessageToDiscord(":octagonal_sign: Server restarting in " + StarBridge.instance.defaultShutdownTimer + " seconds.");
+            GameServer.getServerState().addTimedShutdown(StarBridge.instance.defaultShutdownTimer);
+            GameServer.getServerState().addCountdownMessage(StarBridge.instance.defaultShutdownTimer, "Server restarting in " + GameServer.getServerState().getTimedShutdownSeconds() + " seconds.");
+            event.acknowledge(true).queue();
+        } else {
+            if(event.getOption("countdown") != null && NumberUtils.isNumber(event.getOption("countdown").getAsString())) {
+                int timer = Integer.parseInt(Objects.requireNonNull(event.getOption("countdown")).getAsString());
+                if(split.length > 2) {
+                    StringBuilder builder = new StringBuilder();
+                    for (String s : Arrays.copyOfRange(split, 2, split.length)) builder.append(s).append(" ");
+                    String description = builder.toString().trim();
                     StarBridge.instance.getBot().resetWebhook();
-                    StarBridge.instance.getBot().sendMessageToDiscord(":octagonal_sign: Server restarting in " + StarBridge.instance.defaultShutdownTimer + " seconds.");
-                    GameServer.getServerState().addTimedShutdown(StarBridge.instance.defaultShutdownTimer);
-                    GameServer.getServerState().addCountdownMessage(StarBridge.instance.defaultShutdownTimer, "Server restarting in " + GameServer.getServerState().getTimedShutdownSeconds() + " seconds.");
-                    valid = true;
-                } else if(split[0].equalsIgnoreCase("restart") && NumberUtils.isNumber(split[1].trim())) {
-                    int timer = Integer.parseInt(split[1].trim());
+                    StarBridge.instance.getBot().sendMessageToDiscord(":octagonal_sign: Server restarting in " + timer + " seconds.\n" + description);
+                    GameServer.getServerState().addTimedShutdown(timer);
+                    GameServer.getServerState().addCountdownMessage(timer, "Server restarting in " + GameServer.getServerState().getTimedShutdownSeconds() + " seconds.\n" + description);
+                } else {
                     StarBridge.instance.getBot().resetWebhook();
                     StarBridge.instance.getBot().sendMessageToDiscord(":octagonal_sign: Server restarting in " + timer + " seconds.");
                     GameServer.getServerState().addTimedShutdown(timer);
                     GameServer.getServerState().addCountdownMessage(timer, "Server restarting in " + GameServer.getServerState().getTimedShutdownSeconds() + " seconds.");
-                    valid = true;
                 }
-            }
-        } else {
-            if(split[0].equalsIgnoreCase("restart") && NumberUtils.isNumber(split[1])) {
-                StringBuilder builder = new StringBuilder();
-                for(String s : Arrays.copyOfRange(split, 2, split.length)) builder.append(s).append(" ");
-                String description = builder.toString().trim();
-                int timer = Integer.parseInt(split[1].trim());
-                StarBridge.instance.getBot().resetWebhook();
-                StarBridge.instance.getBot().sendMessageToDiscord(":octagonal_sign: Server restarting in " + timer + " seconds.\n" + description);
-                GameServer.getServerState().addTimedShutdown(timer);
-                GameServer.getServerState().addCountdownMessage(timer, "Server restarting in " + GameServer.getServerState().getTimedShutdownSeconds() + " seconds.\n" + description);
-                valid = true;
+                event.acknowledge(true).queue();
             }
         }
-        event.getHook().deleteOriginal().queue();
-        if(!valid) event.reply("Incorrect usage \"/" + message + "\". Use /help restart for proper usages.").queue();
-        else event.acknowledge(true).queue();
+        if(!event.isAcknowledged()) event.reply("Incorrect usage \"/" + message + "\". Use /help restart for proper usages.").queue();
     }
 
     @Override

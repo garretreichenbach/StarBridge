@@ -121,10 +121,10 @@ public class LogUtils {
             for(File logFile : logsFolder.listFiles()) {
                 int logNumber;
                 String logName = logFile.getName().replace(".txt", "");
-                if(logFile.getName().contains("chat-log")) {
-                    logNumber = Integer.parseInt(logFile.getName().substring(logName.indexOf("chat-log") + 8));
+                if(logName.contains("chat-log")) {
+                    logNumber = Integer.parseInt(logName.substring(logName.indexOf("chat-log") + 8));
                 } else {
-                    logNumber = Integer.parseInt(logFile.getName().substring(logName.indexOf("log") + 3));
+                    logNumber = Integer.parseInt(logName.substring(logName.indexOf("log") + 3));
                 }
                 if(logNumber != 0 && logNumber - 1 >= StarBridge.instance.maxWorldLogs) logFile.delete();
             }

@@ -9,8 +9,8 @@ import net.dv8tion.jda.api.events.interaction.SlashCommandEvent;
 import net.dv8tion.jda.api.requests.restaction.CommandUpdateAction;
 import org.schema.game.common.data.player.PlayerState;
 import thederpgamer.starbridge.StarBridge;
+
 import javax.annotation.Nullable;
-import java.util.Arrays;
 
 /**
  * ListCommand
@@ -85,30 +85,23 @@ public class ListCommand implements CommandInterface, DiscordCommand {
     @Override
     public void execute(SlashCommandEvent event) {
         String message = event.getCommandPath().trim().replace("/", " ").toLowerCase();
-        String command = null;
-        String[] split = message.split(" ");
-        String[] args = Arrays.copyOfRange(split, 1, split.length);
-        if(args.length == 0) command = "list players";
-        else if(args[0].equalsIgnoreCase("players") || args[0].equalsIgnoreCase("p")) command = "list players";
-        else if(args[0].equalsIgnoreCase("staff") || args[0].equalsIgnoreCase("s")) command = "list staff";
-        if(command != null) {
-            StringBuilder builder = new StringBuilder();
-            switch(command) {
-                case "list players":
-                    builder.append("Current Online Players:\n");
-                    for(PlayerState playerState : GameServer.getServerState().getPlayerStatesByName().values()) {
-                        builder.append(playerState.getName()).append(" [").append(playerState.getFactionName()).append("]\n");
-                    }
-                    break;
-                case "list staff":
-                    builder.append("Current Online Staff:\n");
-                    for(PlayerState playerState : GameServer.getServerState().getPlayerStatesByName().values()) {
-                        if(playerState.isAdmin()) builder.append(playerState.getName()).append(" [").append(playerState.getFactionName()).append("]\n");
-                    }
-                    break;
+        String type = event.getOption("list").getAsString();
+        StringBuilder builder = new StringBuilder();
+        if(type.equalsIgnoreCase("players") || type.equalsIgnoreCase("p")) {
+            builder.append("Current Online Players:\n");
+            for(PlayerState playerState : GameServer.getServerState().getPlayerStatesByName().values()) {
+                builder.append(playerState.getName()).append(" [").append(playerState.getFactionName()).append("]\n");
             }
             event.reply(builder.toString().trim()).queue();
-        } else event.acknowledge(true).queue();
+        } else if(type.equalsIgnoreCase("staff") || type.equalsIgnoreCase("s")) {
+            builder.append("Current Online Staff:\n");
+            for(PlayerState playerState : GameServer.getServerState().getPlayerStatesByName().values()) {
+                if(playerState.isAdmin()) builder.append(playerState.getName()).append(" [").append(playerState.getFactionName()).append("]\n");
+            }
+            event.reply(builder.toString().trim()).queue();
+        } else {
+            event.reply("Incorrect usage \"/" + message + "\". Use /help list for proper usages.").queue();
+        }
     }
 
     @Override
