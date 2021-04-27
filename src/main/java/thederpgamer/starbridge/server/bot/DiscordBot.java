@@ -1,7 +1,6 @@
 package thederpgamer.starbridge.server.bot;
 
 import api.common.GameCommon;
-import api.common.GameServer;
 import api.listener.events.Event;
 import api.listener.events.faction.FactionCreateEvent;
 import api.listener.events.faction.FactionRelationChangeEvent;
@@ -11,7 +10,10 @@ import api.utils.game.PlayerUtils;
 import api.utils.game.chat.CommandInterface;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
-import net.dv8tion.jda.api.entities.*;
+import net.dv8tion.jda.api.entities.Activity;
+import net.dv8tion.jda.api.entities.Emote;
+import net.dv8tion.jda.api.entities.Member;
+import net.dv8tion.jda.api.entities.Role;
 import net.dv8tion.jda.api.events.ReadyEvent;
 import net.dv8tion.jda.api.events.ShutdownEvent;
 import net.dv8tion.jda.api.events.interaction.SlashCommandEvent;
@@ -24,6 +26,8 @@ import org.schema.game.common.controller.SegmentController;
 import org.schema.game.common.data.player.PlayerState;
 import org.schema.game.common.data.player.faction.FactionRelation;
 import org.schema.game.network.objects.ChatMessage;
+import org.schema.game.server.data.GameServerState;
+import org.schema.schine.network.RegisteredClientOnServer;
 import thederpgamer.starbridge.StarBridge;
 import thederpgamer.starbridge.data.config.ConfigFile;
 import thederpgamer.starbridge.data.player.PlayerData;
@@ -33,6 +37,7 @@ import thederpgamer.starbridge.server.commands.*;
 import thederpgamer.starbridge.utils.DataUtils;
 import thederpgamer.starbridge.utils.LogUtils;
 import thederpgamer.starbridge.utils.MessageType;
+
 import javax.security.auth.login.LoginException;
 import java.io.IOException;
 import java.util.*;
@@ -114,7 +119,9 @@ public class DiscordBot extends ListenerAdapter {
                 new ListCommand(),
                 new LinkCommand(),
                 new ClearCommand(),
-                new RestartCommand()
+                new RestartCommand(),
+                new InfoPlayerCommand(),
+                new InfoFactionCommand()
         };
         CommandUpdateAction commands = bot.updateCommands();
 
@@ -281,11 +288,12 @@ public class DiscordBot extends ListenerAdapter {
     }
 
     public void sendMessageToServer(String sender, String message) {
-        try {
-            GameServer.getServerState().chat(GameServer.getServerState().getChat(), message.trim(), "[" + sender + "]", false);
-        } catch(Exception exception) {
-            LogUtils.logException("An exception occurred while trying to send a message to the server", exception);
-            //LogUtils.logMessage(MessageType.ERROR, "Failed to send message \"[" + sender + "]: " + message.trim() + "\"\nException: " + exception.getMessage());
+        for(RegisteredClientOnServer client : GameServerState.instance.getClients().values()) {
+            try {
+                client.serverMessage("[" + sender + "] " + message);
+            } catch(IOException exception) {
+                LogUtils.logException("An exception occurred while trying to send a message to the server", exception);
+            }
         }
     }
 

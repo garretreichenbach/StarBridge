@@ -35,7 +35,7 @@ public class ClearCommand implements CommandInterface, DiscordCommand {
     @Override
     public String getDescription() {
         return "Clears old data of the specified type.\n" +
-                "- %COMMAND% [logs/l] : Clears old (non-active) logs.";
+                "- /%COMMAND% [logs/l] : Clears old (non-active) logs.";
     }
 
     @Override

@@ -1,6 +1,7 @@
 package thederpgamer.starbridge;
 
 import api.ModPlayground;
+import api.common.GameServer;
 import api.listener.Listener;
 import api.listener.events.faction.FactionCreateEvent;
 import api.listener.events.faction.FactionRelationChangeEvent;
@@ -13,12 +14,15 @@ import api.utils.StarRunnable;
 import api.utils.game.chat.CommandInterface;
 import api.utils.other.HashList;
 import net.dv8tion.jda.api.exceptions.RateLimitedException;
+import org.schema.game.common.data.player.PlayerState;
 import thederpgamer.starbridge.server.ServerDatabase;
 import thederpgamer.starbridge.server.bot.BotThread;
 import thederpgamer.starbridge.server.bot.DiscordBot;
-import thederpgamer.starbridge.server.commands.*;
+import thederpgamer.starbridge.server.commands.HelpDiscordCommand;
 import thederpgamer.starbridge.utils.LogUtils;
+
 import java.lang.reflect.Field;
+import java.util.Objects;
 
 /**
  * StarBridge.java
@@ -189,12 +193,21 @@ public class StarBridge extends StarMod {
                 getBot().messageConfig.saveConfig();
             }
         }.runTimer(this, autoSaveFrequency);
+
+        //Play Timer
+        new StarRunnable() {
+            @Override
+            public void run() {
+                for(PlayerState playerState : GameServer.getServerState().getPlayerStatesByName().values()) {
+                    Objects.requireNonNull(ServerDatabase.getPlayerData(playerState.getName())).updatePlayTime(autoSaveFrequency / 2);
+                }
+            }
+        }.runTimer(this, autoSaveFrequency / 2);
     }
 
     public DiscordBot getBot() {
         return botThread.getBot();
     }
-
 
     //API Methods
     public String getAvatarURL(String playerName) {

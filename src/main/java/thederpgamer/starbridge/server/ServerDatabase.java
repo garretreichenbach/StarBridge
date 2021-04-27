@@ -1,9 +1,12 @@
 package thederpgamer.starbridge.server;
 
+import api.common.GameCommon;
 import api.mod.ModSkeleton;
 import api.mod.config.PersistentObjectUtil;
+import org.schema.game.common.data.player.faction.Faction;
 import thederpgamer.starbridge.StarBridge;
 import thederpgamer.starbridge.data.player.PlayerData;
+
 import java.util.ArrayList;
 
 /**
@@ -46,5 +49,12 @@ public class ServerDatabase {
         }
         for(PlayerData remove : toRemove) PersistentObjectUtil.removeObject(instance, remove);
         PersistentObjectUtil.addObject(instance, playerData);
+    }
+
+    public static Faction getFaction(String factionName) {
+        for(Faction faction : GameCommon.getGameState().getFactionManager().getFactionCollection()) {
+            if(faction.getName().equals(factionName)) return faction;
+        }
+        return null;
     }
 }

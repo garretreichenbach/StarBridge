@@ -39,7 +39,7 @@ public class LinkCommand implements CommandInterface, DiscordCommand {
     @Override
     public String getDescription() {
         return "Gives you a special code that can be used to link your discord account to your StarMade account on SOE.\n" +
-                "- %COMMAND% : PMs you a link code. Use /link <code> in the #bot-commands discord channel to link your accounts.";
+                "- /%COMMAND% : PMs you a link code. Use /link <code> in the #bot-commands discord channel to link your accounts.";
     }
 
     @Override

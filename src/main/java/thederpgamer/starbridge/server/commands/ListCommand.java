@@ -36,8 +36,8 @@ public class ListCommand implements CommandInterface, DiscordCommand {
     @Override
     public String getDescription() {
         return "Lists the specified server info.\n" +
-                "- %COMMAND% players : Displays the list of players currently online.\n" +
-                "- %COMMAND% staff : Displays the list of staff currently online.";
+                "- /%COMMAND% players : Displays the list of players currently online.\n" +
+                "- /%COMMAND% staff : Displays the list of staff currently online.";
     }
 
     @Override
@@ -108,7 +108,7 @@ public class ListCommand implements CommandInterface, DiscordCommand {
                     break;
             }
             event.reply(builder.toString().trim()).queue();
-        }
+        } else event.acknowledge(true).queue();
     }
 
     @Override

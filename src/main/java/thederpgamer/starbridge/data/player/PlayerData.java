@@ -2,6 +2,7 @@ package thederpgamer.starbridge.data.player;
 
 import api.common.GameCommon;
 import org.schema.game.common.data.player.faction.Faction;
+
 import java.io.Serializable;
 
 /**
@@ -52,7 +53,7 @@ public class PlayerData implements Serializable {
     }
 
     public void updatePlayTime(long timeSinceLastUpdate) {
-        playTime += timeSinceLastUpdate;
+        if(GameCommon.getPlayerFromName(playerName) != null) playTime += timeSinceLastUpdate;
     }
 
     public long getDiscordId() {

@@ -35,7 +35,7 @@ public class RestartCommand implements CommandInterface, DiscordCommand {
     @Override
     public String getDescription() {
         return "Restarts the server with an optional count down timer and description.\n" +
-                "- %COMMAND% [seconds] [description] : Restarts the server with an optional count down in seconds and a reason for the shutdown.";
+                "- /%COMMAND% [seconds] [description] : Restarts the server with an optional count down in seconds and a reason for the shutdown.";
     }
 
     @Override
@@ -128,7 +128,7 @@ public class RestartCommand implements CommandInterface, DiscordCommand {
 
     @Override
     public CommandUpdateAction.CommandData getCommandData() {
-        CommandUpdateAction.CommandData commandData = new CommandUpdateAction.CommandData(getCommand(), "Restarts the server with an optional count down timer and description");
+        CommandUpdateAction.CommandData commandData = new CommandUpdateAction.CommandData(getCommand(), "Restarts the server with an optional count down timer and description.");
         commandData.addOption(new CommandUpdateAction.OptionData(Command.OptionType.INTEGER, "countdown", "The countdown (in seconds)").setRequired(false));
         commandData.addOption(new CommandUpdateAction.OptionData(Command.OptionType.STRING, "description", "The reason for the restart").setRequired(false));
         return commandData;
