@@ -18,7 +18,7 @@ import org.schema.game.common.data.player.PlayerState;
 import thederpgamer.starbridge.server.ServerDatabase;
 import thederpgamer.starbridge.server.bot.BotThread;
 import thederpgamer.starbridge.server.bot.DiscordBot;
-import thederpgamer.starbridge.server.commands.HelpDiscordCommand;
+import thederpgamer.starbridge.server.commands.*;
 import thederpgamer.starbridge.utils.LogUtils;
 
 import java.lang.reflect.Field;
@@ -76,6 +76,7 @@ public class StarBridge extends StarMod {
         doOverwrites();
         registerPackets();
         registerListeners();
+        registerCommands();
         initialize();
         startRunners();
     }
@@ -169,6 +170,20 @@ public class StarBridge extends StarMod {
                 getBot().handleEvent(event);
             }
         }, this);
+    }
+
+    private void registerCommands() {
+        CommandInterface[] commandArray = new CommandInterface[] {
+                new ListCommand(),
+                new LinkCommand(),
+                new ClearCommand(),
+                new RestartCommand(),
+                new InfoPlayerCommand(),
+                new InfoFactionCommand()
+        };
+        for(CommandInterface commandInterface : commandArray) {
+            StarLoader.registerCommand(commandInterface);
+        }
     }
 
     private void doOverwrites() {

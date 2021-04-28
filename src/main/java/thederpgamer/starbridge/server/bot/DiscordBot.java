@@ -37,7 +37,6 @@ import thederpgamer.starbridge.server.commands.*;
 import thederpgamer.starbridge.utils.DataUtils;
 import thederpgamer.starbridge.utils.LogUtils;
 import thederpgamer.starbridge.utils.MessageType;
-
 import javax.security.auth.login.LoginException;
 import java.io.IOException;
 import java.util.*;
@@ -121,12 +120,12 @@ public class DiscordBot extends ListenerAdapter {
                 new ClearCommand(),
                 new RestartCommand(),
                 new InfoPlayerCommand(),
-                new InfoFactionCommand()
+                new InfoFactionCommand(),
+                new HelpDiscordCommand()
         };
         CommandUpdateAction commands = bot.updateCommands();
 
         for(CommandInterface commandInterface : commandArray) {
-            StarLoader.registerCommand(commandInterface);
             commands.addCommands(((DiscordCommand) commandInterface).getCommandData()).queue();
             LogUtils.logMessage(MessageType.INFO, "Registered command /" +  commandInterface.getCommand());
         }
@@ -247,7 +246,7 @@ public class DiscordBot extends ListenerAdapter {
                 LogUtils.logException("An exception occurred while trying to send a message from the server", exception);
             }
         } else resetWebhook();
-        chatWebhook.setUsername("[" + playerData.getFactionName() + "] " + playerData.getPlayerName());
+        chatWebhook.setUsername(playerData.getPlayerName() + "[" + playerData.getFactionName() + "] ");
         if(message.contains(":")) {
             StringBuilder builder = new StringBuilder();
             StringBuilder emoteBuilder = new StringBuilder();
