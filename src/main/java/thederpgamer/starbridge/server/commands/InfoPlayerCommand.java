@@ -89,7 +89,7 @@ public class InfoPlayerCommand implements CommandInterface, DiscordCommand {
         StringBuilder builder = new StringBuilder();
         builder.append("Info for ").append(playerData.getPlayerName()).append(":\n");
         builder.append("Faction: ").append(playerData.getFactionName()).append("\n");
-        builder.append("Time played: ").append(playerData.getHoursPlayed()).append(" hours\n");
+        builder.append("Time played: ").append(String.format("%,.2f", (playerData.getHoursPlayed()))).append(" hours\n");
         if(playerData.getDiscordId() != -1) {
             try {
                 String tag = StarBridge.instance.getBot().bot.retrieveUserById(playerData.getDiscordId()).complete().getAsTag();

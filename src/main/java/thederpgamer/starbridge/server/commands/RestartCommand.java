@@ -64,7 +64,7 @@ public class RestartCommand implements CommandInterface, DiscordCommand {
             if(NumberUtils.isNumber(args[0])) {
                 StringBuilder builder = new StringBuilder();
                 for(String s : Arrays.copyOfRange(args, 1, args.length)) builder.append(s).append(" ");
-                String description = builder.toString().trim();
+                String description = builder.toString().trim().replace("\"", "");
                 int timer = Integer.parseInt(args[0].trim());
                 StarBridge.instance.getBot().resetWebhook();
                 StarBridge.instance.getBot().sendMessageToDiscord(":octagonal_sign: Server restarting in " + timer + " seconds.\n" + description);
@@ -101,8 +101,8 @@ public class RestartCommand implements CommandInterface, DiscordCommand {
                 int timer = Integer.parseInt(Objects.requireNonNull(event.getOption("countdown")).getAsString());
                 if(split.length > 2) {
                     StringBuilder builder = new StringBuilder();
-                    for (String s : Arrays.copyOfRange(split, 2, split.length)) builder.append(s).append(" ");
-                    String description = builder.toString().trim();
+                    for(String s : Arrays.copyOfRange(split, 2, split.length)) builder.append(s).append(" ");
+                    String description = builder.toString().trim().replace("\"", "");
                     StarBridge.instance.getBot().resetWebhook();
                     StarBridge.instance.getBot().sendMessageToDiscord(":octagonal_sign: Server restarting in " + timer + " seconds.\n" + description);
                     GameServer.getServerState().addTimedShutdown(timer);

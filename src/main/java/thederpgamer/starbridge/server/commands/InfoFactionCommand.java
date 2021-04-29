@@ -49,10 +49,13 @@ public class InfoFactionCommand implements CommandInterface, DiscordCommand {
 
     @Override
     public boolean onCommand(PlayerState sender, String[] args) {
-        if(args.length == 1) {
-            Faction faction = ServerDatabase.getFaction(args[0]);
+        if(args.length >= 1) {
+            StringBuilder builder = new StringBuilder();
+            for(String s : args) builder.append(s).append(" ");
+            String factionName = builder.toString().trim().replace("\"", "");
+            Faction faction = ServerDatabase.getFaction(factionName);
             if(faction != null) PlayerUtils.sendMessage(sender, formatFactionData(faction));
-            else PlayerUtils.sendMessage(sender, "Faction " + args[0] + " doesn't exist!");
+            else PlayerUtils.sendMessage(sender, "Faction \"" + factionName + "\" doesn't exist!");
             return true;
         } else return false;
     }
@@ -70,7 +73,7 @@ public class InfoFactionCommand implements CommandInterface, DiscordCommand {
     @Override
     public void execute(SlashCommandEvent event) {
         String factionName = event.getOption("faction_name").getAsString();
-        Faction faction = ServerDatabase.getFaction(factionName);
+        Faction faction = ServerDatabase.getFaction(factionName.replace("\"", ""));
         if(faction != null) event.reply(formatFactionData(faction)).queue();
         else event.reply("Faction " + factionName + "doesn't exist!").queue();
     }

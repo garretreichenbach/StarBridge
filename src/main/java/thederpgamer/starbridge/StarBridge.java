@@ -200,6 +200,13 @@ public class StarBridge extends StarMod {
     }
 
     private void startRunners() {
+
+        new Runnable() {
+            @Override
+            public void run() {
+
+            }
+        };
         //Auto Saver
         new StarRunnable() {
             @Override
