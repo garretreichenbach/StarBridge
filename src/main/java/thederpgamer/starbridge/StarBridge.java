@@ -20,7 +20,6 @@ import thederpgamer.starbridge.server.bot.BotThread;
 import thederpgamer.starbridge.server.bot.DiscordBot;
 import thederpgamer.starbridge.server.commands.*;
 import thederpgamer.starbridge.utils.LogUtils;
-
 import java.lang.reflect.Field;
 import java.util.Objects;
 

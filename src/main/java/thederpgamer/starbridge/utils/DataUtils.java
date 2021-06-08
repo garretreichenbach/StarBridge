@@ -8,7 +8,7 @@ import thederpgamer.starbridge.StarBridge;
  * DataUtils
  * <Description>
  *
- * @author Garret Reichenbach
+ * @author TheDerpGamer
  * @since 04/10/2021
  */
 public class DataUtils {

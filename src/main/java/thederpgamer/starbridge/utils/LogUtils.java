@@ -2,7 +2,6 @@ package thederpgamer.starbridge.utils;
 
 import org.schema.game.network.objects.ChatMessage;
 import thederpgamer.starbridge.StarBridge;
-
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -11,7 +10,7 @@ import java.io.IOException;
  * LogUtils
  * <Description>
  *
- * @author Garret Reichenbach
+ * @author TheDerpGamer
  * @since 04/10/2021
  */
 public class LogUtils {

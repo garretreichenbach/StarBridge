@@ -220,13 +220,15 @@ public class DiscordBot extends ListenerAdapter {
                 for(int i = 0; i < words.length; i ++) {
                     if(i != 0) builder.append(" ");
                     String word = words[i];
-                    if(word.charAt(0) == '%' && word.charAt(word.length() - 1) == '%') {
+                    if(word.charAt(1) == '%' && word.charAt(word.length() - 2) == '%') {
+                        builder.append('[').append(args[argIndex]).append(']');
+                        argIndex ++;
+                    } else if(word.charAt(0) == '%' && word.charAt(word.length() - 1) == '%') {
                         builder.append(args[argIndex]);
                         argIndex ++;
                     } else builder.append(word);
                 }
                 try {
-
                     sendMessageToDiscord(builder.toString().trim());
                     sendMessageToServer(getBotName(), builder.toString().trim());
                     //GameServer.getServerState().chat(GameServer.getServerState().getChat(), builder.toString().trim(), "[" + getBotName() + "]", false);
