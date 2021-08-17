@@ -26,7 +26,7 @@ public class ServerDatabase {
             PlayerData playerData = (PlayerData) dataObject;
             if(playerData.getPlayerName().equals(playerName)) return playerData;
         }
-        return null;
+        return addNewPlayerData(playerName);
     }
 
     public static ArrayList<PlayerData> getAllPlayerData() {
@@ -36,8 +36,10 @@ public class ServerDatabase {
         return playerDataList;
     }
 
-    public static void addNewPlayerData(String playerName) {
-        PersistentObjectUtil.addObject(instance, new PlayerData(playerName));
+    public static PlayerData addNewPlayerData(String playerName) {
+        PlayerData playerData = new PlayerData(playerName);
+        PersistentObjectUtil.addObject(instance, playerData);
+        return playerData;
     }
 
     public static void updatePlayerData(PlayerData playerData) {

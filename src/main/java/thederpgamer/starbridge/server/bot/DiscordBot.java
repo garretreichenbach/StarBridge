@@ -1,6 +1,5 @@
 package thederpgamer.starbridge.server.bot;
 
-import api.common.GameCommon;
 import api.listener.events.Event;
 import api.listener.events.faction.FactionCreateEvent;
 import api.listener.events.faction.FactionRelationChangeEvent;
@@ -10,10 +9,8 @@ import api.utils.game.PlayerUtils;
 import api.utils.game.chat.CommandInterface;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
-import net.dv8tion.jda.api.entities.Activity;
-import net.dv8tion.jda.api.entities.Emote;
-import net.dv8tion.jda.api.entities.Member;
-import net.dv8tion.jda.api.entities.Role;
+import net.dv8tion.jda.api.MessageBuilder;
+import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.events.ReadyEvent;
 import net.dv8tion.jda.api.events.ShutdownEvent;
 import net.dv8tion.jda.api.events.interaction.SlashCommandEvent;
@@ -39,6 +36,9 @@ import thederpgamer.starbridge.utils.LogUtils;
 import thederpgamer.starbridge.utils.MessageType;
 import javax.security.auth.login.LoginException;
 import java.io.IOException;
+import java.io.InputStream;
+import java.net.URL;
+import java.net.URLConnection;
 import java.util.*;
 
 /**
@@ -58,7 +58,7 @@ public class DiscordBot extends ListenerAdapter {
     private HashMap<PlayerData, Integer> linkRequestMap;
     private ChatMessage lastMessage;
 
-    //Config
+    //Message Config
     public ConfigFile messageConfig;
     private String serverStartMessage = ":white_check_mark: Server Started";
     private String serverStopMessage = ":octagonal_sign: Server Stopped";
@@ -73,6 +73,8 @@ public class DiscordBot extends ListenerAdapter {
     private String playerKillByPlayerMessage = ":skull_crossbones: %PLAYER_NAME_1% %PLAYER_1_FACTION_NAME% was slain by %PLAYER_NAME_2% %PLAYER_2_FACTION_NAME%";
     private String playerKillByEntityMessage = ":skull_crossbones: %PLAYER_NAME% %PLAYER_FACTION_NAME% was slain by %ENTITY_NAME% %ENTITY_FACTION_NAME%";
     private String playerKillByOtherMessage = ":skull_crossbones: %PLAYER_NAME% %PLAYER_FACTION_NAME% has died";
+
+    private final String firstDMMessage = "You received this message from in-game but were not online to see it, so it has been delivered to you here. If you want to change this setting and more use /psettings in this DM or in the server chat channel. This is a one time message, so use /commands to see more options.";
 
     public DiscordBot(String token, String chatWebhook, long channelId) {
         this.token = token;
@@ -143,7 +145,9 @@ public class DiscordBot extends ListenerAdapter {
         } else if(event instanceof PlayerChatEvent) {
             PlayerChatEvent playerChatEvent = (PlayerChatEvent) event;
             if(lastMessage == null || !playerChatEvent.getMessage().text.equals(lastMessage.text)) {
-                PlayerData playerData = ServerDatabase.getPlayerData(playerChatEvent.getMessage().sender);
+                ChatMessage chatMessage = playerChatEvent.getMessage();
+                PlayerData playerData = ServerDatabase.getPlayerData(chatMessage.sender);
+                /*
                 if(StarLoader.getModFromName("BetterChat") != null) {
                     StringBuilder builder = new StringBuilder();
                     char[] charArray = playerChatEvent.getText().toCharArray();
@@ -151,22 +155,45 @@ public class DiscordBot extends ListenerAdapter {
                         if(charArray[i] == '&') i ++;
                         else builder.append(charArray[i]);
                     }
-                    if(playerData != null) sendMessageFromServer(playerData, builder.toString(), playerChatEvent.getMessage());
-                    else LogUtils.logMessage(MessageType.ERROR, "Player " + playerChatEvent.getMessage().sender + " doesn't exist in database!");
+                    sendMessageFromServer(playerData, builder.toString(), playerChatEvent.getMessage());
                 } else {
-                    if(playerData != null) sendMessageFromServer(playerData, playerChatEvent.getText(), playerChatEvent.getMessage());
-                    else LogUtils.logMessage(MessageType.ERROR, "Player " + playerChatEvent.getMessage().sender + " doesn't exist in database!");
+                    sendMessageFromServer(playerData, playerChatEvent.getText(), playerChatEvent.getMessage());
                 }
-                LogUtils.logChat(playerChatEvent.getMessage(), "GENERAL");
+                 */
+
+                switch(playerChatEvent.getMessage().receiverType) {
+                    case DIRECT:
+                        PlayerData receiverData = ServerDatabase.getPlayerData(chatMessage.receiver);
+                        User receiver = bot.retrieveUserById(receiverData.getDiscordId()).complete();
+                        if(receiver != null) {
+                            StringBuilder dmBuilder = new StringBuilder();
+                            if(receiverData.isFirstDM()) {
+                                dmBuilder.append(firstDMMessage).append('\n');
+                                receiverData.setFirstDM(false);
+                            }
+                            dmBuilder.append(chatMessage.sender).append(": ");
+                            dmBuilder.append(chatMessage.text);
+                            sendPrivateMessage(playerData, receiverData, dmBuilder.toString());
+                            //message = (new MessageBuilder(dmBuilder.toString())).build();
+                            //channel = receiver.openPrivateChannel().complete();
+                        }
+                        LogUtils.logChat(chatMessage, "PM WITH " + chatMessage.receiver);
+                        break;
+                    case SYSTEM: //Not sure what this is, maybe global chat?
+
+                        break;
+                    case CHANNEL:
+                        if(chatMessage.getChannel() == null || chatMessage.receiver.equals("all")) {
+                            sendMessageFromServer(playerData, chatMessage.text, chatMessage);
+                            LogUtils.logChat(chatMessage, "GENERAL" + chatMessage.receiver);
+                        }
+                        break;
+                }
             }
         } else if(event instanceof PlayerJoinWorldEvent) {
             PlayerJoinWorldEvent playerJoinWorldEvent = (PlayerJoinWorldEvent) event;
-            if(ServerDatabase.getPlayerData(playerJoinWorldEvent.getPlayerName()) == null) {
-                String serverName = (GameCommon.getGameState() != null) ? GameCommon.getGameState().getServerName() : "the server";
-                if(serverName.equalsIgnoreCase("NoName")) serverName = "the server";
-                sendBotEventMessage(newPlayerMessage, playerJoinWorldEvent.getPlayerName(), serverName);
-                ServerDatabase.addNewPlayerData(playerJoinWorldEvent.getPlayerName());
-            } else sendBotEventMessage(playerJoinMessage, playerJoinWorldEvent.getPlayerName());
+            ServerDatabase.getPlayerData(playerJoinWorldEvent.getPlayerName());
+            sendBotEventMessage(playerJoinMessage, playerJoinWorldEvent.getPlayerName());
         } else if(event instanceof PlayerLeaveWorldEvent) {
             sendBotEventMessage(playerLeaveMessage, ((PlayerLeaveWorldEvent) event).getPlayerName());
         } else if(event instanceof FactionCreateEvent) {
@@ -240,6 +267,71 @@ public class DiscordBot extends ListenerAdapter {
         }
     }
 
+    public void setBotAvatar(String link) throws IOException {
+        Icon.IconType type = getImageType(link);
+        URL url = new URL(link);
+        URLConnection urlConnection = url.openConnection();
+        urlConnection.setRequestProperty("User-Agent", "NING/1.0");
+        InputStream stream = urlConnection.getInputStream();
+        bot.getSelfUser().getManager().setAvatar(Icon.from(stream, type)).queue();
+    }
+
+    private Icon.IconType getImageType(String link) {
+        if(link.toLowerCase().endsWith(".png")) return Icon.IconType.PNG;
+        else if(link.toLowerCase().endsWith(".jpeg") || link.toLowerCase().endsWith(".jpg")) return Icon.IconType.JPEG;
+        else if(link.toLowerCase().endsWith(".webp")) return Icon.IconType.WEBP;
+        else if(link.toLowerCase().endsWith(".gif")) return Icon.IconType.GIF;
+        else return Icon.IconType.UNKNOWN;
+    }
+
+    public void sendPrivateMessage(PlayerData sender, PlayerData receiver, String message) {
+        if(sender.getDiscordId() != -1) {
+            try {
+                setBotAvatar(bot.retrieveUserById(sender.getDiscordId()).complete(true).getEffectiveAvatarUrl());
+            } catch(RateLimitedException | IOException exception) {
+                LogUtils.logException("An exception occurred while trying to send a message from the server", exception);
+            }
+        } else resetWebhook();
+        if(sender.inFaction()) bot.getSelfUser().getManager().setName(sender.getPlayerName() + "[" + sender.getFactionName() + "]").queue();
+        else bot.getSelfUser().getManager().setName(sender.getPlayerName()).queue();
+        User receiverUser = bot.retrieveUserById(receiver.getDiscordId()).complete();
+        Message m;
+        if(receiverUser != null) {
+            PrivateChannel channel = receiverUser.openPrivateChannel().complete();
+            if(message.contains(":")) {
+                StringBuilder builder = new StringBuilder();
+                StringBuilder emoteBuilder = new StringBuilder();
+                char[] charArray = message.toCharArray();
+                boolean emoteMode = false;
+                for(char c : charArray) {
+                    if(c == ':') {
+                        if(!emoteMode) {
+                            builder.append('<');
+                            emoteMode = true;
+                        } else {
+                            builder.append(c);
+                            try {
+                                Emote emote = bot.getEmotesByName(emoteBuilder.toString(), true).get(0);
+                                if(emote.getGuild() != null) {
+                                    builder.append(emote.getIdLong());
+                                    builder.append('>');
+                                } else builder.deleteCharAt(builder.lastIndexOf("<"));
+                            } catch(Exception exception) {
+                                LogUtils.logException("An exception occurred while trying to fetch emote \"" + emoteBuilder.substring(emoteBuilder.toString().indexOf(":"), emoteBuilder.toString().lastIndexOf(":")).trim() + "\"", exception);
+                            }
+                            emoteMode = false;
+                            emoteBuilder = new StringBuilder();
+                            continue;
+                        }
+                    } else if(emoteMode) emoteBuilder.append(c);
+                    builder.append(c);
+                }
+                m = (new MessageBuilder(builder.toString())).build();
+            } else  m = (new MessageBuilder(message).build());
+            channel.sendMessage(m).queue();
+        }
+    }
+
     public void sendMessageFromServer(PlayerData playerData, String message, ChatMessage chatMessage) {
         if(playerData.getDiscordId() != -1) {
             try {
@@ -248,7 +340,8 @@ public class DiscordBot extends ListenerAdapter {
                 LogUtils.logException("An exception occurred while trying to send a message from the server", exception);
             }
         } else resetWebhook();
-        chatWebhook.setUsername(playerData.getPlayerName() + "[" + playerData.getFactionName() + "] ");
+        if(playerData.inFaction()) chatWebhook.setUsername(playerData.getPlayerName() + "[" + playerData.getFactionName() + "]");
+        else chatWebhook.setUsername(playerData.getPlayerName());
         if(message.contains(":")) {
             StringBuilder builder = new StringBuilder();
             StringBuilder emoteBuilder = new StringBuilder();

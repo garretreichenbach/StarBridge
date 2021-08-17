@@ -2,7 +2,6 @@ package thederpgamer.starbridge.data.player;
 
 import api.common.GameCommon;
 import org.schema.game.common.data.player.faction.Faction;
-
 import java.io.Serializable;
 
 /**
@@ -17,11 +16,13 @@ public class PlayerData implements Serializable {
     private String playerName;
     private long playTime;
     private long discordId;
+    private boolean[] flags;
 
     public PlayerData(String playerName) {
         this.playerName = playerName;
         this.playTime = 0;
         this.discordId = -1;
+        this.flags = new boolean[] {true};
     }
 
     public String getPlayerName() {
@@ -62,5 +63,13 @@ public class PlayerData implements Serializable {
 
     public void setDiscordId(long discordId) {
         this.discordId = discordId;
+    }
+
+    public boolean isFirstDM() {
+        return flags[0];
+    }
+
+    public void setFirstDM(boolean bool) {
+        flags[0] = bool;
     }
 }

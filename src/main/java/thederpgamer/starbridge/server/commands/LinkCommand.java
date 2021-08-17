@@ -14,6 +14,8 @@ import thederpgamer.starbridge.server.ServerDatabase;
 import thederpgamer.starbridge.utils.LogUtils;
 import thederpgamer.starbridge.utils.MessageType;
 
+import java.util.Objects;
+
 /**
  * LinkCommand
  * <Description>
@@ -66,7 +68,7 @@ public class LinkCommand implements CommandInterface, DiscordCommand {
     @Override
     public void execute(SlashCommandEvent event) {
         try {
-            int linkCode = Integer.parseInt(event.getOption("link_code").getAsString());
+            int linkCode = Integer.parseInt(Objects.requireNonNull(event.getOption("link_code")).getAsString());
             PlayerData playerData = StarBridge.instance.botThread.getBot().getLinkRequest(linkCode);
             if(playerData != null) {
                 playerData.setDiscordId(event.getUser().getIdLong());
