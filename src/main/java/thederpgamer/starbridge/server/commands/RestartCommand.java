@@ -2,6 +2,7 @@ package thederpgamer.starbridge.server.commands;
 
 import api.common.GameServer;
 import api.mod.StarMod;
+import api.utils.StarRunnable;
 import api.utils.game.chat.CommandInterface;
 import net.dv8tion.jda.api.entities.Command;
 import net.dv8tion.jda.api.events.interaction.SlashCommandEvent;
@@ -50,6 +51,7 @@ public class RestartCommand implements CommandInterface, DiscordCommand {
             StarBridge.instance.getBot().sendMessageToDiscord(":octagonal_sign: Server restarting in " + StarBridge.instance.defaultShutdownTimer + " seconds.");
             GameServer.getServerState().addTimedShutdown(StarBridge.instance.defaultShutdownTimer);
             GameServer.getServerState().addCountdownMessage(StarBridge.instance.defaultShutdownTimer, "Server restarting in " + GameServer.getServerState().getTimedShutdownSeconds() + " seconds.");
+            triggerStop(StarBridge.instance.defaultShutdownTimer);
             return true;
         } else {
             if(args.length == 1) {
@@ -59,6 +61,7 @@ public class RestartCommand implements CommandInterface, DiscordCommand {
                     StarBridge.instance.getBot().sendMessageToDiscord(":octagonal_sign: Server restarting in " + timer + " seconds.");
                     GameServer.getServerState().addTimedShutdown(timer);
                     GameServer.getServerState().addCountdownMessage(timer, "Server restarting in " + GameServer.getServerState().getTimedShutdownSeconds() + " seconds.");
+                    triggerStop(timer);
                     return true;
                 } else return false;
             } else if(args.length == 2) {
@@ -71,6 +74,7 @@ public class RestartCommand implements CommandInterface, DiscordCommand {
                     StarBridge.instance.getBot().sendMessageToDiscord(":octagonal_sign: Server restarting in " + timer + " seconds.\n" + description);
                     GameServer.getServerState().addTimedShutdown(timer);
                     GameServer.getServerState().addCountdownMessage(timer, "Server restarting in " + GameServer.getServerState().getTimedShutdownSeconds() + " seconds.\n" + description);
+                    triggerStop(timer);
                     return true;
                 }
             }
@@ -127,5 +131,14 @@ public class RestartCommand implements CommandInterface, DiscordCommand {
         commandData.addOption(new CommandUpdateAction.OptionData(Command.OptionType.INTEGER, "countdown", "The countdown (in seconds)").setRequired(false));
         commandData.addOption(new CommandUpdateAction.OptionData(Command.OptionType.STRING, "description", "The reason for the restart").setRequired(false));
         return commandData;
+    }
+
+    private void triggerStop(int timer) {
+        new StarRunnable() {
+            @Override
+            public void run() {
+                StarBridge.instance.getBot().sendServerStopMessage();
+            }
+        }.runLater(StarBridge.instance, timer - 10);
     }
 }
