@@ -20,6 +20,7 @@ import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import net.dv8tion.jda.api.requests.restaction.CommandUpdateAction;
 import org.jetbrains.annotations.NotNull;
 import org.schema.game.common.controller.SegmentController;
+import org.schema.game.common.data.chat.ChannelRouter;
 import org.schema.game.common.data.player.PlayerState;
 import org.schema.game.common.data.player.faction.FactionRelation;
 import org.schema.game.network.objects.ChatMessage;
@@ -34,6 +35,7 @@ import thederpgamer.starbridge.server.commands.*;
 import thederpgamer.starbridge.utils.DataUtils;
 import thederpgamer.starbridge.utils.LogUtils;
 import thederpgamer.starbridge.utils.MessageType;
+
 import javax.security.auth.login.LoginException;
 import java.io.IOException;
 import java.io.InputStream;
@@ -74,7 +76,7 @@ public class DiscordBot extends ListenerAdapter {
     private String playerKillByEntityMessage = ":skull_crossbones: %PLAYER_NAME% %PLAYER_FACTION_NAME% was slain by %ENTITY_NAME% %ENTITY_FACTION_NAME%";
     private String playerKillByOtherMessage = ":skull_crossbones: %PLAYER_NAME% %PLAYER_FACTION_NAME% has died";
 
-    private final String firstDMMessage = "You received this message from in-game but were not online to see it, so it has been delivered to you here. If you want to change this setting and more use /psettings in this DM or in the server chat channel. This is a one time message, so use /commands to see more options.";
+    //private final String firstDMMessage = "You received this message from in-game but were not online to see it, so it has been delivered to you here. If you want to change this setting and more use /psettings in this DM or in the server chat channel. This is a one time message, so use /commands to see more options.";
 
     public DiscordBot(String token, String chatWebhook, long channelId) {
         this.token = token;
@@ -163,6 +165,7 @@ public class DiscordBot extends ListenerAdapter {
 
                 switch(playerChatEvent.getMessage().receiverType) {
                     case DIRECT:
+                        /* You can't send pms to offline players, so this functionality is useless right now
                         PlayerData receiverData = ServerDatabase.getPlayerData(chatMessage.receiver);
                         User receiver = bot.retrieveUserById(receiverData.getDiscordId()).complete();
                         if(receiver != null) {
@@ -177,15 +180,18 @@ public class DiscordBot extends ListenerAdapter {
                             //message = (new MessageBuilder(dmBuilder.toString())).build();
                             //channel = receiver.openPrivateChannel().complete();
                         }
+                         */
                         LogUtils.logChat(chatMessage, "PM WITH " + chatMessage.receiver);
                         break;
-                    case SYSTEM: //Not sure what this is, maybe global chat?
-
+                    case SYSTEM: //Not sure what this is
                         break;
                     case CHANNEL:
-                        if(chatMessage.getChannel() == null || chatMessage.receiver.equals("all")) {
+                        if((chatMessage.getChannel() == null || (chatMessage.receiver.equals("all")) && chatMessage.getChannel().getType().equals(ChannelRouter.ChannelType.ALL))) {
                             sendMessageFromServer(playerData, chatMessage.text, chatMessage);
-                            LogUtils.logChat(chatMessage, "GENERAL" + chatMessage.receiver);
+                            LogUtils.logChat(chatMessage, "GENERAL");
+                        } else if(chatMessage.getChannel() != null && chatMessage.getChannel().getType().equals(ChannelRouter.ChannelType.PUBLIC)) {
+                            sendMessageFromServer(playerData, chatMessage.text, chatMessage);
+                            LogUtils.logChat(chatMessage, chatMessage.getChannel().getName().toUpperCase());
                         }
                         break;
                 }
