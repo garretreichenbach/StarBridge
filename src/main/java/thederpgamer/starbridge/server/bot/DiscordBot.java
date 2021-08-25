@@ -55,8 +55,13 @@ public class DiscordBot extends ListenerAdapter {
     //Data
     public JDA bot;
     private String token;
+
     private DiscordWebhook chatWebhook;
-    private long channelId;
+    private long chatChannelId;
+
+    private DiscordWebhook logWebhook;
+    private long logChannelId;
+
     private HashMap<PlayerData, Integer> linkRequestMap;
     private ChatMessage lastMessage;
 
@@ -78,10 +83,12 @@ public class DiscordBot extends ListenerAdapter {
 
     //private final String firstDMMessage = "You received this message from in-game but were not online to see it, so it has been delivered to you here. If you want to change this setting and more use /psettings in this DM or in the server chat channel. This is a one time message, so use /commands to see more options.";
 
-    public DiscordBot(String token, String chatWebhook, long channelId) {
+    public DiscordBot(String token, String chatWebhook, long chatChannelId, String logWebhook, long logChannelId) {
         this.token = token;
         this.chatWebhook = new DiscordWebhook(chatWebhook);
-        this.channelId = channelId;
+        this.chatChannelId = chatChannelId;
+        this.logWebhook = new DiscordWebhook(logWebhook);
+        this.logChannelId = logChannelId;
         this.linkRequestMap = new HashMap<>();
     }
 
@@ -398,6 +405,7 @@ public class DiscordBot extends ListenerAdapter {
     }
 
     public void sendMessageToDiscord(String message) {
+        resetWebhook();
         chatWebhook.setContent(message);
         try {
             chatWebhook.execute();
@@ -407,17 +415,32 @@ public class DiscordBot extends ListenerAdapter {
         resetWebhook();
     }
 
+    public void sendLogMessage(String message) {
+        resetWebhook();
+        logWebhook.setContent(message);
+        try {
+            logWebhook.execute();
+        } catch(IOException exception) {
+            //LogUtils.logException("An exception occurred while trying to send a log message", exception); This could create an infinitely repeating exception
+        }
+        resetWebhook();
+    }
+
     public void resetWebhook() {
         chatWebhook.setUsername(getBotName());
         chatWebhook.setAvatarUrl(StarBridge.instance.botAvatar);
         chatWebhook.setContent("");
+
+        logWebhook.setUsername(getBotName());
+        logWebhook.setAvatarUrl(StarBridge.instance.botAvatar);
+        logWebhook.setContent("");
     }
 
     public void addLinkRequest(PlayerState playerState) {
         final PlayerData playerData = ServerDatabase.getPlayerData(playerState.getName());
         if(linkRequestMap.containsKey(playerData)) linkRequestMap.remove(playerData);
         linkRequestMap.put(playerData, (new Random()).nextInt(9999 - 1000) + 1000);
-        PlayerUtils.sendMessage(playerState, "Use /link " + linkRequestMap.get(playerData) + " in #" + bot.getTextChannelById(channelId).getName() + " to link your account. This code will expire in 15 minutes.");
+        PlayerUtils.sendMessage(playerState, "Use /link " + linkRequestMap.get(playerData) + " in #" + bot.getTextChannelById(chatChannelId).getName() + " to link your account. This code will expire in 15 minutes.");
         TimerTask task = new TimerTask() {
             public void run() {
                 removeLinkRequest(playerData);
@@ -484,7 +507,7 @@ public class DiscordBot extends ListenerAdapter {
         String content = event.getMessage().getContentDisplay().trim();
         if(content.length() > 0) {
             if(!event.getAuthor().isBot() && !event.isWebhookMessage()) {
-                if(event.getChannel().getIdLong() == channelId) {
+                if(event.getChannel().getIdLong() == chatChannelId) {
                     if(content.charAt(0) != '/') {
                         //GameServer.getServerState().chat(GameServer.getServerState().getChat(), content, "[" + event.getAuthor().getName() + "]", false);
                         sendMessageToServer(event.getAuthor().getName(), content.trim());

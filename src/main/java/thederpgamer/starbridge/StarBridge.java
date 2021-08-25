@@ -44,13 +44,15 @@ public class StarBridge extends StarMod {
             "debug-mode: false",
             "auto-save-frequency: 10000",
             "max-world-logs: 5",
-            "bot-name: BOT NAME",
-            "bot-token: BOT TOKEN",
-            "bot-avatar: BOT AVATAR",
-            "server-id: SERVER ID",
-            "chat-webhook: WEBHOOK",
-            "channel-id: CHANNEL ID",
-            "admin-role-id: ADMIN ROLE ID",
+            "bot-name: BOT_NAME",
+            "bot-token: BOT_TOKEN",
+            "bot-avatar: BOT_AVATAR",
+            "server-id: SERVER_ID",
+            "chat-webhook: CHAT_WEBHOOK",
+            "chat-channel-id: CHAT_CHANNEL_ID",
+            "log-webhook: LOG_WEBHOOK",
+            "log-channel-id: LOG_CHANNEL_ID",
+            "admin-role-id: ADMIN_ROLE_ID",
             "default-shutdown-timer: 15"
     };
     public boolean debugMode = false;
@@ -61,7 +63,9 @@ public class StarBridge extends StarMod {
     public String botAvatar;
     public long serverId;
     public String chatWebhook;
-    public long channelId;
+    public long chatChannelId;
+    public String logWebhook;
+    public long logChannelId;
     public long adminRoleId;
     public int defaultShutdownTimer = 15;
 
@@ -92,14 +96,16 @@ public class StarBridge extends StarMod {
         botAvatar = "https://" + config.getString("bot-avatar");
         serverId = config.getLong("server-id");
         chatWebhook = "https://" + config.getString("chat-webhook");
-        channelId = config.getLong("channel-id");
+        chatChannelId = config.getLong("chat-channel-id");
+        logWebhook = "https://" + config.getString("log-webhook");
+        logChannelId = config.getLong("log-webhook-id");
         adminRoleId = config.getLong("admin-role-id");
         defaultShutdownTimer = config.getConfigurableInt("default-shutdown-timer", 15);
     }
 
     private void initialize() {
         LogUtils.initialize();
-        (botThread = new BotThread(botToken, chatWebhook, channelId)).start();
+        (botThread = new BotThread(botToken, chatWebhook, chatChannelId, logWebhook, logChannelId)).start();
     }
 
     private void registerPackets() {

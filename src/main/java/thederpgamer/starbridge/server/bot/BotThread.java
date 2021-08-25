@@ -11,8 +11,8 @@ public class BotThread extends Thread {
 
     private DiscordBot discordBot;
 
-    public BotThread(String token, String chatWebhook, long channelId) {
-        discordBot = new DiscordBot(token, chatWebhook, channelId);
+    public BotThread(String token, String chatWebhook, long chatChannelId, String logWebhook, long logChannelId) {
+        discordBot = new DiscordBot(token, chatWebhook, chatChannelId, logWebhook, logChannelId);
     }
 
     @Override

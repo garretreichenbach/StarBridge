@@ -82,12 +82,14 @@ public class LogUtils {
             } else {
                 builder.append(message);
             }
+            StarBridge.instance.getBot().sendLogMessage(builder.toString());
             System.out.println(builder.toString());
             logWriter.append(builder.toString()).append("\n");
             logWriter.flush();
-        } catch(IOException var3) {
-            var3.printStackTrace();
+        } catch(IOException exception) {
+            exception.printStackTrace();
         }
+
         if(messageType.equals(MessageType.CRITICAL)) System.exit(1);
     }
 
