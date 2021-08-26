@@ -1,5 +1,7 @@
 package thederpgamer.starbridge.utils;
 
+import api.SMModLoader;
+import api.common.GameCommon;
 import api.mod.ModSkeleton;
 import api.mod.StarLoader;
 import api.utils.GameRestartHelper;
@@ -26,7 +28,9 @@ public class ServerUtils {
                     StringBuilder sb = new StringBuilder();
                     for(Integer modId : getEnabledModIds()) sb.append(modId).append(",");
                     sb.deleteCharAt(sb.length() - 1);
-                    GameRestartHelper.runWithArguments(new String[] {"-server", "-port:" + ServerController.port, "-modded", "-forceupdate", "-autoupdatemods"}, sb.toString());
+                    if(GameCommon.isDedicatedServer()) GameRestartHelper.runWithArguments(new String[] {"-server", "-port:" + ServerController.port, "-modded", "-forceupdate", "-autoupdatemods"}, sb.toString());
+                    else if(GameCommon.isOnSinglePlayer()) GameRestartHelper.runWithUplink("localhost", 4242, getEnabledModIds());
+                    else if(GameCommon.isClientConnectedToServer()) GameRestartHelper.runWithUplink(SMModLoader.uplinkServerHost, SMModLoader.uplinkServerPort, getEnabledModIds());
                 } catch(Exception exception) {
                     LogUtils.logException("Encountered a critical error while trying to restart the server", exception);
                 }

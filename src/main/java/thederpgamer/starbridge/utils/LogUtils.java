@@ -67,7 +67,7 @@ public class LogUtils {
     }
 
     public static void logMessage(MessageType messageType, String message) {
-        String prefix = "[" + DateUtils.getTimeFormatted() + "] [StarBridge] " + messageType.prefix;
+        String prefix = "[" + DateUtils.getTimeFormatted() + "] " + messageType.prefix;
         try {
             StringBuilder builder = new StringBuilder();
             builder.append(prefix);
@@ -108,6 +108,7 @@ public class LogUtils {
                     }
                 }
             } else builder.append(message);
+            StarBridge.instance.getBot().sendLogMessage(builder.toString());
             chatWriter.append(builder.toString()).append("\n");
             chatWriter.flush();
         } catch(IOException var3) {
@@ -122,11 +123,8 @@ public class LogUtils {
             for(File logFile : logsFolder.listFiles()) {
                 int logNumber;
                 String logName = logFile.getName().replace(".txt", "");
-                if(logName.contains("chat-log")) {
-                    logNumber = Integer.parseInt(logName.substring(logName.indexOf("chat-log") + 8));
-                } else {
-                    logNumber = Integer.parseInt(logName.substring(logName.indexOf("log") + 3));
-                }
+                if(logName.contains("chat-log")) logNumber = Integer.parseInt(logName.substring(logName.indexOf("chat-log") + 8));
+                else logNumber = Integer.parseInt(logName.substring(logName.indexOf("log") + 3));
                 if(logNumber != 0 && logNumber - 1 >= StarBridge.instance.maxWorldLogs) logFile.delete();
             }
         }

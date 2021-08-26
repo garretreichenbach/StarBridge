@@ -33,6 +33,7 @@ import thederpgamer.starbridge.server.DiscordWebhook;
 import thederpgamer.starbridge.server.ServerDatabase;
 import thederpgamer.starbridge.server.commands.*;
 import thederpgamer.starbridge.utils.DataUtils;
+import thederpgamer.starbridge.utils.DateUtils;
 import thederpgamer.starbridge.utils.LogUtils;
 import thederpgamer.starbridge.utils.MessageType;
 
@@ -462,11 +463,18 @@ public class DiscordBot extends ListenerAdapter {
     }
 
     public void sendServerStartMessage() {
+        sendLogMessage("[" + DateUtils.getTimeFormatted() + "] [INFO]: Server Started");
         sendMessageToDiscord(serverStartMessage);
     }
 
     public void sendServerStopMessage() {
+        sendLogMessage("[" + DateUtils.getTimeFormatted() + "] [INFO]: Server Stopped");
         sendMessageToDiscord(serverStopMessage);
+    }
+
+    public void sendServerRestartMessage() {
+        sendLogMessage("[" + DateUtils.getTimeFormatted() + "] [INFO]: Server Restarting");
+        sendMessageToDiscord(":octagonal_sign: Server Restarting");
     }
 
     @Override

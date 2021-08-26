@@ -23,7 +23,7 @@ public class DateUtils {
     }
 
     public static String getTimeFormatted(String format) {
-        return (new SimpleDateFormat(format)).format(new Date()) + " ";
+        return (new SimpleDateFormat(format)).format(new Date());
     }
 
     public static String getTimeFormatted() {

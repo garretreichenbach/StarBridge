@@ -98,7 +98,7 @@ public class StarBridge extends StarMod {
         chatWebhook = "https://" + config.getString("chat-webhook");
         chatChannelId = config.getLong("chat-channel-id");
         logWebhook = "https://" + config.getString("log-webhook");
-        logChannelId = config.getLong("log-webhook-id");
+        logChannelId = config.getLong("log-channel-id");
         adminRoleId = config.getLong("admin-role-id");
         defaultShutdownTimer = config.getConfigurableInt("default-shutdown-timer", 15);
     }
