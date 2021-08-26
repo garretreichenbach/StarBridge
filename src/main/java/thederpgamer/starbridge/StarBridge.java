@@ -20,6 +20,8 @@ import thederpgamer.starbridge.server.bot.BotThread;
 import thederpgamer.starbridge.server.bot.DiscordBot;
 import thederpgamer.starbridge.server.commands.*;
 import thederpgamer.starbridge.utils.LogUtils;
+import thederpgamer.starbridge.utils.ServerUtils;
+
 import java.lang.reflect.Field;
 import java.util.Objects;
 
@@ -53,7 +55,9 @@ public class StarBridge extends StarMod {
             "log-webhook: LOG_WEBHOOK",
             "log-channel-id: LOG_CHANNEL_ID",
             "admin-role-id: ADMIN_ROLE_ID",
-            "default-shutdown-timer: 15"
+            "default-shutdown-timer: 60",
+            "auto-restart: true",
+            "auto-restart-frequency: 18000000"
     };
     public boolean debugMode = false;
     public long autoSaveFrequency = 10000;
@@ -67,7 +71,9 @@ public class StarBridge extends StarMod {
     public String logWebhook;
     public long logChannelId;
     public long adminRoleId;
-    public int defaultShutdownTimer = 15;
+    public int defaultShutdownTimer = 60;
+    public boolean autoRestart = true;
+    public long autoRestartFrequency = 18000000;
 
     //Data
     public BotThread botThread;
@@ -77,7 +83,6 @@ public class StarBridge extends StarMod {
         instance = this;
         initConfig();
         doOverwrites();
-        registerPackets();
         registerListeners();
         registerCommands();
         initialize();
@@ -100,16 +105,14 @@ public class StarBridge extends StarMod {
         logWebhook = "https://" + config.getString("log-webhook");
         logChannelId = config.getLong("log-channel-id");
         adminRoleId = config.getLong("admin-role-id");
-        defaultShutdownTimer = config.getConfigurableInt("default-shutdown-timer", 15);
+        defaultShutdownTimer = config.getConfigurableInt("default-shutdown-timer", 60);
+        autoRestart = config.getConfigurableBoolean("auto-restart", true);
+        autoRestartFrequency = config.getConfigurableLong("auto-restart-frequency", 18000000);
     }
 
     private void initialize() {
         LogUtils.initialize();
         (botThread = new BotThread(botToken, chatWebhook, chatChannelId, logWebhook, logChannelId)).start();
-    }
-
-    private void registerPackets() {
-
     }
 
     private void registerListeners() {
@@ -205,13 +208,26 @@ public class StarBridge extends StarMod {
     }
 
     private void startRunners() {
-
-        new Runnable() {
+        //Auto Restart
+        new StarRunnable() {
             @Override
             public void run() {
-
+                if(autoRestart) {
+                    long timer = autoRestartFrequency * 1000L;
+                    getBot().resetWebhook();
+                    getBot().sendMessageToDiscord(":octagonal_sign: Server restarting in " + defaultShutdownTimer + " seconds\n");
+                    GameServer.getServerState().addCountdownMessage(defaultShutdownTimer, "Server restarting in " + defaultShutdownTimer + " seconds\n");
+                    new StarRunnable() {
+                        @Override
+                        public void run() {
+                            getBot().sendServerRestartMessage();
+                            ServerUtils.triggerRestart();
+                        }
+                    }.runLater(StarBridge.instance, timer);
+                }
             }
-        };
+        }.runTimer(this, autoRestartFrequency);
+
         //Auto Saver
         new StarRunnable() {
             @Override
