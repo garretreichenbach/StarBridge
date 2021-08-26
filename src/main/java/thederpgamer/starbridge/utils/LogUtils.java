@@ -96,7 +96,7 @@ public class LogUtils {
     public static void logChat(ChatMessage chatMessage, String channel) {
         try {
             StringBuilder builder = new StringBuilder();
-            String prefix = "[" + channel + "]" + "[" + chatMessage.sender + "]: ";
+            String prefix = "[" + channel + "] [" + chatMessage.sender + "]: ";
             builder.append(prefix);
             String message = chatMessage.text;
             String[] lines = message.split("\n");
@@ -108,7 +108,7 @@ public class LogUtils {
                     }
                 }
             } else builder.append(message);
-            StarBridge.instance.getBot().sendLogMessage(builder.toString());
+            StarBridge.instance.getBot().sendLogMessage("[" + DateUtils.getTimeFormatted() + "] [CHAT]: " + builder.toString());
             chatWriter.append(builder.toString()).append("\n");
             chatWriter.flush();
         } catch(IOException var3) {

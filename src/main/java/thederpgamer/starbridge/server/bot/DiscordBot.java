@@ -1,5 +1,6 @@
 package thederpgamer.starbridge.server.bot;
 
+import api.common.GameCommon;
 import api.listener.events.Event;
 import api.listener.events.faction.FactionCreateEvent;
 import api.listener.events.faction.FactionRelationChangeEvent;
@@ -154,7 +155,8 @@ public class DiscordBot extends ListenerAdapter {
             //Todo
         } else if(event instanceof PlayerChatEvent) {
             PlayerChatEvent playerChatEvent = (PlayerChatEvent) event;
-            if(lastMessage == null || !playerChatEvent.getMessage().text.equals(lastMessage.text)) {
+            if(playerChatEvent.getText().charAt(0) == '/') handleCommand(GameCommon.getPlayerFromName(playerChatEvent.getMessage().sender), playerChatEvent.getText());
+            else if(lastMessage == null || !playerChatEvent.getMessage().text.equals(lastMessage.text)) {
                 ChatMessage chatMessage = playerChatEvent.getMessage();
                 PlayerData playerData = ServerDatabase.getPlayerData(chatMessage.sender);
                 /*
@@ -279,6 +281,10 @@ public class DiscordBot extends ListenerAdapter {
                 }
             } else LogUtils.logMessage(MessageType.ERROR, "Invalid message arguments count! Should be " + argsCount / 2 + " arguments but only found " + args.length + ".");
         }
+    }
+
+    private void handleCommand(PlayerState sender, String command) {
+        sendLogMessage("[" + DateUtils.getTimeFormatted() + "] [COMMAND]: Player " + sender.getName() + " used command /" + command + ".");
     }
 
     public void setBotAvatar(String link) throws IOException {
