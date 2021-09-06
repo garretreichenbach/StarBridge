@@ -44,8 +44,11 @@ public class StarBridge extends StarMod {
     //Config
     private final String[] defaultConfig = {
             "debug-mode: false",
-            "auto-save-frequency: 10000",
             "max-world-logs: 5",
+            "auto-save-frequency: 10000",
+            "default-shutdown-timer: 60",
+            "auto-restart: true",
+            "auto-restart-frequency: 18000000",
             "bot-name: BOT_NAME",
             "bot-token: BOT_TOKEN",
             "bot-avatar: BOT_AVATAR",
@@ -54,10 +57,7 @@ public class StarBridge extends StarMod {
             "chat-channel-id: CHAT_CHANNEL_ID",
             "log-webhook: LOG_WEBHOOK",
             "log-channel-id: LOG_CHANNEL_ID",
-            "admin-role-id: ADMIN_ROLE_ID",
-            "default-shutdown-timer: 60",
-            "auto-restart: true",
-            "auto-restart-frequency: 18000000"
+            "admin-role-id: ADMIN_ROLE_ID"
     };
     public boolean debugMode = false;
     public long autoSaveFrequency = 10000;
@@ -89,7 +89,7 @@ public class StarBridge extends StarMod {
         startRunners();
     }
 
-    private void initConfig() {
+    private void initConfig() { //Todo: Migrate this to a config manager class
         FileConfiguration config = getConfig("config");
         config.saveDefault(defaultConfig);
 
@@ -253,35 +253,54 @@ public class StarBridge extends StarMod {
     }
 
     //API Methods
+
+    /**
+     * Fetches a player's Avatar URL based off their name. Returns the default avatar if they haven't linked their discord account or if the player doesn't exist.
+     * @param playerName The player's name
+     * @return The player's Avatar URL
+     */
     public String getAvatarURL(String playerName) {
-        if(ServerDatabase.getPlayerData(playerName) != null) {
-            long discordId = ServerDatabase.getPlayerData(playerName).getDiscordId();
-            if(discordId != -1) {
-                try {
-                    return getBot().bot.retrieveUserById(discordId).complete(true).getEffectiveAvatarUrl();
-                } catch(RateLimitedException e) {
-                    e.printStackTrace();
-                }
+        long discordId = ServerDatabase.getPlayerData(playerName).getDiscordId();
+        if(discordId != -1) {
+            try {
+                return getBot().bot.retrieveUserById(discordId).complete(true).getEffectiveAvatarUrl();
+            } catch(RateLimitedException e) {
+                e.printStackTrace();
             }
         }
         return botAvatar;
     }
 
+    /**
+     * Fetches the URL of an emote by it's name. Returns null if no emote is found with a matching name.
+     * @param emoteName The name of the emote
+     * @return The URL of the emote
+     */
     public String getEmoteURL(String emoteName) {
         return getBot().bot.getEmotesByName(emoteName, true).get(0).getImageUrl();
     }
 
+    /**
+     * Fetches a player's user ID based off their name. Returns -1 if the player hasn't linked their discord account.
+     * @param playerName The player's name
+     * @return The player's user ID
+     */
     public long getUserId(String playerName) {
-        if(ServerDatabase.getPlayerData(playerName) != null) {
-            return ServerDatabase.getPlayerData(playerName).getDiscordId();
-        }
-        return -1;
+        return ServerDatabase.getPlayerData(playerName).getDiscordId();
     }
 
+    /**
+     * Sends a message to the in-game server.
+     * @param message The message to send
+     */
     public void sendMessageToServer(String message) {
         getBot().sendMessageToServer(getBot().getBotName(), message);
     }
 
+    /**
+     * Sends a message to the discord channel.
+     * @param message The message to send
+     */
     public void sendMessageToDiscord(String message) {
         getBot().sendMessageToDiscord(message);
     }
