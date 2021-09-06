@@ -44,6 +44,8 @@ import java.io.InputStream;
 import java.net.URL;
 import java.net.URLConnection;
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * DiscordBot.java
@@ -159,20 +161,6 @@ public class DiscordBot extends ListenerAdapter {
             else if(lastMessage == null || !playerChatEvent.getMessage().text.equals(lastMessage.text)) {
                 ChatMessage chatMessage = playerChatEvent.getMessage();
                 PlayerData playerData = ServerDatabase.getPlayerData(chatMessage.sender);
-                /*
-                if(StarLoader.getModFromName("BetterChat") != null) {
-                    StringBuilder builder = new StringBuilder();
-                    char[] charArray = playerChatEvent.getText().toCharArray();
-                    for(int i = 0; i < charArray.length; i ++) {
-                        if(charArray[i] == '&') i ++;
-                        else builder.append(charArray[i]);
-                    }
-                    sendMessageFromServer(playerData, builder.toString(), playerChatEvent.getMessage());
-                } else {
-                    sendMessageFromServer(playerData, playerChatEvent.getText(), playerChatEvent.getMessage());
-                }
-                 */
-
                 switch(playerChatEvent.getMessage().receiverType) {
                     case DIRECT:
                         /* You can't send pms to offline players, so this functionality is useless right now
@@ -194,7 +182,6 @@ public class DiscordBot extends ListenerAdapter {
                         LogUtils.logChat(chatMessage, "PM WITH " + chatMessage.receiver);
                         break;
                     case SYSTEM: //Not sure what this is
-                        break;
                     case CHANNEL:
                         if((chatMessage.getChannel() == null || (chatMessage.receiver.equals("all")) && chatMessage.getChannel().getType().equals(ChannelRouter.ChannelType.ALL))) {
                             sendMessageFromServer(playerData, chatMessage.text, chatMessage);
@@ -319,35 +306,23 @@ public class DiscordBot extends ListenerAdapter {
         if(receiverUser != null) {
             PrivateChannel channel = receiverUser.openPrivateChannel().complete();
             if(message.contains(":")) {
-                StringBuilder builder = new StringBuilder();
-                StringBuilder emoteBuilder = new StringBuilder();
-                char[] charArray = message.toCharArray();
-                boolean emoteMode = false;
-                for(char c : charArray) {
-                    if(c == ':') {
-                        if(!emoteMode) {
-                            builder.append('<');
-                            emoteMode = true;
-                        } else {
-                            builder.append(c);
-                            try {
-                                Emote emote = bot.getEmotesByName(emoteBuilder.toString(), true).get(0);
-                                if(emote.getGuild() != null) {
-                                    builder.append(emote.getIdLong());
-                                    builder.append('>');
-                                } else builder.deleteCharAt(builder.lastIndexOf("<"));
-                            } catch(Exception exception) {
-                                LogUtils.logException("An exception occurred while trying to fetch emote \"" + emoteBuilder.substring(emoteBuilder.toString().indexOf(":"), emoteBuilder.toString().lastIndexOf(":")).trim() + "\"", exception);
-                            }
-                            emoteMode = false;
-                            emoteBuilder = new StringBuilder();
-                            continue;
+                Pattern pattern = Pattern.compile(".*:.*:.*", Pattern.CASE_INSENSITIVE);
+                Matcher matcher = pattern.matcher(message);
+                while(matcher.find()) {
+                    try {
+                        int start = matcher.start();
+                        int end = matcher.end();
+                        String emoteString = message.substring(start, end);
+                        String emoteName = emoteString.replace(":", "");
+                        Emote emote = bot.getEmotesByName(emoteName, true).get(0);
+                        if(emote.getGuild() != null) {
+                            if(emote.isAnimated()) message = message.replace("a" + emoteString, "<" + emoteString + emote.getIdLong() + ">");
+                            else message = message.replace(emoteString, "<" + emoteString + emote.getIdLong() + ">");
                         }
-                    } else if(emoteMode) emoteBuilder.append(c);
-                    builder.append(c);
+                    } catch(Exception ignored) { }
                 }
-                m = (new MessageBuilder(builder.toString())).build();
-            } else  m = (new MessageBuilder(message).build());
+            }
+            m = (new MessageBuilder(message)).build();
             channel.sendMessage(m).queue();
         }
     }
@@ -362,36 +337,26 @@ public class DiscordBot extends ListenerAdapter {
         } else resetWebhook();
         if(playerData.inFaction()) chatWebhook.setUsername(playerData.getPlayerName() + "[" + playerData.getFactionName() + "]");
         else chatWebhook.setUsername(playerData.getPlayerName());
+
+
         if(message.contains(":")) {
-            StringBuilder builder = new StringBuilder();
-            StringBuilder emoteBuilder = new StringBuilder();
-            char[] charArray = message.toCharArray();
-            boolean emoteMode = false;
-            for(char c : charArray) {
-                if(c == ':') {
-                    if(!emoteMode) {
-                        builder.append('<');
-                        emoteMode = true;
-                    } else {
-                        builder.append(c);
-                        try {
-                            Emote emote = bot.getEmotesByName(emoteBuilder.toString(), true).get(0);
-                            if(emote.getGuild() != null) {
-                                builder.append(emote.getIdLong());
-                                builder.append('>');
-                            } else builder.deleteCharAt(builder.lastIndexOf("<"));
-                        } catch(Exception exception) {
-                            LogUtils.logException("An exception occurred while trying to fetch emote \"" + emoteBuilder.substring(emoteBuilder.toString().indexOf(":"), emoteBuilder.toString().lastIndexOf(":")).trim() + "\"", exception);
-                        }
-                        emoteMode = false;
-                        emoteBuilder = new StringBuilder();
-                        continue;
+            Pattern pattern = Pattern.compile(".*:.*:.*", Pattern.CASE_INSENSITIVE);
+            Matcher matcher = pattern.matcher(message);
+            while(matcher.find()) {
+                try {
+                    int start = matcher.start();
+                    int end = matcher.end();
+                    String emoteString = message.substring(start, end);
+                    String emoteName = emoteString.replace(":", "");
+                    Emote emote = bot.getEmotesByName(emoteName, true).get(0);
+                    if(emote.getGuild() != null) {
+                        if(emote.isAnimated()) message = message.replace("a" + emoteString, "<" + emoteString + emote.getIdLong() + ">");
+                        else message = message.replace(emoteString, "<" + emoteString + emote.getIdLong() + ">");
                     }
-                } else if(emoteMode) emoteBuilder.append(c);
-                builder.append(c);
+                } catch(Exception ignored) { }
             }
-            chatWebhook.setContent(builder.toString().trim());
-        } else chatWebhook.setContent(message);
+        }
+        chatWebhook.setContent(message);
         try {
             chatWebhook.execute();
         } catch(IOException exception) {
