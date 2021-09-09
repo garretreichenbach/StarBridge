@@ -153,7 +153,6 @@ public class DiscordBot extends ListenerAdapter {
     }
 
     public void handleEvent(Event event) {
-        assert event.isServer();
         if(event instanceof PlayerCustomCommandEvent) {
             PlayerCustomCommandEvent playerCustomCommandEvent = (PlayerCustomCommandEvent) event;
             //Todo
@@ -161,7 +160,7 @@ public class DiscordBot extends ListenerAdapter {
             PlayerChatEvent playerChatEvent = (PlayerChatEvent) event;
             if(playerChatEvent.getText().charAt(0) == '/') handleCommand(GameCommon.getPlayerFromName(playerChatEvent.getMessage().sender), playerChatEvent.getText());
             else if(lastMessage == null || !playerChatEvent.getMessage().text.equals(lastMessage.text)) {
-                ChatMessage chatMessage = playerChatEvent.getMessage();
+                ChatMessage chatMessage = new ChatMessage(playerChatEvent.getMessage());
                 PlayerData playerData = ServerDatabase.getPlayerData(chatMessage.sender);
                 if(playerChatEvent.getMessage().receiverType == ChatMessage.ChatMessageType.DIRECT) {/* You can't send pms to offline players, so this functionality is useless right now
                         PlayerData receiverData = ServerDatabase.getPlayerData(chatMessage.receiver);
@@ -180,7 +179,6 @@ public class DiscordBot extends ListenerAdapter {
                         }
                          */
                     LogUtils.logChat(chatMessage, "PM WITH " + chatMessage.receiver);
-                    //Not sure what this is
                 } else {
                     if((chatMessage.getChannel() == null || (chatMessage.receiver.equals("all")) && chatMessage.getChannel().getType().equals(ChannelRouter.ChannelType.ALL))) {
                         sendMessageFromServer(playerData, chatMessage.text, chatMessage);
@@ -360,7 +358,7 @@ public class DiscordBot extends ListenerAdapter {
         } catch(IOException exception) {
             LogUtils.logException("An exception occurred while trying to send a message from the server", exception);
         }
-        lastMessage = chatMessage;
+        lastMessage = new ChatMessage(chatMessage);
         resetWebhook();
     }
 
