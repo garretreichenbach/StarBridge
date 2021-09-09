@@ -30,6 +30,7 @@ import org.schema.schine.network.RegisteredClientOnServer;
 import thederpgamer.starbridge.StarBridge;
 import thederpgamer.starbridge.data.config.ConfigFile;
 import thederpgamer.starbridge.data.player.PlayerData;
+import thederpgamer.starbridge.server.ChatChannels;
 import thederpgamer.starbridge.server.DiscordWebhook;
 import thederpgamer.starbridge.server.ServerDatabase;
 import thederpgamer.starbridge.server.commands.*;
@@ -152,6 +153,7 @@ public class DiscordBot extends ListenerAdapter {
     }
 
     public void handleEvent(Event event) {
+        assert event.isServer();
         if(event instanceof PlayerCustomCommandEvent) {
             PlayerCustomCommandEvent playerCustomCommandEvent = (PlayerCustomCommandEvent) event;
             //Todo
@@ -161,9 +163,7 @@ public class DiscordBot extends ListenerAdapter {
             else if(lastMessage == null || !playerChatEvent.getMessage().text.equals(lastMessage.text)) {
                 ChatMessage chatMessage = playerChatEvent.getMessage();
                 PlayerData playerData = ServerDatabase.getPlayerData(chatMessage.sender);
-                switch(playerChatEvent.getMessage().receiverType) {
-                    case DIRECT:
-                        /* You can't send pms to offline players, so this functionality is useless right now
+                if(playerChatEvent.getMessage().receiverType == ChatMessage.ChatMessageType.DIRECT) {/* You can't send pms to offline players, so this functionality is useless right now
                         PlayerData receiverData = ServerDatabase.getPlayerData(chatMessage.receiver);
                         User receiver = bot.retrieveUserById(receiverData.getDiscordId()).complete();
                         if(receiver != null) {
@@ -179,18 +179,16 @@ public class DiscordBot extends ListenerAdapter {
                             //channel = receiver.openPrivateChannel().complete();
                         }
                          */
-                        LogUtils.logChat(chatMessage, "PM WITH " + chatMessage.receiver);
-                        break;
-                    case SYSTEM: //Not sure what this is
-                    case CHANNEL:
-                        if((chatMessage.getChannel() == null || (chatMessage.receiver.equals("all")) && chatMessage.getChannel().getType().equals(ChannelRouter.ChannelType.ALL))) {
-                            sendMessageFromServer(playerData, chatMessage.text, chatMessage);
-                            LogUtils.logChat(chatMessage, "GENERAL");
-                        } else if(chatMessage.getChannel() != null && chatMessage.getChannel().getType().equals(ChannelRouter.ChannelType.PUBLIC)) {
-                            sendMessageFromServer(playerData, chatMessage.text, chatMessage);
-                            LogUtils.logChat(chatMessage, chatMessage.getChannel().getName().toUpperCase());
-                        }
-                        break;
+                    LogUtils.logChat(chatMessage, "PM WITH " + chatMessage.receiver);
+                    //Not sure what this is
+                } else {
+                    if((chatMessage.getChannel() == null || (chatMessage.receiver.equals("all")) && chatMessage.getChannel().getType().equals(ChannelRouter.ChannelType.ALL))) {
+                        sendMessageFromServer(playerData, chatMessage.text, chatMessage);
+                        LogUtils.logChat(chatMessage, "GENERAL");
+                    } else if(chatMessage.getChannel() != null && chatMessage.getChannel().getType().equals(ChannelRouter.ChannelType.PUBLIC)) {
+                        sendMessageFromServer(playerData, chatMessage.text, chatMessage);
+                        LogUtils.logChat(chatMessage, chatMessage.getChannel().getName().toUpperCase());
+                    }
                 }
             }
         } else if(event instanceof PlayerJoinWorldEvent) {
@@ -306,7 +304,7 @@ public class DiscordBot extends ListenerAdapter {
         if(receiverUser != null) {
             PrivateChannel channel = receiverUser.openPrivateChannel().complete();
             if(message.contains(":")) {
-                Pattern pattern = Pattern.compile(".*:.*:.*", Pattern.CASE_INSENSITIVE);
+                Pattern pattern = Pattern.compile(":.*:", Pattern.CASE_INSENSITIVE);
                 Matcher matcher = pattern.matcher(message);
                 while(matcher.find()) {
                     try {
@@ -340,7 +338,7 @@ public class DiscordBot extends ListenerAdapter {
 
 
         if(message.contains(":")) {
-            Pattern pattern = Pattern.compile(".*:.*:.*", Pattern.CASE_INSENSITIVE);
+            Pattern pattern = Pattern.compile(":.*:", Pattern.CASE_INSENSITIVE);
             Matcher matcher = pattern.matcher(message);
             while(matcher.find()) {
                 try {
@@ -501,6 +499,9 @@ public class DiscordBot extends ListenerAdapter {
         ChatMessage chatMessage = new ChatMessage();
         chatMessage.sender = sender;
         chatMessage.text = message;
+        chatMessage.receiverType = ChatMessage.ChatMessageType.CHANNEL;
+        chatMessage.receiver = "all";
+        chatMessage.setChannel(ChatChannels.ALL.toChatChannel());
         LogUtils.logChat(chatMessage, "GENERAL");
     }
 

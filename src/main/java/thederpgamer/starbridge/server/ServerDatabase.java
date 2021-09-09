@@ -47,7 +47,7 @@ public class ServerDatabase {
         ArrayList<Object> dataObjectList = PersistentObjectUtil.getObjects(instance, PlayerData.class);
         for(Object dataObject : dataObjectList) {
             PlayerData pData = (PlayerData) dataObject;
-            if(pData.getPlayerName().equals(playerData.getPlayerName())) toRemove.add(pData);
+            if(pData.getPlayerName().equals(playerData.getPlayerName()) || pData.getPlayerName().isEmpty()) toRemove.add(pData);
         }
         for(PlayerData remove : toRemove) PersistentObjectUtil.removeObject(instance, remove);
         PersistentObjectUtil.addObject(instance, playerData);

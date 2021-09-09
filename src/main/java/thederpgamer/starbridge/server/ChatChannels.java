@@ -1,8 +1,10 @@
 package thederpgamer.starbridge.server;
 
 import api.common.GameCommon;
+import api.common.GameServer;
 import org.schema.game.common.data.chat.*;
 import org.schema.game.common.data.player.PlayerState;
+
 import java.util.ArrayList;
 
 /**
@@ -19,6 +21,10 @@ public enum ChatChannels {
     PM,
     GROUP,
     STAFF;
+
+    public ChatChannel toChatChannel() {
+        return GameServer.getServerState().getChannelRouter().getChannel(toString().toLowerCase());
+    }
 
     public static String fromChatChannel(ChatChannel chatChannel) {
         if(chatChannel instanceof AllChannel) return "[ALL]";
