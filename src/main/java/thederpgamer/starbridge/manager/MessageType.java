@@ -1,4 +1,4 @@
-package thederpgamer.starbridge.utils;
+package thederpgamer.starbridge.manager;
 
 /**
  * MessageType

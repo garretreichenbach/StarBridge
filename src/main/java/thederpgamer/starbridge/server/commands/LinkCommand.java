@@ -11,8 +11,8 @@ import org.schema.game.common.data.player.PlayerState;
 import thederpgamer.starbridge.StarBridge;
 import thederpgamer.starbridge.data.player.PlayerData;
 import thederpgamer.starbridge.server.ServerDatabase;
-import thederpgamer.starbridge.utils.LogUtils;
-import thederpgamer.starbridge.utils.MessageType;
+import thederpgamer.starbridge.manager.LogManager;
+import thederpgamer.starbridge.manager.MessageType;
 
 import java.util.Objects;
 
@@ -77,12 +77,12 @@ public class LinkCommand implements CommandInterface, DiscordCommand {
                 String logMessage = "Successfully linked user " + event.getUser().getName() + " to " + playerData.getPlayerName();
                 StarBridge.instance.botThread.getBot().removeLinkRequest(playerData);
                 event.reply(logMessage).queue();
-                LogUtils.logMessage(MessageType.INFO, logMessage);
+                LogManager.logMessage(MessageType.INFO, logMessage);
                 event.getHook().deleteOriginal().queue();
                 return;
             }
         } catch(Exception exception) {
-            LogUtils.logException("Failed to link user " + event.getUser().getName() + " to an in-game account.", exception);
+            LogManager.logException("Failed to link user " + event.getUser().getName() + " to an in-game account.", exception);
         }
         event.reply("Sorry, but that link code is invalid").queue();
     }

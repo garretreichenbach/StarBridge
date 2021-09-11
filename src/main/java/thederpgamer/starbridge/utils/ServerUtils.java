@@ -8,6 +8,7 @@ import api.utils.GameRestartHelper;
 import api.utils.StarRunnable;
 import org.schema.schine.network.server.ServerController;
 import thederpgamer.starbridge.StarBridge;
+import thederpgamer.starbridge.manager.LogManager;
 
 import java.util.ArrayList;
 
@@ -32,7 +33,7 @@ public class ServerUtils {
                     else if(GameCommon.isOnSinglePlayer()) GameRestartHelper.runWithUplink("localhost", 4242, getEnabledModIds());
                     else if(GameCommon.isClientConnectedToServer()) GameRestartHelper.runWithUplink(SMModLoader.uplinkServerHost, SMModLoader.uplinkServerPort, getEnabledModIds());
                 } catch(Exception exception) {
-                    LogUtils.logException("Encountered a critical error while trying to restart the server", exception);
+                    LogManager.logException("Encountered a critical error while trying to restart the server", exception);
                 }
             }
         }.runLater(StarBridge.instance, 100L);

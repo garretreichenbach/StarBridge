@@ -19,7 +19,7 @@ import thederpgamer.starbridge.server.ServerDatabase;
 import thederpgamer.starbridge.server.bot.BotThread;
 import thederpgamer.starbridge.server.bot.DiscordBot;
 import thederpgamer.starbridge.server.commands.*;
-import thederpgamer.starbridge.utils.LogUtils;
+import thederpgamer.starbridge.manager.LogManager;
 import thederpgamer.starbridge.utils.ServerUtils;
 
 import java.lang.reflect.Field;
@@ -111,7 +111,7 @@ public class StarBridge extends StarMod {
     }
 
     private void initialize() {
-        LogUtils.initialize();
+        LogManager.initialize();
         (botThread = new BotThread(botToken, chatWebhook, chatChannelId, logWebhook, logChannelId)).start();
     }
 
@@ -184,7 +184,7 @@ public class StarBridge extends StarMod {
         CommandInterface[] commandArray = new CommandInterface[] {
                 new ListCommand(),
                 new LinkCommand(),
-                new ClearCommand(),
+                new ClearDataCommand(),
                 new RestartCommand(),
                 new InfoPlayerCommand(),
                 new InfoFactionCommand()

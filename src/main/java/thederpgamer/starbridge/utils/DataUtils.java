@@ -3,6 +3,8 @@ package thederpgamer.starbridge.utils;
 import api.common.GameClient;
 import api.common.GameCommon;
 import thederpgamer.starbridge.StarBridge;
+import thederpgamer.starbridge.manager.LogManager;
+import thederpgamer.starbridge.manager.MessageType;
 
 /**
  * DataUtils
@@ -23,7 +25,7 @@ public class DataUtils {
             return getResourcesPath() + "/data/" + universeName;
         } else {
             try {
-                LogUtils.logMessage(MessageType.ERROR, "Client " + GameClient.getClientPlayerState().getName() + " attempted to illegally access server data.");
+                LogManager.logMessage(MessageType.ERROR, "Client " + GameClient.getClientPlayerState().getName() + " attempted to illegally access server data.");
             } catch(Exception ignored) { }
             return null;
         }

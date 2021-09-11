@@ -36,8 +36,8 @@ import thederpgamer.starbridge.server.ServerDatabase;
 import thederpgamer.starbridge.server.commands.*;
 import thederpgamer.starbridge.utils.DataUtils;
 import thederpgamer.starbridge.utils.DateUtils;
-import thederpgamer.starbridge.utils.LogUtils;
-import thederpgamer.starbridge.utils.MessageType;
+import thederpgamer.starbridge.manager.LogManager;
+import thederpgamer.starbridge.manager.MessageType;
 
 import javax.security.auth.login.LoginException;
 import java.io.IOException;
@@ -104,9 +104,9 @@ public class DiscordBot extends ListenerAdapter {
         try {
             bot = builder.build();
             initializeConfig();
-            LogUtils.logMessage(MessageType.INFO, "Successfully initialized bot.");
+            LogManager.logMessage(MessageType.INFO, "Successfully initialized bot.");
         } catch(LoginException exception) {
-            LogUtils.logException("An exception occurred while initializing the bot", exception);
+            LogManager.logException("An exception occurred while initializing the bot", exception);
         }
         registerCommands();
     }
@@ -133,7 +133,7 @@ public class DiscordBot extends ListenerAdapter {
         CommandInterface[] commandArray = new CommandInterface[] {
                 new ListCommand(),
                 new LinkCommand(),
-                new ClearCommand(),
+                new ClearDataCommand(),
                 new RestartCommand(),
                 new InfoPlayerCommand(),
                 new InfoFactionCommand(),
@@ -143,7 +143,7 @@ public class DiscordBot extends ListenerAdapter {
 
         for(CommandInterface commandInterface : commandArray) {
             commands.addCommands(((DiscordCommand) commandInterface).getCommandData()).queue();
-            LogUtils.logMessage(MessageType.INFO, "Registered command /" +  commandInterface.getCommand());
+            LogManager.logMessage(MessageType.INFO, "Registered command /" + commandInterface.getCommand());
         }
         commands.queue();
     }
@@ -178,14 +178,11 @@ public class DiscordBot extends ListenerAdapter {
                             //channel = receiver.openPrivateChannel().complete();
                         }
                          */
-                    LogUtils.logChat(chatMessage, "PM WITH " + chatMessage.receiver);
+                    LogManager.logChat(chatMessage, "PM WITH " + chatMessage.receiver);
                 } else {
-                    if((chatMessage.getChannel() == null || (chatMessage.receiver.equals("all")) && chatMessage.getChannel().getType().equals(ChannelRouter.ChannelType.ALL))) {
+                    if((chatMessage.getChannel() == null || (chatMessage.receiver.equals("all") && chatMessage.getChannel().getType().equals(ChannelRouter.ChannelType.ALL)))) {
                         sendMessageFromServer(playerData, chatMessage.text, chatMessage);
-                        LogUtils.logChat(chatMessage, "GENERAL");
-                    } else if(chatMessage.getChannel() != null && chatMessage.getChannel().getType().equals(ChannelRouter.ChannelType.PUBLIC)) {
-                        sendMessageFromServer(playerData, chatMessage.text, chatMessage);
-                        LogUtils.logChat(chatMessage, chatMessage.getChannel().getName().toUpperCase());
+                        LogManager.logChat(chatMessage, "GENERAL");
                     }
                 }
             }
@@ -259,10 +256,10 @@ public class DiscordBot extends ListenerAdapter {
                     sendMessageToServer(getBotName(), builder.toString().trim());
                     //GameServer.getServerState().chat(GameServer.getServerState().getChat(), builder.toString().trim(), "[" + getBotName() + "]", false);
                 } catch(Exception exception) {
-                    LogUtils.logException("An exception encountered while trying to send a message from the bot", exception);
-                    //LogUtils.logMessage(MessageType.ERROR, "Exception encountered while trying to send message from bot:\n" + exception.getMessage());
+                    LogManager.logException("An exception encountered while trying to send a message from the bot", exception);
+                    //LogManager.logMessage(MessageType.ERROR, "Exception encountered while trying to send message from bot:\n" + exception.getMessage());
                 }
-            } else LogUtils.logMessage(MessageType.ERROR, "Invalid message arguments count! Should be " + argsCount / 2 + " arguments but only found " + args.length + ".");
+            } else LogManager.logMessage(MessageType.ERROR, "Invalid message arguments count! Should be " + argsCount / 2 + " arguments but only found " + args.length + ".");
         }
     }
 
@@ -292,7 +289,7 @@ public class DiscordBot extends ListenerAdapter {
             try {
                 setBotAvatar(bot.retrieveUserById(sender.getDiscordId()).complete(true).getEffectiveAvatarUrl());
             } catch(RateLimitedException | IOException exception) {
-                LogUtils.logException("An exception occurred while trying to send a message from the server", exception);
+                LogManager.logException("An exception occurred while trying to send a message from the server", exception);
             }
         } else resetWebhook();
         if(sender.inFaction()) bot.getSelfUser().getManager().setName(sender.getPlayerName() + "[" + sender.getFactionName() + "]").queue();
@@ -328,7 +325,7 @@ public class DiscordBot extends ListenerAdapter {
             try {
                 chatWebhook.setAvatarUrl(bot.retrieveUserById(playerData.getDiscordId()).complete(true).getEffectiveAvatarUrl());
             } catch(RateLimitedException exception) {
-                LogUtils.logException("An exception occurred while trying to send a message from the server", exception);
+                LogManager.logException("An exception occurred while trying to send a message from the server", exception);
             }
         } else resetWebhook();
         if(playerData.inFaction()) chatWebhook.setUsername(playerData.getPlayerName() + "[" + playerData.getFactionName() + "]");
@@ -356,7 +353,7 @@ public class DiscordBot extends ListenerAdapter {
         try {
             chatWebhook.execute();
         } catch(IOException exception) {
-            LogUtils.logException("An exception occurred while trying to send a message from the server", exception);
+            LogManager.logException("An exception occurred while trying to send a message from the server", exception);
         }
         lastMessage = new ChatMessage(chatMessage);
         resetWebhook();
@@ -367,7 +364,7 @@ public class DiscordBot extends ListenerAdapter {
             try {
                 client.serverMessage("[" + sender + "] " + message);
             } catch(IOException exception) {
-                LogUtils.logException("An exception occurred while trying to send a message to the server", exception);
+                LogManager.logException("An exception occurred while trying to send a message to the server", exception);
             }
         }
     }
@@ -378,7 +375,7 @@ public class DiscordBot extends ListenerAdapter {
         try {
             chatWebhook.execute();
         } catch(IOException exception) {
-            LogUtils.logException("An exception occurred while trying to send a message from the server", exception);
+            LogManager.logException("An exception occurred while trying to send a message from the server", exception);
         }
         resetWebhook();
     }
@@ -389,7 +386,7 @@ public class DiscordBot extends ListenerAdapter {
         try {
             logWebhook.execute();
         } catch(IOException exception) {
-            //LogUtils.logException("An exception occurred while trying to send a log message", exception); This could create an infinitely repeating exception
+            //LogManager.logException("An exception occurred while trying to send a log message", exception); This could create an infinitely repeating exception
         }
         resetWebhook();
     }
@@ -469,7 +466,7 @@ public class DiscordBot extends ListenerAdapter {
                         try {
                             event.acknowledge(true).queue();
                         } catch(Exception exception) {
-                            LogUtils.logException("An exception occurred while trying to acknowledge command \"/" + commandInterface.getCommand() + "\"", exception);
+                            LogManager.logException("An exception occurred while trying to acknowledge command \"/" + commandInterface.getCommand() + "\"", exception);
                         }
                     }
                 } else event.reply("This command is only available in-game").queue();
@@ -500,7 +497,7 @@ public class DiscordBot extends ListenerAdapter {
         chatMessage.receiverType = ChatMessage.ChatMessageType.CHANNEL;
         chatMessage.receiver = "all";
         chatMessage.setChannel(ChatChannels.ALL.toChatChannel());
-        LogUtils.logChat(chatMessage, "GENERAL");
+        LogManager.logChat(chatMessage, "GENERAL");
     }
 
     public boolean hasRole(Member member, long roleId) {

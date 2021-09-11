@@ -9,7 +9,8 @@ import net.dv8tion.jda.api.events.interaction.SlashCommandEvent;
 import net.dv8tion.jda.api.requests.restaction.CommandUpdateAction;
 import org.schema.game.common.data.player.PlayerState;
 import thederpgamer.starbridge.StarBridge;
-import thederpgamer.starbridge.utils.LogUtils;
+import thederpgamer.starbridge.manager.LogManager;
+
 import javax.annotation.Nullable;
 
 /**
@@ -94,7 +95,7 @@ public class ListCommand implements CommandInterface, DiscordCommand {
                     builder.append(playerState.getName()).append(" [").append(playerState.getFactionName()).append("]\n");
                 }
             } catch(NullPointerException exception) {
-                LogUtils.logException("Encountered a NullPointerException while trying to fetch list of online players! This is most likely due to there being no players currently online.", exception);
+                LogManager.logException("Encountered a NullPointerException while trying to fetch list of online players! This is most likely due to there being no players currently online.", exception);
                 builder = new StringBuilder();
                 builder.append("There are no players currently online.");
             }
@@ -106,7 +107,7 @@ public class ListCommand implements CommandInterface, DiscordCommand {
                     if(playerState.isAdmin()) builder.append(playerState.getName()).append(" [").append(playerState.getFactionName()).append("]\n");
                 }
             } catch(NullPointerException exception) {
-                LogUtils.logException("Encountered a NullPointerException while trying to fetch list of online staff! This is most likely due to there being no staff currently online.", exception);
+                LogManager.logException("Encountered a NullPointerException while trying to fetch list of online staff! This is most likely due to there being no staff currently online.", exception);
                 builder = new StringBuilder();
                 builder.append("There are no staff currently online.");
             }
