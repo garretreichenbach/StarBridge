@@ -1,11 +1,13 @@
 package thederpgamer.starbridge.server.bot;
 
 import api.common.GameCommon;
+import api.common.GameServer;
 import api.listener.events.Event;
 import api.listener.events.faction.FactionCreateEvent;
 import api.listener.events.faction.FactionRelationChangeEvent;
 import api.listener.events.player.*;
 import api.mod.StarLoader;
+import api.utils.StarRunnable;
 import api.utils.game.PlayerUtils;
 import api.utils.game.chat.CommandInterface;
 import net.dv8tion.jda.api.JDA;
@@ -26,18 +28,19 @@ import org.schema.game.common.data.player.PlayerState;
 import org.schema.game.common.data.player.faction.FactionRelation;
 import org.schema.game.network.objects.ChatMessage;
 import org.schema.game.server.data.GameServerState;
+import org.schema.game.server.data.ServerConfig;
 import org.schema.schine.network.RegisteredClientOnServer;
 import thederpgamer.starbridge.StarBridge;
 import thederpgamer.starbridge.data.config.ConfigFile;
 import thederpgamer.starbridge.data.player.PlayerData;
+import thederpgamer.starbridge.manager.LogManager;
+import thederpgamer.starbridge.manager.MessageType;
 import thederpgamer.starbridge.server.ChatChannels;
 import thederpgamer.starbridge.server.DiscordWebhook;
 import thederpgamer.starbridge.server.ServerDatabase;
 import thederpgamer.starbridge.server.commands.*;
 import thederpgamer.starbridge.utils.DataUtils;
 import thederpgamer.starbridge.utils.DateUtils;
-import thederpgamer.starbridge.manager.LogManager;
-import thederpgamer.starbridge.manager.MessageType;
 
 import javax.security.auth.login.LoginException;
 import java.io.IOException;
@@ -56,6 +59,8 @@ import java.util.regex.Pattern;
  * @author TheDerpGamer
  */
 public class DiscordBot extends ListenerAdapter {
+
+    private final long startTime = System.currentTimeMillis();
 
     //Data
     public JDA bot;
@@ -109,6 +114,13 @@ public class DiscordBot extends ListenerAdapter {
             LogManager.logException("An exception occurred while initializing the bot", exception);
         }
         registerCommands();
+
+        new StarRunnable() {
+            @Override
+            public void run() {
+                updateChannelInfo();
+            }
+        }.runTimer(StarBridge.instance, 300); //Refresh every 5 min
     }
 
     public void initializeConfig() {
@@ -180,15 +192,21 @@ public class DiscordBot extends ListenerAdapter {
                          */
                     LogManager.logChat(chatMessage, "PM WITH " + chatMessage.receiver);
                 } else {
-                    if((chatMessage.getChannel() == null || (chatMessage.receiver.equals("all") && chatMessage.getChannel().getType().equals(ChannelRouter.ChannelType.ALL)))) {
-                        sendMessageFromServer(playerData, chatMessage.text, chatMessage);
-                        LogManager.logChat(chatMessage, "GENERAL");
+                    if(chatMessage.getChannel() != null && chatMessage.receiverType.equals(ChatMessage.ChatMessageType.CHANNEL)) {
+                        if(chatMessage.getChannel().getType().equals(ChannelRouter.ChannelType.FACTION)) {
+                            //sendMessageFromServer(playerData, chatMessage.text, chatMessage); Don't send chats in private channels
+                            LogManager.logChat(chatMessage, "FACTION");
+                        } else if(chatMessage.getChannel().getType().equals(ChannelRouter.ChannelType.PUBLIC) && !chatMessage.getChannel().hasPassword()) {
+                            sendMessageFromServer(playerData, chatMessage.text, chatMessage);
+                            LogManager.logChat(chatMessage, "GENERAL");
+                        }
                     }
                 }
             }
         } else if(event instanceof PlayerJoinWorldEvent) {
             PlayerJoinWorldEvent playerJoinWorldEvent = (PlayerJoinWorldEvent) event;
             ServerDatabase.getPlayerData(playerJoinWorldEvent.getPlayerName());
+
             sendBotEventMessage(playerJoinMessage, playerJoinWorldEvent.getPlayerName());
         } else if(event instanceof PlayerLeaveWorldEvent) {
             sendBotEventMessage(playerLeaveMessage, ((PlayerLeaveWorldEvent) event).getPlayerName());
@@ -225,6 +243,30 @@ public class DiscordBot extends ListenerAdapter {
                 sendBotEventMessage(factionWarMessage, factionRelationChangeEvent.getTo().getName(), factionRelationChangeEvent.getFrom().getName());
             }
         }
+    }
+
+    public void updateChannelInfo() {
+        try {
+            int playerCount = GameServer.getServerState().getPlayerStatesByName().size();
+            int playerMax = (int) ServerConfig.MAX_CLIENTS.getCurrentState();
+
+            int bytesSent = GameServer.getServerState().getNetworkStatus().getBytesSentPerSecond();
+            long totalBytesSent = GameServer.getServerState().getNetworkStatus().getTotalBytesSent();
+
+            int bytesReceived = GameServer.getServerState().getNetworkStatus().getBytesReceivedPerSecond();
+            long totalBytesReceived = GameServer.getServerState().getNetworkStatus().getTotalBytesReceived();
+
+            String chatChannelStats = ("Players: " + playerCount + " / " + playerMax
+                                       //"Next Restart: " + ServerUtils.getNextRestart()
+            );
+            Objects.requireNonNull(bot.getTextChannelById(chatChannelId)).getManager().setTopic(chatChannelStats).queue();
+
+            String logChannelStats = ("Clients: " + playerCount + " / " + playerMax + "\n" + "Bytes Sent: " + bytesSent + "/s | " + totalBytesSent + " total\n" + "Bytes Received: " + bytesReceived + "/s | " + totalBytesReceived + " total\n" + "Current Uptime: " + (System.currentTimeMillis() - startTime));
+            Objects.requireNonNull(bot.getTextChannelById(logChannelId)).getManager().setTopic(logChannelStats).queue();
+
+            //LogManager.logMessage(MessageType.INFO, chatChannelStats);
+            //LogManager.logMessage(MessageType.INFO, logChannelStats);
+        } catch(Exception ignored) { }
     }
 
     private void sendBotEventMessage(String message, String... args) {

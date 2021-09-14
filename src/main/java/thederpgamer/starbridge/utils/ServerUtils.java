@@ -1,49 +1,27 @@
 package thederpgamer.starbridge.utils;
 
-import api.SMModLoader;
-import api.common.GameCommon;
-import api.mod.ModSkeleton;
-import api.mod.StarLoader;
-import api.utils.GameRestartHelper;
-import api.utils.StarRunnable;
-import org.schema.schine.network.server.ServerController;
 import thederpgamer.starbridge.StarBridge;
-import thederpgamer.starbridge.manager.LogManager;
 
-import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
 
 /**
- * ServerUtils
  * <Description>
  *
+ * @version 1.0 - [08/20/2021]
  * @author TheDerpGamer
- * @since 08/20/2021
  */
 public class ServerUtils {
 
-    public static void triggerRestart() {
-        new StarRunnable() {
-            @Override
-            public void run() {
-                try {
-                    StringBuilder sb = new StringBuilder();
-                    for(Integer modId : getEnabledModIds()) sb.append(modId).append(",");
-                    sb.deleteCharAt(sb.length() - 1);
-                    if(GameCommon.isDedicatedServer()) GameRestartHelper.runWithArguments(new String[] {"-server", "-port:" + ServerController.port, "-modded", "-forceupdate", "-autoupdatemods"}, sb.toString());
-                    else if(GameCommon.isOnSinglePlayer()) GameRestartHelper.runWithUplink("localhost", 4242, getEnabledModIds());
-                    else if(GameCommon.isClientConnectedToServer()) GameRestartHelper.runWithUplink(SMModLoader.uplinkServerHost, SMModLoader.uplinkServerPort, getEnabledModIds());
-                } catch(Exception exception) {
-                    LogManager.logException("Encountered a critical error while trying to restart the server", exception);
-                }
-            }
-        }.runLater(StarBridge.instance, 100L);
-    }
-
-    private static ArrayList<Integer> getEnabledModIds() {
-        ArrayList<Integer> enabledMods = new ArrayList<>();
-        for(ModSkeleton skeleton : StarLoader.starMods) {
-            if(skeleton.isEnabled()) enabledMods.add(skeleton.getSmdResourceId());
-        }
-        return enabledMods;
+    public static String getNextRestart() {
+        Date current = new Date();
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTime(current);
+        Date lastRestart = new Date(calendar.get(Calendar.YEAR), calendar.get(Calendar.MONTH), calendar.get(Calendar.DAY_OF_MONTH));
+        int restartsPerDay = (int) (86400000L / StarBridge.instance.autoRestartFrequency);
+        int hoursTillNext = (int) (Math.ceil((float) current.getHours() / restartsPerDay)) * restartsPerDay;
+        lastRestart.setHours(hoursTillNext); //Todo: No idea if this is actually even remotely correct
+        Date nextRestart = new Date(lastRestart.getTime() + StarBridge.instance.autoRestartFrequency);
+        return DateUtils.getHMDifferenceFormatted(nextRestart);
     }
 }

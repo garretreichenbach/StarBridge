@@ -12,7 +12,6 @@ import org.jetbrains.annotations.Nullable;
 import org.schema.common.util.StringTools;
 import org.schema.game.common.data.player.PlayerState;
 import thederpgamer.starbridge.StarBridge;
-import thederpgamer.starbridge.utils.ServerUtils;
 
 import java.util.Objects;
 
@@ -132,7 +131,6 @@ public class RestartCommand implements CommandInterface, DiscordCommand {
             @Override
             public void run() {
                 StarBridge.instance.getBot().sendServerRestartMessage();
-                ServerUtils.triggerRestart();
             }
         }.runLater(StarBridge.instance, timer * 1000L);
     }

@@ -15,12 +15,11 @@ import api.utils.game.chat.CommandInterface;
 import api.utils.other.HashList;
 import net.dv8tion.jda.api.exceptions.RateLimitedException;
 import org.schema.game.common.data.player.PlayerState;
+import thederpgamer.starbridge.manager.LogManager;
 import thederpgamer.starbridge.server.ServerDatabase;
 import thederpgamer.starbridge.server.bot.BotThread;
 import thederpgamer.starbridge.server.bot.DiscordBot;
 import thederpgamer.starbridge.server.commands.*;
-import thederpgamer.starbridge.manager.LogManager;
-import thederpgamer.starbridge.utils.ServerUtils;
 
 import java.lang.reflect.Field;
 import java.util.Objects;
@@ -73,7 +72,7 @@ public class StarBridge extends StarMod {
     public long adminRoleId;
     public int defaultShutdownTimer = 60;
     public boolean autoRestart = true;
-    public long autoRestartFrequency = 18000000;
+    public long autoRestartFrequency = 21600000;
 
     //Data
     public BotThread botThread;
@@ -107,7 +106,7 @@ public class StarBridge extends StarMod {
         adminRoleId = config.getLong("admin-role-id");
         defaultShutdownTimer = config.getConfigurableInt("default-shutdown-timer", 60);
         autoRestart = config.getConfigurableBoolean("auto-restart", true);
-        autoRestartFrequency = config.getConfigurableLong("auto-restart-frequency", 18000000);
+        autoRestartFrequency = config.getConfigurableLong("auto-restart-frequency", 21600000);
     }
 
     private void initialize() {
@@ -208,26 +207,6 @@ public class StarBridge extends StarMod {
     }
 
     private void startRunners() {
-        //Auto Restart
-        new StarRunnable() {
-            @Override
-            public void run() {
-                if(autoRestart) {
-                    long timer = autoRestartFrequency * 1000L;
-                    getBot().resetWebhook();
-                    getBot().sendMessageToDiscord(":octagonal_sign: Server restarting in " + defaultShutdownTimer + " seconds\n");
-                    GameServer.getServerState().addCountdownMessage(defaultShutdownTimer, "Server restarting in " + defaultShutdownTimer + " seconds\n");
-                    new StarRunnable() {
-                        @Override
-                        public void run() {
-                            getBot().sendServerRestartMessage();
-                            ServerUtils.triggerRestart();
-                        }
-                    }.runLater(StarBridge.instance, timer);
-                }
-            }
-        }.runTimer(this, autoRestartFrequency);
-
         //Auto Saver
         new StarRunnable() {
             @Override
