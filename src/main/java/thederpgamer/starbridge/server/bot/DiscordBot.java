@@ -33,8 +33,8 @@ import org.schema.schine.network.RegisteredClientOnServer;
 import thederpgamer.starbridge.StarBridge;
 import thederpgamer.starbridge.data.config.ConfigFile;
 import thederpgamer.starbridge.data.player.PlayerData;
+import thederpgamer.starbridge.manager.ConfigManager;
 import thederpgamer.starbridge.manager.LogManager;
-import thederpgamer.starbridge.manager.MessageType;
 import thederpgamer.starbridge.server.ChatChannels;
 import thederpgamer.starbridge.server.DiscordWebhook;
 import thederpgamer.starbridge.server.ServerDatabase;
@@ -109,7 +109,7 @@ public class DiscordBot extends ListenerAdapter {
         try {
             bot = builder.build();
             initializeConfig();
-            LogManager.logMessage(MessageType.INFO, "Successfully initialized bot.");
+            LogManager.logInfo("Successfully initialized bot.");
         } catch(LoginException exception) {
             LogManager.logException("An exception occurred while initializing the bot", exception);
         }
@@ -120,7 +120,7 @@ public class DiscordBot extends ListenerAdapter {
             public void run() {
                 updateChannelInfo();
             }
-        }.runTimer(StarBridge.instance, 300); //Refresh every 5 min
+        }.runTimer(StarBridge.getInstance(), 3000); //Refresh every 5 min
     }
 
     public void initializeConfig() {
@@ -155,13 +155,13 @@ public class DiscordBot extends ListenerAdapter {
 
         for(CommandInterface commandInterface : commandArray) {
             commands.addCommands(((DiscordCommand) commandInterface).getCommandData()).queue();
-            LogManager.logMessage(MessageType.INFO, "Registered command /" + commandInterface.getCommand());
+            LogManager.logInfo( "Registered command /" + commandInterface.getCommand());
         }
         commands.queue();
     }
 
     public String getBotName() {
-        return StarBridge.instance.botName;
+        return ConfigManager.getMainConfig().getString("bot-name");
     }
 
     public void handleEvent(Event event) {
@@ -192,11 +192,11 @@ public class DiscordBot extends ListenerAdapter {
                          */
                     LogManager.logChat(chatMessage, "PM WITH " + chatMessage.receiver);
                 } else {
-                    if(chatMessage.getChannel() != null && chatMessage.receiverType.equals(ChatMessage.ChatMessageType.CHANNEL)) {
-                        if(chatMessage.getChannel().getType().equals(ChannelRouter.ChannelType.FACTION)) {
+                    if(chatMessage.receiverType.equals(ChatMessage.ChatMessageType.CHANNEL)) {
+                        if(chatMessage.getChannel() != null && chatMessage.getChannel().getType().equals(ChannelRouter.ChannelType.FACTION)) {
                             //sendMessageFromServer(playerData, chatMessage.text, chatMessage); Don't send chats in private channels
                             LogManager.logChat(chatMessage, "FACTION");
-                        } else if(chatMessage.getChannel().getType().equals(ChannelRouter.ChannelType.PUBLIC) && !chatMessage.getChannel().hasPassword()) {
+                        } else if(chatMessage.getChannel()  == null || (chatMessage.getChannel().getType().equals(ChannelRouter.ChannelType.PUBLIC) && !chatMessage.getChannel().hasPassword())) {
                             sendMessageFromServer(playerData, chatMessage.text, chatMessage);
                             LogManager.logChat(chatMessage, "GENERAL");
                         }
@@ -206,9 +206,10 @@ public class DiscordBot extends ListenerAdapter {
         } else if(event instanceof PlayerJoinWorldEvent) {
             PlayerJoinWorldEvent playerJoinWorldEvent = (PlayerJoinWorldEvent) event;
             ServerDatabase.getPlayerData(playerJoinWorldEvent.getPlayerName());
-
+            updateChannelInfo();
             sendBotEventMessage(playerJoinMessage, playerJoinWorldEvent.getPlayerName());
         } else if(event instanceof PlayerLeaveWorldEvent) {
+            updateChannelInfo();
             sendBotEventMessage(playerLeaveMessage, ((PlayerLeaveWorldEvent) event).getPlayerName());
         } else if(event instanceof FactionCreateEvent) {
             FactionCreateEvent factionCreateEvent = (FactionCreateEvent) event;
@@ -230,7 +231,8 @@ public class DiscordBot extends ListenerAdapter {
                 PlayerState killerState = (PlayerState) playerDeathEvent.getDamager();
                 String killerFactionName = (killerState.getFactionId() != 0) ? killerState.getFactionName() : "No Faction";
                 String killedFactionName = (playerDeathEvent.getPlayer().getFactionId() != 0) ? playerDeathEvent.getPlayer().getFactionName() : "No Faction";
-                sendBotEventMessage(playerKillByPlayerMessage, playerDeathEvent.getPlayer().getName(), killedFactionName, killerState.getName(), killerFactionName);
+                if(killerState.equals(playerDeathEvent.getPlayer())) sendMessageToDiscord("Player " + killerState.getName() + "[" + killerFactionName + "] took their own life.");
+                else sendBotEventMessage(playerKillByPlayerMessage, playerDeathEvent.getPlayer().getName(), killedFactionName, killerState.getName(), killerFactionName);
             } else {
                 String playerFactionName = (playerDeathEvent.getPlayer().getFactionId() != 0) ? playerDeathEvent.getPlayer().getFactionName() : "No Faction";
                 sendBotEventMessage(playerKillByOtherMessage, playerDeathEvent.getPlayer().getName(), playerFactionName);
@@ -301,7 +303,7 @@ public class DiscordBot extends ListenerAdapter {
                     LogManager.logException("An exception encountered while trying to send a message from the bot", exception);
                     //LogManager.logMessage(MessageType.ERROR, "Exception encountered while trying to send message from bot:\n" + exception.getMessage());
                 }
-            } else LogManager.logMessage(MessageType.ERROR, "Invalid message arguments count! Should be " + argsCount / 2 + " arguments but only found " + args.length + ".");
+            } else LogManager.logWarning("Invalid message arguments count! Should be " + argsCount / 2 + " arguments but only found " + args.length + ".", null);
         }
     }
 
@@ -435,11 +437,11 @@ public class DiscordBot extends ListenerAdapter {
 
     public void resetWebhook() {
         chatWebhook.setUsername(getBotName());
-        chatWebhook.setAvatarUrl(StarBridge.instance.botAvatar);
+        chatWebhook.setAvatarUrl(ConfigManager.getMainConfig().getString("bot-avatar"));
         chatWebhook.setContent("");
 
         logWebhook.setUsername(getBotName());
-        logWebhook.setAvatarUrl(StarBridge.instance.botAvatar);
+        logWebhook.setAvatarUrl(ConfigManager.getMainConfig().getString("bot-avatar"));
         logWebhook.setContent("");
     }
 
@@ -499,7 +501,7 @@ public class DiscordBot extends ListenerAdapter {
             CommandInterface commandInterface = StarLoader.getCommand(event.getName());
             if(commandInterface != null) {
                 if(commandInterface instanceof DiscordCommand) {
-                    if(commandInterface.isAdminOnly() && !hasRole(Objects.requireNonNull(event.getMember()), StarBridge.instance.adminRoleId)) {
+                    if(commandInterface.isAdminOnly() && !hasRole(Objects.requireNonNull(event.getMember()), ConfigManager.getMainConfig().getLong("admin-role-id"))) {
                         event.reply("You don't have permission to use this command!").queue();
                         return;
                     }

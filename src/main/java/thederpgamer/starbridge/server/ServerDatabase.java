@@ -18,7 +18,7 @@ import java.util.ArrayList;
  */
 public class ServerDatabase {
 
-    private static final ModSkeleton instance = StarBridge.instance.getSkeleton();
+    private static final ModSkeleton instance = StarBridge.getInstance().getSkeleton();
 
     public static PlayerData getPlayerData(String playerName) {
         ArrayList<Object> dataObjectList = PersistentObjectUtil.getObjects(instance, PlayerData.class);

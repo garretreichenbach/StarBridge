@@ -12,7 +12,6 @@ import thederpgamer.starbridge.StarBridge;
 import thederpgamer.starbridge.data.player.PlayerData;
 import thederpgamer.starbridge.server.ServerDatabase;
 import thederpgamer.starbridge.manager.LogManager;
-import thederpgamer.starbridge.manager.MessageType;
 
 import java.util.Objects;
 
@@ -51,7 +50,7 @@ public class LinkCommand implements CommandInterface, DiscordCommand {
 
     @Override
     public boolean onCommand(PlayerState playerState, String[] args) {
-        StarBridge.instance.botThread.getBot().addLinkRequest(playerState);
+        StarBridge.getInstance().botThread.getBot().addLinkRequest(playerState);
         return true;
     }
 
@@ -62,22 +61,22 @@ public class LinkCommand implements CommandInterface, DiscordCommand {
 
     @Override
     public StarMod getMod() {
-        return StarBridge.instance;
+        return StarBridge.getInstance();
     }
 
     @Override
     public void execute(SlashCommandEvent event) {
         try {
             int linkCode = Integer.parseInt(Objects.requireNonNull(event.getOption("link_code")).getAsString());
-            PlayerData playerData = StarBridge.instance.botThread.getBot().getLinkRequest(linkCode);
+            PlayerData playerData = StarBridge.getInstance().botThread.getBot().getLinkRequest(linkCode);
             if(playerData != null) {
                 playerData.setDiscordId(event.getUser().getIdLong());
                 ServerDatabase.updatePlayerData(playerData);
-                PersistentObjectUtil.save(StarBridge.instance.getSkeleton());
+                PersistentObjectUtil.save(StarBridge.getInstance().getSkeleton());
                 String logMessage = "Successfully linked user " + event.getUser().getName() + " to " + playerData.getPlayerName();
-                StarBridge.instance.botThread.getBot().removeLinkRequest(playerData);
+                StarBridge.getInstance().botThread.getBot().removeLinkRequest(playerData);
                 event.reply(logMessage).queue();
-                LogManager.logMessage(MessageType.INFO, logMessage);
+                LogManager.logInfo(logMessage);
                 event.getHook().deleteOriginal().queue();
                 return;
             }

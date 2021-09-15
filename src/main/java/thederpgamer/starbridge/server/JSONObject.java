@@ -5,6 +5,8 @@ import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.HttpClients;
 import thederpgamer.starbridge.StarBridge;
+import thederpgamer.starbridge.manager.ConfigManager;
+
 import java.io.IOException;
 import java.lang.reflect.Array;
 import java.util.HashMap;
@@ -61,7 +63,7 @@ public class JSONObject {
             HttpClient httpClient = HttpClients.createDefault();
             HttpPost httpPost = new HttpPost(url);
             httpPost.addHeader("Content-Type", "application/json");
-            httpPost.addHeader("User-Agent", "StarBridge (" + StarBridge.instance.botToken + ", " + StarBridge.instance.getSkeleton().getModVersion() + ")");
+            httpPost.addHeader("User-Agent", "StarBridge (" + ConfigManager.getMainConfig().getString("bot-token") + ", " + StarBridge.getInstance().getSkeleton().getModVersion() + ")");
             httpPost.setEntity(new StringEntity(toString()));
             httpClient.execute(httpPost);
         } catch(IOException exception) {

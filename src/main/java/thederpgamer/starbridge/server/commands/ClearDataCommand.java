@@ -10,6 +10,7 @@ import org.apache.commons.lang3.math.NumberUtils;
 import org.jetbrains.annotations.Nullable;
 import org.schema.game.common.data.player.PlayerState;
 import thederpgamer.starbridge.StarBridge;
+import thederpgamer.starbridge.manager.ConfigManager;
 import thederpgamer.starbridge.manager.LogManager;
 
 import java.util.Objects;
@@ -82,7 +83,7 @@ public class ClearDataCommand implements CommandInterface, DiscordCommand {
 
     @Override
     public StarMod getMod() {
-        return StarBridge.instance;
+        return StarBridge.getInstance();
     }
 
     @Override
@@ -91,7 +92,7 @@ public class ClearDataCommand implements CommandInterface, DiscordCommand {
         String dataType = Objects.requireNonNull(event.getOption("data_type")).getAsString();
         if(dataType.equalsIgnoreCase("logs")) {
             LogManager.clearLogs();
-            event.reply("Successfully cleared " + (StarBridge.instance.maxWorldLogs - 1) + " logs").queue();
+            event.reply("Successfully cleared " + (ConfigManager.getMainConfig().getInt("max-world-logs") - 1) + " logs").queue();
         } else event.reply("Incorrect usage \"/" + message + "\". Use /help clear for proper usages.").queue();
     }
 

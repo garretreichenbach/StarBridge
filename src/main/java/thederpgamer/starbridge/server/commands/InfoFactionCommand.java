@@ -67,7 +67,7 @@ public class InfoFactionCommand implements CommandInterface, DiscordCommand {
 
     @Override
     public StarMod getMod() {
-        return StarBridge.instance;
+        return StarBridge.getInstance();
     }
 
     @Override

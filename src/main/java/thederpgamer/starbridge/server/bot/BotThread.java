@@ -1,17 +1,23 @@
 package thederpgamer.starbridge.server.bot;
 
+import api.mod.config.FileConfiguration;
+
 /**
- * BotThread
- * <Description>
+ * Handles the main thread for the discord bot.
  *
- * @author Garret Reichenbach
- * @since 04/09/2021
+ * @version 1.0 - [04/09/2021]
+ * @author TheDerpGamer
  */
 public class BotThread extends Thread {
 
-    private DiscordBot discordBot;
+    private final DiscordBot discordBot;
 
-    public BotThread(String token, String chatWebhook, long chatChannelId, String logWebhook, long logChannelId) {
+    public BotThread(FileConfiguration config) {
+        String token = config.getString("bot-token");
+        String chatWebhook = config.getString("chat-webhook");
+        long chatChannelId = config.getLong("chat-channel-id");
+        String logWebhook = config.getString("log-webhook");
+        long logChannelId = config.getLong("log-channel-id");
         discordBot = new DiscordBot(token, chatWebhook, chatChannelId, logWebhook, logChannelId);
     }
 

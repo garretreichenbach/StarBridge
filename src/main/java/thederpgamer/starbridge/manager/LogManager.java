@@ -5,9 +5,11 @@ import thederpgamer.starbridge.StarBridge;
 import thederpgamer.starbridge.utils.DataUtils;
 import thederpgamer.starbridge.utils.DateUtils;
 
+import javax.annotation.Nullable;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.LinkedList;
 
 /**
  * Manages mod data logging.
@@ -17,8 +19,24 @@ import java.io.IOException;
  */
 public class LogManager {
 
+    private enum MessageType {
+        DEBUG("[DEBUG]: "),
+        INFO("[INFO]: "),
+        WARNING("[WARNING]: "),
+        ERROR("[ERROR]: "),
+        CRITICAL("[CRITICAL]: ");
+
+        public String prefix;
+
+        MessageType(String prefix) {
+            this.prefix = prefix;
+        }
+    }
+
     private static FileWriter logWriter;
     private static FileWriter chatWriter;
+
+    private static final LinkedList<String> logQueue = new LinkedList<>();
 
     public static void initialize() {
         {
@@ -38,7 +56,7 @@ public class LogManager {
                         String fileName = logFile.getName().replace(".txt", "");
                         int logNumber = Integer.parseInt(fileName.substring(fileName.indexOf("log_") + 4)) + 1;
                         String newName = logFolderPath + "/log_" + logNumber + ".txt";
-                        if(logNumber < StarBridge.instance.maxWorldLogs - 1) logFile.renameTo(new File(newName));
+                        if(logNumber < ConfigManager.getMainConfig().getInt("max-world-logs") - 1) logFile.renameTo(new File(newName));
                         else logFile.delete();
                     }
                 }
@@ -70,7 +88,7 @@ public class LogManager {
                         String fileName = chatFile.getName().replace(".txt", "");
                         int logNumber = Integer.parseInt(fileName.substring(fileName.indexOf("chat-log_") + 9)) + 1;
                         String newName = chatFolderPath + "/chat-log_" + logNumber + ".txt";
-                        if(logNumber < StarBridge.instance.maxWorldLogs - 1) chatFile.renameTo(new File(newName));
+                        if(logNumber < ConfigManager.getMainConfig().getInt("max-world-logs") - 1) chatFile.renameTo(new File(newName));
                         else chatFile.delete();
                     }
                 }
@@ -87,35 +105,59 @@ public class LogManager {
         }
     }
 
+    public static void logInfo(String message) {
+        logMessage(MessageType.INFO, message);
+    }
+
+    public static void logDebug(String message) {
+        if(ConfigManager.getMainConfig().getBoolean("debug-mode")) logMessage(MessageType.DEBUG, message);
+    }
+
+    public static void logWarning(String message, @Nullable
+            Exception exception) {
+        if(exception != null) logMessage(MessageType.WARNING, message + ":\n" + exception.getMessage());
+        else logMessage(MessageType.WARNING, message);
+    }
+
     public static void logException(String message, Exception exception) {
+        exception.printStackTrace();
         logMessage(MessageType.ERROR, message + ":\n" + exception.getMessage());
     }
 
-    public static void logMessage(MessageType messageType, String message) {
-        String prefix = "[" + DateUtils.getTimeFormatted() + "] " + messageType.prefix;
-        try {
-            StringBuilder builder = new StringBuilder();
-            builder.append(prefix);
-            String[] lines = message.split("\n");
-            if(lines.length > 1) {
-                for(int i = 0; i < lines.length; i ++) {
-                    builder.append(lines[i]);
-                    if(i < lines.length - 1) {
-                        if(i > 1) for(int j = 0; j < prefix.length(); j ++) builder.append(" ");
+    public static void logCritical(String message, Exception exception) {
+        exception.printStackTrace();
+        logMessage(MessageType.CRITICAL, message + ":\n" + exception.getMessage());
+        System.exit(1);
+    }
+
+    private static void logMessage(MessageType messageType, String message) {
+        if(!logQueue.contains(message) || messageType.equals(MessageType.CRITICAL)) {
+            String prefix = "[" + DateUtils.getTimeFormatted() + "] " + messageType.prefix;
+            try {
+                StringBuilder builder = new StringBuilder();
+                builder.append(prefix);
+                String[] lines = message.split("\n");
+                if(lines.length > 1) {
+                    for(int i = 0; i < lines.length; i++) {
+                        builder.append(lines[i]);
+                        if(i < lines.length - 1) {
+                            if(i > 1) for(int j = 0; j < prefix.length(); j++) builder.append(" ");
+                        }
                     }
+                } else {
+                    builder.append(message);
                 }
-            } else {
-                builder.append(message);
+                StarBridge.getInstance().getBot().sendLogMessage(builder.toString());
+                System.out.println(builder.toString());
+                logWriter.append(builder.toString()).append("\n");
+                logWriter.flush();
+            } catch(IOException exception) {
+                exception.printStackTrace();
             }
-            StarBridge.instance.getBot().sendLogMessage(builder.toString());
-            System.out.println(builder.toString());
-            logWriter.append(builder.toString()).append("\n");
-            logWriter.flush();
-        } catch(IOException exception) {
-            exception.printStackTrace();
         }
 
-        if(messageType.equals(MessageType.CRITICAL)) System.exit(1);
+        if(logQueue.size() >= 5) logQueue.removeLast(); //Prevent spam from repeated messages
+        logQueue.addFirst(message);
     }
 
     public static void logChat(ChatMessage chatMessage, String channel) {
@@ -133,7 +175,7 @@ public class LogManager {
                     }
                 }
             } else builder.append(message);
-            StarBridge.instance.getBot().sendLogMessage("[" + DateUtils.getTimeFormatted() + "] [CHAT]: " + builder.toString());
+            StarBridge.getInstance().getBot().sendLogMessage("[" + DateUtils.getTimeFormatted() + "] [CHAT]: " + builder.toString());
             chatWriter.append(builder.toString()).append("\n");
             chatWriter.flush();
         } catch(IOException var3) {

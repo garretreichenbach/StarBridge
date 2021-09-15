@@ -67,7 +67,7 @@ public class InfoPlayerCommand implements CommandInterface, DiscordCommand {
 
     @Override
     public StarMod getMod() {
-        return StarBridge.instance;
+        return StarBridge.getInstance();
     }
 
     @Override
@@ -92,7 +92,7 @@ public class InfoPlayerCommand implements CommandInterface, DiscordCommand {
         builder.append("Time played: ").append(String.format("%,.2f", (playerData.getHoursPlayed()))).append(" hours\n");
         if(playerData.getDiscordId() != -1) {
             try {
-                String tag = StarBridge.instance.getBot().bot.retrieveUserById(playerData.getDiscordId()).complete().getAsTag();
+                String tag = StarBridge.getInstance().getBot().bot.retrieveUserById(playerData.getDiscordId()).complete().getAsTag();
                 builder.append("Discord: ").append(tag).append("\n");
             } catch(Exception ignored) { }
         }

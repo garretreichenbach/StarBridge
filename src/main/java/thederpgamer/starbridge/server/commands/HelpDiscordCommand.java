@@ -8,6 +8,7 @@ import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.events.interaction.SlashCommandEvent;
 import net.dv8tion.jda.api.requests.restaction.CommandUpdateAction;
 import thederpgamer.starbridge.StarBridge;
+import thederpgamer.starbridge.manager.ConfigManager;
 
 /**
  * HelpDiscordCommand
@@ -38,6 +39,6 @@ public class HelpDiscordCommand extends HelpCommand implements DiscordCommand {
     }
 
     private boolean isAdmin(Member member) {
-        return StarBridge.instance.getBot().hasRole(member, StarBridge.instance.adminRoleId);
+        return StarBridge.getInstance().getBot().hasRole(member, ConfigManager.getMainConfig().getLong("admin-role-id"));
     }
 }

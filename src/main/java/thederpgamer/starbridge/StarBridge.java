@@ -8,13 +8,12 @@ import api.listener.events.faction.FactionRelationChangeEvent;
 import api.listener.events.player.*;
 import api.mod.StarLoader;
 import api.mod.StarMod;
-import api.mod.config.FileConfiguration;
-import api.mod.config.PersistentObjectUtil;
 import api.utils.StarRunnable;
 import api.utils.game.chat.CommandInterface;
 import api.utils.other.HashList;
 import net.dv8tion.jda.api.exceptions.RateLimitedException;
 import org.schema.game.common.data.player.PlayerState;
+import thederpgamer.starbridge.manager.ConfigManager;
 import thederpgamer.starbridge.manager.LogManager;
 import thederpgamer.starbridge.server.ServerDatabase;
 import thederpgamer.starbridge.server.bot.BotThread;
@@ -25,93 +24,38 @@ import java.lang.reflect.Field;
 import java.util.Objects;
 
 /**
- * StarBridge.java
- * <Description>
+ * Main mod class for StarBridge.
  *
- * @since 03/10/2021
+ * @version 1.0 - [03/10/2021]
  * @author TheDerpGamer
  */
 public class StarBridge extends StarMod {
 
     //Instance
+    public static void main(String[] args) { }
+    private static StarBridge instance;
+    public static StarBridge getInstance() {
+        return instance;
+    }
     public StarBridge() {
         instance = this;
     }
-    public static StarBridge instance;
-    public static void main(String[] args) { }
 
-    //Config
-    private final String[] defaultConfig = {
-            "debug-mode: false",
-            "max-world-logs: 5",
-            "auto-save-frequency: 10000",
-            "default-shutdown-timer: 60",
-            "auto-restart: true",
-            "auto-restart-frequency: 18000000",
-            "bot-name: BOT_NAME",
-            "bot-token: BOT_TOKEN",
-            "bot-avatar: BOT_AVATAR",
-            "server-id: SERVER_ID",
-            "chat-webhook: CHAT_WEBHOOK",
-            "chat-channel-id: CHAT_CHANNEL_ID",
-            "log-webhook: LOG_WEBHOOK",
-            "log-channel-id: LOG_CHANNEL_ID",
-            "admin-role-id: ADMIN_ROLE_ID"
-    };
-    public boolean debugMode = false;
-    public long autoSaveFrequency = 10000;
-    public int maxWorldLogs = 5;
-    public String botName;
-    public String botToken;
-    public String botAvatar;
-    public long serverId;
-    public String chatWebhook;
-    public long chatChannelId;
-    public String logWebhook;
-    public long logChannelId;
-    public long adminRoleId;
-    public int defaultShutdownTimer = 60;
-    public boolean autoRestart = true;
-    public long autoRestartFrequency = 21600000;
-
-    //Data
+    //Other
     public BotThread botThread;
 
     @Override
     public void onEnable() {
         instance = this;
-        initConfig();
+
+        ConfigManager.initialize();
+        LogManager.initialize();
         doOverwrites();
         registerListeners();
         registerCommands();
-        initialize();
         startRunners();
-    }
 
-    private void initConfig() { //Todo: Migrate this to a config manager class
-        FileConfiguration config = getConfig("config");
-        config.saveDefault(defaultConfig);
-
-        debugMode = config.getConfigurableBoolean("debug-mode", false);
-        autoSaveFrequency = config.getConfigurableLong("auto-save-frequency", 10000);
-        maxWorldLogs = config.getConfigurableInt("max-world-logs", 5);
-        botName = config.getString("bot-name");
-        botToken = config.getString("bot-token");
-        botAvatar = "https://" + config.getString("bot-avatar");
-        serverId = config.getLong("server-id");
-        chatWebhook = "https://" + config.getString("chat-webhook");
-        chatChannelId = config.getLong("chat-channel-id");
-        logWebhook = "https://" + config.getString("log-webhook");
-        logChannelId = config.getLong("log-channel-id");
-        adminRoleId = config.getLong("admin-role-id");
-        defaultShutdownTimer = config.getConfigurableInt("default-shutdown-timer", 60);
-        autoRestart = config.getConfigurableBoolean("auto-restart", true);
-        autoRestartFrequency = config.getConfigurableLong("auto-restart-frequency", 21600000);
-    }
-
-    private void initialize() {
-        LogManager.initialize();
-        (botThread = new BotThread(botToken, chatWebhook, chatChannelId, logWebhook, logChannelId)).start();
+        botThread = new BotThread(ConfigManager.getMainConfig());
     }
 
     private void registerListeners() {
@@ -207,24 +151,15 @@ public class StarBridge extends StarMod {
     }
 
     private void startRunners() {
-        //Auto Saver
-        new StarRunnable() {
-            @Override
-            public void run() {
-                PersistentObjectUtil.save(getSkeleton());
-                getBot().messageConfig.saveConfig();
-            }
-        }.runTimer(this, autoSaveFrequency);
-
         //Play Timer
         new StarRunnable() {
             @Override
             public void run() {
                 for(PlayerState playerState : GameServer.getServerState().getPlayerStatesByName().values()) {
-                    Objects.requireNonNull(ServerDatabase.getPlayerData(playerState.getName())).updatePlayTime(autoSaveFrequency / 2);
+                    Objects.requireNonNull(ServerDatabase.getPlayerData(playerState.getName())).updatePlayTime(10000 / 2);
                 }
             }
-        }.runTimer(this, autoSaveFrequency / 2);
+        }.runTimer(this, 10000 / 2);
     }
 
     public DiscordBot getBot() {
@@ -243,11 +178,11 @@ public class StarBridge extends StarMod {
         if(discordId != -1) {
             try {
                 return getBot().bot.retrieveUserById(discordId).complete(true).getEffectiveAvatarUrl();
-            } catch(RateLimitedException e) {
-                e.printStackTrace();
+            } catch(RateLimitedException exception) {
+                exception.printStackTrace();
             }
         }
-        return botAvatar;
+        return ConfigManager.getMainConfig().getString("bot-avatar");
     }
 
     /**
