@@ -120,7 +120,7 @@ public class DiscordBot extends ListenerAdapter {
             public void run() {
                 updateChannelInfo();
             }
-        }.runTimer(StarBridge.getInstance(), 3000); //Refresh every 5 min
+        }.runTimer(StarBridge.getInstance(), 300); //Refresh every 60 sec
     }
 
     public void initializeConfig() {
@@ -196,7 +196,7 @@ public class DiscordBot extends ListenerAdapter {
                         if(chatMessage.getChannel() != null && chatMessage.getChannel().getType().equals(ChannelRouter.ChannelType.FACTION)) {
                             //sendMessageFromServer(playerData, chatMessage.text, chatMessage); Don't send chats in private channels
                             LogManager.logChat(chatMessage, "FACTION");
-                        } else if(chatMessage.getChannel()  == null || (chatMessage.getChannel().getType().equals(ChannelRouter.ChannelType.PUBLIC) && !chatMessage.getChannel().hasPassword())) {
+                        } else if(chatMessage.getChannel() == null && chatMessage.receiver.toLowerCase().equals("all") || (chatMessage.getChannel().getType().equals(ChannelRouter.ChannelType.PUBLIC) && !chatMessage.getChannel().hasPassword() && !chatMessage.getChannel().getType().equals(ChannelRouter.ChannelType.FACTION))) {
                             sendMessageFromServer(playerData, chatMessage.text, chatMessage);
                             LogManager.logChat(chatMessage, "GENERAL");
                         }
@@ -437,11 +437,11 @@ public class DiscordBot extends ListenerAdapter {
 
     public void resetWebhook() {
         chatWebhook.setUsername(getBotName());
-        chatWebhook.setAvatarUrl(ConfigManager.getMainConfig().getString("bot-avatar"));
+        chatWebhook.setAvatarUrl("https://" + ConfigManager.getMainConfig().getString("bot-avatar"));
         chatWebhook.setContent("");
 
         logWebhook.setUsername(getBotName());
-        logWebhook.setAvatarUrl(ConfigManager.getMainConfig().getString("bot-avatar"));
+        logWebhook.setAvatarUrl("https://" + ConfigManager.getMainConfig().getString("bot-avatar"));
         logWebhook.setContent("");
     }
 

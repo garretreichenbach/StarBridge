@@ -55,7 +55,7 @@ public class StarBridge extends StarMod {
         registerCommands();
         startRunners();
 
-        botThread = new BotThread(ConfigManager.getMainConfig());
+        (botThread = new BotThread(ConfigManager.getMainConfig())).start();
     }
 
     private void registerListeners() {
@@ -182,7 +182,7 @@ public class StarBridge extends StarMod {
                 exception.printStackTrace();
             }
         }
-        return ConfigManager.getMainConfig().getString("bot-avatar");
+        return "https://" + ConfigManager.getMainConfig().getString("bot-avatar");
     }
 
     /**

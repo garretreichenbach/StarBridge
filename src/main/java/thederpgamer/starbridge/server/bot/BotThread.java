@@ -14,9 +14,9 @@ public class BotThread extends Thread {
 
     public BotThread(FileConfiguration config) {
         String token = config.getString("bot-token");
-        String chatWebhook = config.getString("chat-webhook");
+        String chatWebhook = "https://" + config.getString("chat-webhook");
         long chatChannelId = config.getLong("chat-channel-id");
-        String logWebhook = config.getString("log-webhook");
+        String logWebhook = "https://" + config.getString("log-webhook");
         long logChannelId = config.getLong("log-channel-id");
         discordBot = new DiscordBot(token, chatWebhook, chatChannelId, logWebhook, logChannelId);
     }
