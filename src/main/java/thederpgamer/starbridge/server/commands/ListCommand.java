@@ -86,7 +86,8 @@ public class ListCommand implements CommandInterface, DiscordCommand {
     @Override
     public void execute(SlashCommandEvent event) {
         String message = event.getCommandPath().trim().replace("/", " ").toLowerCase();
-        String type = event.getOption("list").getAsString();
+        String type = "players";
+        if(event.getOption("list") != null) type = event.getOption("list").getAsString();
         StringBuilder builder = new StringBuilder();
         if(type.equalsIgnoreCase("players") || type.equalsIgnoreCase("p")) {
             try {

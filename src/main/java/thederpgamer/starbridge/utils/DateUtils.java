@@ -12,6 +12,10 @@ import java.util.Date;
  */
 public class DateUtils {
 
+    public static long getDate(int month, int day, int year, int hours, int minutes) {
+        return (new Date(year - 1900, month, day, hours, minutes, 0)).getTime();
+    }
+
     public static int getAgeDays(Date date) {
         Date current = new Date(System.currentTimeMillis());
         long difference = Math.abs(current.getTime() - date.getTime());

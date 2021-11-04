@@ -31,6 +31,7 @@ import org.schema.game.server.data.GameServerState;
 import org.schema.game.server.data.ServerConfig;
 import org.schema.schine.network.RegisteredClientOnServer;
 import thederpgamer.starbridge.StarBridge;
+import thederpgamer.starbridge.data.MessageData;
 import thederpgamer.starbridge.data.config.ConfigFile;
 import thederpgamer.starbridge.data.player.PlayerData;
 import thederpgamer.starbridge.manager.ConfigManager;
@@ -167,13 +168,15 @@ public class DiscordBot extends ListenerAdapter {
     public void handleEvent(Event event) {
         if(event instanceof PlayerCustomCommandEvent) {
             PlayerCustomCommandEvent playerCustomCommandEvent = (PlayerCustomCommandEvent) event;
-            //Todo
+            if(playerCustomCommandEvent.getCommand().isAdminOnly() && !playerCustomCommandEvent.getSender().isAdmin()) return;
+            LogManager.logCommand(playerCustomCommandEvent.getSender().getName(), playerCustomCommandEvent.getFullLine());
         } else if(event instanceof PlayerChatEvent) {
             PlayerChatEvent playerChatEvent = (PlayerChatEvent) event;
             if(playerChatEvent.getText().charAt(0) == '/') handleCommand(GameCommon.getPlayerFromName(playerChatEvent.getMessage().sender), playerChatEvent.getText());
             else if(lastMessage == null || !playerChatEvent.getMessage().text.equals(lastMessage.text)) {
                 ChatMessage chatMessage = new ChatMessage(playerChatEvent.getMessage());
                 PlayerData playerData = ServerDatabase.getPlayerData(chatMessage.sender);
+                //MessageData messageData = new MessageData(playerChatEvent);
                 if(playerChatEvent.getMessage().receiverType == ChatMessage.ChatMessageType.DIRECT) {/* You can't send pms to offline players, so this functionality is useless right now
                         PlayerData receiverData = ServerDatabase.getPlayerData(chatMessage.receiver);
                         User receiver = bot.retrieveUserById(receiverData.getDiscordId()).complete();
@@ -231,7 +234,7 @@ public class DiscordBot extends ListenerAdapter {
                 PlayerState killerState = (PlayerState) playerDeathEvent.getDamager();
                 String killerFactionName = (killerState.getFactionId() != 0) ? killerState.getFactionName() : "No Faction";
                 String killedFactionName = (playerDeathEvent.getPlayer().getFactionId() != 0) ? playerDeathEvent.getPlayer().getFactionName() : "No Faction";
-                if(killerState.equals(playerDeathEvent.getPlayer())) sendMessageToDiscord("Player " + killerState.getName() + "[" + killerFactionName + "] took their own life.");
+                if(killerState.equals(playerDeathEvent.getPlayer())) sendMessageToDiscord("Player " + killerState.getName() + " [" + killerFactionName + "] took their own life.");
                 else sendBotEventMessage(playerKillByPlayerMessage, playerDeathEvent.getPlayer().getName(), killedFactionName, killerState.getName(), killerFactionName);
             } else {
                 String playerFactionName = (playerDeathEvent.getPlayer().getFactionId() != 0) ? playerDeathEvent.getPlayer().getFactionName() : "No Faction";
@@ -328,6 +331,10 @@ public class DiscordBot extends ListenerAdapter {
         else return Icon.IconType.UNKNOWN;
     }
 
+    public void sanityCheckMessage(MessageData messageData) {
+
+    }
+
     public void sendPrivateMessage(PlayerData sender, PlayerData receiver, String message) {
         if(sender.getDiscordId() != -1) {
             try {
@@ -365,14 +372,27 @@ public class DiscordBot extends ListenerAdapter {
     }
 
     public void sendMessageFromServer(PlayerData playerData, String message, ChatMessage chatMessage) {
+        if(chatMessage.text.contains("@") || message.contains("@")) { //No pings
+            chatMessage.text = chatMessage.text.replaceAll("@", "");
+            message = message.replaceAll("@", "");
+        }
+
+        if(chatMessage.text.contains("\"") || message.contains("\"")) {
+            chatMessage.text = chatMessage.text.replaceAll("\"", "");
+            message = message.replaceAll("\"", "");
+        }
+
         if(playerData.getDiscordId() != -1) {
             try {
                 chatWebhook.setAvatarUrl(bot.retrieveUserById(playerData.getDiscordId()).complete(true).getEffectiveAvatarUrl());
             } catch(RateLimitedException exception) {
                 LogManager.logException("An exception occurred while trying to send a message from the server", exception);
             }
-        } else resetWebhook();
-        if(playerData.inFaction()) chatWebhook.setUsername(playerData.getPlayerName() + "[" + playerData.getFactionName() + "]");
+        } else {
+            resetWebhook();
+
+        }
+        if(playerData.inFaction()) chatWebhook.setUsername(playerData.getPlayerName() + " [" + playerData.getFactionName() + "]");
         else chatWebhook.setUsername(playerData.getPlayerName());
 
 
@@ -415,7 +435,7 @@ public class DiscordBot extends ListenerAdapter {
 
     public void sendMessageToDiscord(String message) {
         resetWebhook();
-        chatWebhook.setContent(message);
+        chatWebhook.setContent(message.replace("@", ""));
         try {
             chatWebhook.execute();
         } catch(IOException exception) {

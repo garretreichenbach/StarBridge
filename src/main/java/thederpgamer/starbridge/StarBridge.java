@@ -160,6 +160,14 @@ public class StarBridge extends StarMod {
                 }
             }
         }.runTimer(this, 10000 / 2);
+
+        //Auto Restart
+        new StarRunnable() {
+            @Override
+            public void run() {
+
+            }
+        };
     }
 
     public DiscordBot getBot() {

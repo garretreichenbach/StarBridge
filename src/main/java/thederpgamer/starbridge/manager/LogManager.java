@@ -160,6 +160,17 @@ public class LogManager {
         logQueue.addFirst(message);
     }
 
+    public static void logCommand(String sender, String command) {
+        String logMessage = "[" + DateUtils.getTimeFormatted() + "] [COMMAND FROM " + sender + "]: " + command;
+        try {
+            StarBridge.getInstance().getBot().sendLogMessage(logMessage);
+            chatWriter.append(logMessage).append("\n");
+            chatWriter.flush();
+        } catch(IOException exception) {
+            exception.printStackTrace();
+        }
+    }
+
     public static void logChat(ChatMessage chatMessage, String channel) {
         try {
             StringBuilder builder = new StringBuilder();
