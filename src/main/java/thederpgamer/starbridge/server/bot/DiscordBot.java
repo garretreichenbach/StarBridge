@@ -446,7 +446,7 @@ public class DiscordBot extends ListenerAdapter {
 
     public void sendLogMessage(String message) {
         resetWebhook();
-        logWebhook.setContent(message);
+        logWebhook.setContent(message.replace("@", ""));
         try {
             logWebhook.execute();
         } catch(IOException exception) {
