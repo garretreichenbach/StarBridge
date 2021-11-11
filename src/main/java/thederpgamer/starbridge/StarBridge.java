@@ -1,6 +1,7 @@
 package thederpgamer.starbridge;
 
 import api.ModPlayground;
+import api.common.GameCommon;
 import api.common.GameServer;
 import api.listener.Listener;
 import api.listener.events.faction.FactionCreateEvent;
@@ -8,7 +9,6 @@ import api.listener.events.faction.FactionRelationChangeEvent;
 import api.listener.events.player.*;
 import api.mod.StarLoader;
 import api.mod.StarMod;
-import api.utils.StarRunnable;
 import api.utils.game.chat.CommandInterface;
 import api.utils.other.HashList;
 import net.dv8tion.jda.api.exceptions.RateLimitedException;
@@ -22,6 +22,8 @@ import thederpgamer.starbridge.server.commands.*;
 
 import java.lang.reflect.Field;
 import java.util.Objects;
+import java.util.Timer;
+import java.util.TimerTask;
 
 /**
  * Main mod class for StarBridge.
@@ -40,6 +42,11 @@ public class StarBridge extends StarMod {
     public StarBridge() {
         instance = this;
     }
+
+    //Constants
+    public static final long AUTO_RESTART_MS = 21600000L; //6 hours between restarts
+    public static final long FORCE_SHUTDOWN_MS = 21660000L; //If server hasn't shutdown 60 seconds after it was told to restart, force stop it
+    public static final long PLAY_TIME_UPDATE = 300000L; //5 minutes
 
     //Other
     public BotThread botThread;
@@ -151,23 +158,44 @@ public class StarBridge extends StarMod {
     }
 
     private void startRunners() {
-        //Play Timer
-        new StarRunnable() {
-            @Override
-            public void run() {
-                for(PlayerState playerState : GameServer.getServerState().getPlayerStatesByName().values()) {
-                    Objects.requireNonNull(ServerDatabase.getPlayerData(playerState.getName())).updatePlayTime(10000 / 2);
-                }
-            }
-        }.runTimer(this, 10000 / 2);
+       if(GameCommon.isDedicatedServer()) {
+           { //Play Timer
+               Timer timer = new Timer();
+               timer.schedule(new TimerTask() {
+                   @Override
+                   public void run() {
+                       for(PlayerState playerState : GameServer.getServerState().getPlayerStatesByName().values()) {
+                           Objects.requireNonNull(ServerDatabase.getPlayerData(playerState.getName())).updatePlayTime(PLAY_TIME_UPDATE);
+                       }
+                   }
+               }, PLAY_TIME_UPDATE);
+           }
 
-        //Auto Restart
-        new StarRunnable() {
-            @Override
-            public void run() {
+           { //Auto Restart
+               int defaultShutdownTimer = ConfigManager.getMainConfig().getInt("default-shutdown-timer");
+               long autoRestart = AUTO_RESTART_MS - (defaultShutdownTimer * 1000L);
+               Timer timer = new Timer();
 
-            }
-        };
+               timer.schedule(new TimerTask() {
+                   @Override
+                   public void run() {
+                       StarBridge.getInstance().getBot().sendMessageToServer(StarBridge.getInstance().getBot().getBotName(), ":octagonal_sign: Server Restarting in " + defaultShutdownTimer + "seconds.");
+                       StarBridge.getInstance().getBot().sendMessageToDiscord(":octagonal_sign: Server Restarting in " + defaultShutdownTimer + "seconds.");
+                       GameServer.getServerState().addCountdownMessage(defaultShutdownTimer, "Server restarting in " + defaultShutdownTimer + " seconds.\n");
+                   }
+               }, autoRestart);
+
+               /* Not sure this is even necessary
+               timer.schedule(new TimerTask() {
+                   @Override
+                   public void run() {
+                       LogManager.logWarning("Server failed to shutdown after 60 seconds, attempting to force stop it.", null);
+                       GameServer.executeAdminCommand("shutdown 15");
+                   }
+               }, FORCE_SHUTDOWN_MS);
+               */
+           }
+       }
     }
 
     public DiscordBot getBot() {
