@@ -45,7 +45,6 @@ public class StarBridge extends StarMod {
 
     //Constants
     public static final long AUTO_RESTART_MS = 21600000L; //6 hours between restarts
-    public static final long FORCE_SHUTDOWN_MS = 21660000L; //If server hasn't shutdown 60 seconds after it was told to restart, force stop it
     public static final long PLAY_TIME_UPDATE = 300000L; //5 minutes
 
     //Other
@@ -165,7 +164,7 @@ public class StarBridge extends StarMod {
                    @Override
                    public void run() {
                        for(PlayerState playerState : GameServer.getServerState().getPlayerStatesByName().values()) {
-                           Objects.requireNonNull(ServerDatabase.getPlayerData(playerState.getName())).updatePlayTime(PLAY_TIME_UPDATE);
+                           Objects.requireNonNull(ServerDatabase.getPlayerDataWithoutNull(playerState.getName())).updatePlayTime(PLAY_TIME_UPDATE);
                        }
                    }
                }, PLAY_TIME_UPDATE);
@@ -210,7 +209,7 @@ public class StarBridge extends StarMod {
      * @return The player's Avatar URL
      */
     public String getAvatarURL(String playerName) {
-        long discordId = ServerDatabase.getPlayerData(playerName).getDiscordId();
+        long discordId = ServerDatabase.getPlayerDataWithoutNull(playerName).getDiscordId();
         if(discordId != -1) {
             try {
                 return getBot().bot.retrieveUserById(discordId).complete(true).getEffectiveAvatarUrl();
@@ -236,7 +235,7 @@ public class StarBridge extends StarMod {
      * @return The player's user ID
      */
     public long getUserId(String playerName) {
-        return ServerDatabase.getPlayerData(playerName).getDiscordId();
+        return ServerDatabase.getPlayerDataWithoutNull(playerName).getDiscordId();
     }
 
     /**

@@ -7,7 +7,6 @@ import api.listener.events.faction.FactionCreateEvent;
 import api.listener.events.faction.FactionRelationChangeEvent;
 import api.listener.events.player.*;
 import api.mod.StarLoader;
-import api.utils.StarRunnable;
 import api.utils.game.PlayerUtils;
 import api.utils.game.chat.CommandInterface;
 import net.dv8tion.jda.api.JDA;
@@ -30,7 +29,6 @@ import org.schema.game.network.objects.ChatMessage;
 import org.schema.game.server.data.GameServerState;
 import org.schema.game.server.data.ServerConfig;
 import org.schema.schine.network.RegisteredClientOnServer;
-import thederpgamer.starbridge.StarBridge;
 import thederpgamer.starbridge.data.MessageData;
 import thederpgamer.starbridge.data.config.ConfigFile;
 import thederpgamer.starbridge.data.player.PlayerData;
@@ -116,12 +114,12 @@ public class DiscordBot extends ListenerAdapter {
         }
         registerCommands();
 
-        new StarRunnable() {
+        new Timer("channel_updater").scheduleAtFixedRate(new TimerTask() {
             @Override
             public void run() {
                 updateChannelInfo();
             }
-        }.runTimer(StarBridge.getInstance(), 300); //Refresh every 60 sec
+        }, 0, 300);
     }
 
     public void initializeConfig() {
@@ -175,10 +173,10 @@ public class DiscordBot extends ListenerAdapter {
             if(playerChatEvent.getText().charAt(0) == '/') handleCommand(GameCommon.getPlayerFromName(playerChatEvent.getMessage().sender), playerChatEvent.getText());
             else if(lastMessage == null || !playerChatEvent.getMessage().text.equals(lastMessage.text)) {
                 ChatMessage chatMessage = new ChatMessage(playerChatEvent.getMessage());
-                PlayerData playerData = ServerDatabase.getPlayerData(chatMessage.sender);
+                PlayerData playerData = ServerDatabase.getPlayerDataWithoutNull(chatMessage.sender);
                 //MessageData messageData = new MessageData(playerChatEvent);
                 if(playerChatEvent.getMessage().receiverType == ChatMessage.ChatMessageType.DIRECT) {/* You can't send pms to offline players, so this functionality is useless right now
-                        PlayerData receiverData = ServerDatabase.getPlayerData(chatMessage.receiver);
+                        PlayerData receiverData = ServerDatabase.getPlayerDataWithoutNull(chatMessage.receiver);
                         User receiver = bot.retrieveUserById(receiverData.getDiscordId()).complete();
                         if(receiver != null) {
                             StringBuilder dmBuilder = new StringBuilder();
@@ -208,7 +206,7 @@ public class DiscordBot extends ListenerAdapter {
             }
         } else if(event instanceof PlayerJoinWorldEvent) {
             PlayerJoinWorldEvent playerJoinWorldEvent = (PlayerJoinWorldEvent) event;
-            ServerDatabase.getPlayerData(playerJoinWorldEvent.getPlayerName());
+            ServerDatabase.getPlayerDataWithoutNull(playerJoinWorldEvent.getPlayerName());
             updateChannelInfo();
             sendBotEventMessage(playerJoinMessage, playerJoinWorldEvent.getPlayerName());
         } else if(event instanceof PlayerLeaveWorldEvent) {
@@ -255,23 +253,19 @@ public class DiscordBot extends ListenerAdapter {
             int playerCount = GameServer.getServerState().getPlayerStatesByName().size();
             int playerMax = (int) ServerConfig.MAX_CLIENTS.getCurrentState();
 
-            int bytesSent = GameServer.getServerState().getNetworkStatus().getBytesSentPerSecond();
-            long totalBytesSent = GameServer.getServerState().getNetworkStatus().getTotalBytesSent();
-
-            int bytesReceived = GameServer.getServerState().getNetworkStatus().getBytesReceivedPerSecond();
-            long totalBytesReceived = GameServer.getServerState().getNetworkStatus().getTotalBytesReceived();
-
             String chatChannelStats = ("Players: " + playerCount + " / " + playerMax
                                        //"Next Restart: " + ServerUtils.getNextRestart()
             );
             Objects.requireNonNull(bot.getTextChannelById(chatChannelId)).getManager().setTopic(chatChannelStats).queue();
 
-            String logChannelStats = ("Clients: " + playerCount + " / " + playerMax + "\n" + "Bytes Sent: " + bytesSent + "/s | " + totalBytesSent + " total\n" + "Bytes Received: " + bytesReceived + "/s | " + totalBytesReceived + " total\n" + "Current Uptime: " + (System.currentTimeMillis() - startTime));
+            String logChannelStats = ("Clients: " + playerCount + " / " + playerMax  + " \nCurrent Uptime: " + (System.currentTimeMillis() - startTime));
             Objects.requireNonNull(bot.getTextChannelById(logChannelId)).getManager().setTopic(logChannelStats).queue();
 
             //LogManager.logMessage(MessageType.INFO, chatChannelStats);
             //LogManager.logMessage(MessageType.INFO, logChannelStats);
-        } catch(Exception ignored) { }
+        } catch(Exception exception) {
+            LogManager.logException("Failed to update channel info", exception);
+        }
     }
 
     private void sendBotEventMessage(String message, String... args) {
@@ -466,17 +460,16 @@ public class DiscordBot extends ListenerAdapter {
     }
 
     public void addLinkRequest(PlayerState playerState) {
-        final PlayerData playerData = ServerDatabase.getPlayerData(playerState.getName());
+        final PlayerData playerData = ServerDatabase.getPlayerDataWithoutNull(playerState.getName());
         if(linkRequestMap.containsKey(playerData)) linkRequestMap.remove(playerData);
         linkRequestMap.put(playerData, (new Random()).nextInt(9999 - 1000) + 1000);
         PlayerUtils.sendMessage(playerState, "Use /link " + linkRequestMap.get(playerData) + " in #" + bot.getTextChannelById(chatChannelId).getName() + " to link your account. This code will expire in 15 minutes.");
-        TimerTask task = new TimerTask() {
+        new Timer("link_timer_" + linkRequestMap.get(playerData)).schedule(new TimerTask() {
+            @Override
             public void run() {
                 removeLinkRequest(playerData);
             }
-        };
-        Timer timer = new Timer("link-timer_" + linkRequestMap.get(playerData));
-        timer.schedule(task, 900000);
+        }, 900000);
     }
 
     public void removeLinkRequest(PlayerData playerData) {

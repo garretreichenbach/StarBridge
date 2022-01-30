@@ -53,7 +53,7 @@ public class InfoPlayerCommand implements CommandInterface, DiscordCommand {
     @Override
     public boolean onCommand(PlayerState sender, String[] args) {
         if(args.length == 1) {
-            PlayerData playerData = ServerDatabase.getPlayerData(args[0]);
+            PlayerData playerData = ServerDatabase.getPlayerDataWithoutNull(args[0]);
             if(playerData != null) PlayerUtils.sendMessage(sender, formatPlayerData(playerData));
             else PlayerUtils.sendMessage(sender, "Player " + args[0] + " doesn't exist!");
             return true;
@@ -73,7 +73,7 @@ public class InfoPlayerCommand implements CommandInterface, DiscordCommand {
     @Override
     public void execute(SlashCommandEvent event) {
         String playerName = event.getOption("player_name").getAsString();
-        PlayerData playerData = ServerDatabase.getPlayerData(playerName);
+        PlayerData playerData = ServerDatabase.getPlayerDataWithoutNull(playerName);
         if(playerData != null) event.reply(formatPlayerData(playerData)).queue();
         else event.reply("Player " + playerName + "doesn't exist!").queue();
     }

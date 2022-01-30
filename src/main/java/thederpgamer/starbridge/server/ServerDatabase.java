@@ -26,6 +26,15 @@ public class ServerDatabase {
             PlayerData playerData = (PlayerData) dataObject;
             if(playerData.getPlayerName().equals(playerName)) return playerData;
         }
+        return null;
+    }
+
+    public static PlayerData getPlayerDataWithoutNull(String playerName) {
+        ArrayList<Object> dataObjectList = PersistentObjectUtil.getObjects(instance, PlayerData.class);
+        for(Object dataObject : dataObjectList) {
+            PlayerData playerData = (PlayerData) dataObject;
+            if(playerData.getPlayerName().equals(playerName)) return playerData;
+        }
         return addNewPlayerData(playerName);
     }
 

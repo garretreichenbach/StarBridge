@@ -2,6 +2,8 @@ package thederpgamer.starbridge.data.player;
 
 import api.common.GameCommon;
 import org.schema.game.common.data.player.faction.Faction;
+import thederpgamer.starbridge.utils.PlayerUtils;
+
 import java.io.Serializable;
 
 /**
@@ -34,19 +36,18 @@ public class PlayerData implements Serializable {
     }
 
     public String getFactionName() {
-        return (getFaction() == null) ? "No Faction" : getFaction().getName();
+        return (!inFaction()) ? "No Faction" : getFaction().getName();
     }
 
     public Faction getFaction() {
-        if(inFaction()) {
-            return GameCommon.getGameState().getFactionManager().getFaction(GameCommon.getPlayerFromName(playerName).getFactionId());
-        } else {
-            return null;
-        }
+        try {
+            return GameCommon.getGameState().getFactionManager().getFaction(PlayerUtils.getPlayerState(playerName).getFactionId());
+        } catch(Exception ignored) { }
+        return null;
     }
 
     public boolean inFaction() {
-        return GameCommon.getPlayerFromName(playerName).getFactionId() != 0;
+        return getFaction() != null;
     }
 
     public double getHoursPlayed() {
