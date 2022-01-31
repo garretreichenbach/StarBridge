@@ -1,5 +1,6 @@
 package thederpgamer.starbridge.manager;
 
+import api.DebugFile;
 import org.schema.game.network.objects.ChatMessage;
 import thederpgamer.starbridge.StarBridge;
 import thederpgamer.starbridge.utils.DataUtils;
@@ -9,7 +10,7 @@ import javax.annotation.Nullable;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.LinkedList;
+import java.util.ArrayList;
 
 /**
  * Manages mod data logging.
@@ -36,7 +37,7 @@ public class LogManager {
     private static FileWriter logWriter;
     private static FileWriter chatWriter;
 
-    private static final LinkedList<String> logQueue = new LinkedList<>();
+    private static final ArrayList<String> logQueue = new ArrayList<>();
 
     public static void initialize() {
         {
@@ -127,14 +128,13 @@ public class LogManager {
     public static void logCritical(String message, Exception exception) {
         exception.printStackTrace();
         logMessage(MessageType.CRITICAL, message + ":\n" + exception.getMessage());
-        System.exit(1);
     }
 
     private static void logMessage(MessageType messageType, String message) {
         if(!logQueue.contains(message) || messageType.equals(MessageType.CRITICAL)) {
+            StringBuilder builder = new StringBuilder();
             String prefix = "[" + DateUtils.getTimeFormatted() + "] " + messageType.prefix;
             try {
-                StringBuilder builder = new StringBuilder();
                 builder.append(prefix);
                 String[] lines = message.split("\n");
                 if(lines.length > 1) {
@@ -144,20 +144,21 @@ public class LogManager {
                             if(i > 1) for(int j = 0; j < prefix.length(); j++) builder.append(" ");
                         }
                     }
-                } else {
-                    builder.append(message);
-                }
+                } else builder.append(message);
                 StarBridge.getInstance().getBot().sendLogMessage(builder.toString());
                 System.out.println(builder.toString());
                 logWriter.append(builder.toString()).append("\n");
                 logWriter.flush();
+                DebugFile.log(builder.toString(), StarBridge.getInstance());
             } catch(IOException exception) {
                 exception.printStackTrace();
             }
-        }
 
-        if(logQueue.size() >= 5) logQueue.removeLast(); //Prevent spam from repeated messages
-        logQueue.addFirst(message);
+            if(logQueue.size() >= 5) logQueue.remove(logQueue.size() - 1); //Prevent spam from repeated messages
+            logQueue.add(builder.toString());
+
+            if(messageType.equals(MessageType.CRITICAL)) System.exit(1);
+        }
     }
 
     public static void logCommand(String sender, String command) {
@@ -211,6 +212,7 @@ public class LogManager {
                 }
             }
         }
+        logQueue.clear();
         return amountCleared;
     }
 

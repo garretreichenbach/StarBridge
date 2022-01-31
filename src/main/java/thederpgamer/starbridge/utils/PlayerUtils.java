@@ -2,6 +2,7 @@ package thederpgamer.starbridge.utils;
 
 import api.common.GameCommon;
 import api.common.GameServer;
+import org.apache.commons.lang3.math.NumberUtils;
 import org.schema.game.common.controller.database.DatabaseIndex;
 import org.schema.game.common.data.player.PlayerState;
 import org.schema.game.server.data.GameServerState;
@@ -105,9 +106,16 @@ public class PlayerUtils {
                     playerState.fromTagStructure(entry.getValue());
                     playerState.setName(entry.getKey());
                     playerState.setStarmadeName(fields[2]);
-                    playerState.getFactionController().setFactionId(Integer.parseInt(fields[3].trim()));
-                    playerState.offlinePermssion[0] = playerState.getFactionId();
-                    playerState.offlinePermssion[1] = Long.parseLong(fields[4].trim());
+                    try {
+                        if(fields.length >= 4 && fields[3] != null && NumberUtils.isNumber(fields[3].trim())) {
+                            int factionId = Integer.parseInt(fields[3].trim());
+                            if(factionId > 0) playerState.getFactionController().setFactionId(factionId);
+                            playerState.offlinePermssion[0] = factionId;
+                            playerState.offlinePermssion[1] = Long.parseLong(fields[4].trim());
+                        }
+                    } catch(Exception exception) {
+                        LogManager.logException("Encountered an exception while trying to fetch a player from database", exception);
+                    }
                     playerDataMap.put(playerState, ServerDatabase.getPlayerData(playerState.getName()));
                 } catch(Exception exception) {
                     LogManager.logException("Encountered an exception while trying to fetch a player from database", exception);
