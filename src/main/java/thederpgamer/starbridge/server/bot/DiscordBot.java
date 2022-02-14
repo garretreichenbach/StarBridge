@@ -264,7 +264,7 @@ public class DiscordBot extends ListenerAdapter {
             //LogManager.logMessage(MessageType.INFO, chatChannelStats);
             //LogManager.logMessage(MessageType.INFO, logChannelStats);
         } catch(Exception exception) {
-            LogManager.logException("Failed to update channel info", exception);
+            //LogManager.logException("Failed to update channel info", exception);
         }
     }
 
