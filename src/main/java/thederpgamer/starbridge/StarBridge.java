@@ -64,6 +64,11 @@ public class StarBridge extends StarMod {
         (botThread = new BotThread(ConfigManager.getMainConfig())).start();
     }
 
+    @Override
+    public void onDisable() {
+        if(botThread != null && botThread.getBot() != null) botThread.getBot().sendServerStopMessage();
+    }
+
     private void registerListeners() {
         StarLoader.registerListener(PlayerCustomCommandEvent.class, new Listener<PlayerCustomCommandEvent>() {
             @Override
@@ -175,24 +180,14 @@ public class StarBridge extends StarMod {
                long autoRestart = AUTO_RESTART_MS - (defaultShutdownTimer * 1000L);
                Timer timer = new Timer();
 
-               timer.schedule(new TimerTask() {
+               timer.scheduleAtFixedRate(new TimerTask() {
                    @Override
                    public void run() {
-                       StarBridge.getInstance().getBot().sendMessageToServer(StarBridge.getInstance().getBot().getBotName(), ":octagonal_sign: Server Restarting in " + defaultShutdownTimer + "seconds.");
-                       StarBridge.getInstance().getBot().sendMessageToDiscord(":octagonal_sign: Server Restarting in " + defaultShutdownTimer + "seconds.");
+                       StarBridge.getInstance().getBot().sendMessageToServer(StarBridge.getInstance().getBot().getBotName(), "Server Restarting in " + defaultShutdownTimer + " seconds.");
+                       StarBridge.getInstance().getBot().sendMessageToDiscord(":octagonal_sign: Server Restarting in " + defaultShutdownTimer + " seconds.");
                        GameServer.getServerState().addCountdownMessage(defaultShutdownTimer, "Server restarting in " + defaultShutdownTimer + " seconds.\n");
                    }
-               }, autoRestart);
-
-               /* Not sure this is even necessary
-               timer.schedule(new TimerTask() {
-                   @Override
-                   public void run() {
-                       LogManager.logWarning("Server failed to shutdown after 60 seconds, attempting to force stop it.", null);
-                       GameServer.executeAdminCommand("shutdown 15");
-                   }
-               }, FORCE_SHUTDOWN_MS);
-               */
+               }, autoRestart, AUTO_RESTART_MS);
            }
        }
     }

@@ -418,6 +418,7 @@ public class DiscordBot extends ListenerAdapter {
     }
 
     public void sendMessageToServer(String sender, String message) {
+        message = message.substring(message.indexOf(":") + 1).trim();
         for(RegisteredClientOnServer client : GameServerState.instance.getClients().values()) {
             try {
                 client.serverMessage("[" + sender + "] " + message);
