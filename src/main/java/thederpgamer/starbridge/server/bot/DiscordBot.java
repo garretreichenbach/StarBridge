@@ -59,6 +59,8 @@ import java.util.regex.Pattern;
  */
 public class DiscordBot extends ListenerAdapter {
 
+    public static final String removeCharacters = "[@#:\\\\]";
+
     private final long startTime = System.currentTimeMillis();
 
     //Data
@@ -163,6 +165,10 @@ public class DiscordBot extends ListenerAdapter {
         return ConfigManager.getMainConfig().getString("bot-name");
     }
 
+    public static String sanitizeMessage(String message) {
+        return message.replaceAll(removeCharacters, "");
+    }
+
     public void handleEvent(Event event) {
         if(event instanceof PlayerCustomCommandEvent) {
             PlayerCustomCommandEvent playerCustomCommandEvent = (PlayerCustomCommandEvent) event;
@@ -170,8 +176,9 @@ public class DiscordBot extends ListenerAdapter {
             LogManager.logCommand(playerCustomCommandEvent.getSender().getName(), playerCustomCommandEvent.getFullLine());
         } else if(event instanceof PlayerChatEvent) {
             PlayerChatEvent playerChatEvent = (PlayerChatEvent) event;
-            if(playerChatEvent.getText().charAt(0) == '/') handleCommand(GameCommon.getPlayerFromName(playerChatEvent.getMessage().sender), playerChatEvent.getText());
-            else if(lastMessage == null || !playerChatEvent.getMessage().text.equals(lastMessage.text)) {
+            String message = sanitizeMessage(playerChatEvent.getText());
+            if(message.charAt(0) == '/') handleCommand(GameCommon.getPlayerFromName(playerChatEvent.getMessage().sender), playerChatEvent.getText());
+            else if(lastMessage == null || !message.equals(lastMessage.text)) {
                 ChatMessage chatMessage = new ChatMessage(playerChatEvent.getMessage());
                 PlayerData playerData = ServerDatabase.getPlayerDataWithoutNull(chatMessage.sender);
                 //MessageData messageData = new MessageData(playerChatEvent);
@@ -198,7 +205,7 @@ public class DiscordBot extends ListenerAdapter {
                             //sendMessageFromServer(playerData, chatMessage.text, chatMessage); Don't send chats in private channels
                             LogManager.logChat(chatMessage, "FACTION");
                         } else if(chatMessage.getChannel() == null && chatMessage.receiver.toLowerCase().equals("all") || (chatMessage.getChannel().getType().equals(ChannelRouter.ChannelType.PUBLIC) && !chatMessage.getChannel().hasPassword() && !chatMessage.getChannel().getType().equals(ChannelRouter.ChannelType.FACTION))) {
-                            sendMessageFromServer(playerData, chatMessage.text, chatMessage);
+                            sendMessageFromServer(playerData, message, chatMessage);
                             LogManager.logChat(chatMessage, "GENERAL");
                         }
                     }
@@ -227,7 +234,7 @@ public class DiscordBot extends ListenerAdapter {
                 SegmentController segmentController = (SegmentController) playerDeathEvent.getDamager();
                 String playerFactionName = (playerDeathEvent.getPlayer().getFactionId() != 0) ? playerDeathEvent.getPlayer().getFactionName() : "No Faction";
                 String entityFactionName = (segmentController.getFactionId() != 0) ? segmentController.getFaction().getName() : "No Faction";
-                sendBotEventMessage(playerKillByEntityMessage, playerDeathEvent.getPlayer().getName(), playerFactionName, segmentController.getName(), entityFactionName);
+                sendBotEventMessage(playerKillByEntityMessage, playerDeathEvent.getPlayer().getName(), playerFactionName, segmentController.getRealName(), entityFactionName);
             } else if(playerDeathEvent.getDamager() instanceof PlayerState) {
                 PlayerState killerState = (PlayerState) playerDeathEvent.getDamager();
                 String killerFactionName = (killerState.getFactionId() != 0) ? killerState.getFactionName() : "No Faction";

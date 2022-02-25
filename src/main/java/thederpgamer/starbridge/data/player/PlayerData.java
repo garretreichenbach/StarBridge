@@ -1,6 +1,7 @@
 package thederpgamer.starbridge.data.player;
 
 import api.common.GameCommon;
+import org.schema.game.common.data.physics.GamePhysicsObject;
 import org.schema.game.common.data.player.faction.Faction;
 import thederpgamer.starbridge.utils.PlayerUtils;
 

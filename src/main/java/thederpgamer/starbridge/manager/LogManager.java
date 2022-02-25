@@ -3,6 +3,7 @@ package thederpgamer.starbridge.manager;
 import api.DebugFile;
 import org.schema.game.network.objects.ChatMessage;
 import thederpgamer.starbridge.StarBridge;
+import thederpgamer.starbridge.server.bot.DiscordBot;
 import thederpgamer.starbridge.utils.DataUtils;
 import thederpgamer.starbridge.utils.DateUtils;
 
@@ -131,6 +132,7 @@ public class LogManager {
     }
 
     private static void logMessage(MessageType messageType, String message) {
+        message = DiscordBot.sanitizeMessage(message);
         if(!logQueue.contains(message) || messageType.equals(MessageType.CRITICAL)) {
             StringBuilder builder = new StringBuilder();
             String prefix = "[" + DateUtils.getTimeFormatted() + "] " + messageType.prefix;
@@ -177,7 +179,7 @@ public class LogManager {
             StringBuilder builder = new StringBuilder();
             String prefix = "[" + channel + "] [" + chatMessage.sender + "]: ";
             builder.append(prefix);
-            String message = chatMessage.text;
+            String message = DiscordBot.sanitizeMessage(chatMessage.text);
             String[] lines = message.split("\n");
             if(lines.length > 1) {
                 for(int i = 0; i < lines.length; i ++) {
