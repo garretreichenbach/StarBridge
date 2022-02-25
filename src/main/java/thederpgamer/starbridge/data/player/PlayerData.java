@@ -1,7 +1,7 @@
 package thederpgamer.starbridge.data.player;
 
 import api.common.GameCommon;
-import org.schema.game.common.data.physics.GamePhysicsObject;
+import org.schema.game.common.data.player.PlayerState;
 import org.schema.game.common.data.player.faction.Faction;
 import thederpgamer.starbridge.utils.PlayerUtils;
 
@@ -41,9 +41,15 @@ public class PlayerData implements Serializable {
     }
 
     public Faction getFaction() {
-        try {
-            return GameCommon.getGameState().getFactionManager().getFaction(PlayerUtils.getPlayerState(playerName).getFactionId());
-        } catch(Exception ignored) { }
+        PlayerState playerState = GameCommon.getPlayerFromName(playerName);
+        if(playerState != null && playerState.getFactionId() > 0) return GameCommon.getGameState().getFactionManager().getFaction(playerState.getFactionId());
+        else {
+            try {
+                return GameCommon.getGameState().getFactionManager().getFaction(PlayerUtils.getPlayerState(playerName).getFactionId());
+            } catch(Exception exception) {
+                exception.printStackTrace();
+            }
+        }
         return null;
     }
 
