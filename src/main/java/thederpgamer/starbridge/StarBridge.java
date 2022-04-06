@@ -45,7 +45,7 @@ public class StarBridge extends StarMod {
 
     //Constants
     public static final long AUTO_RESTART_MS = 21600000L; //6 hours between restarts
-    public static final long PLAY_TIME_UPDATE = 300000L; //5 minutes
+    public static final long PLAY_TIME_UPDATE = 600000L; //10 minutes
 
     //Other
     public BotThread botThread;
@@ -143,6 +143,8 @@ public class StarBridge extends StarMod {
                 new InfoPlayerCommand(),
                 new InfoFactionCommand()
         };
+
+
         for(CommandInterface commandInterface : commandArray) {
             StarLoader.registerCommand(commandInterface);
         }
@@ -175,6 +177,7 @@ public class StarBridge extends StarMod {
                }, PLAY_TIME_UPDATE);
            }
 
+           /*
            { //Auto Restart
                int defaultShutdownTimer = ConfigManager.getMainConfig().getInt("default-shutdown-timer");
                long autoRestart = AUTO_RESTART_MS - (defaultShutdownTimer * 1000L);
@@ -189,6 +192,7 @@ public class StarBridge extends StarMod {
                    }
                }, autoRestart, AUTO_RESTART_MS);
            }
+            */
        }
     }
 

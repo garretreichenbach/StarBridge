@@ -15,11 +15,11 @@ import net.dv8tion.jda.api.MessageBuilder;
 import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.events.ReadyEvent;
 import net.dv8tion.jda.api.events.ShutdownEvent;
-import net.dv8tion.jda.api.events.interaction.SlashCommandEvent;
+import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.exceptions.RateLimitedException;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
-import net.dv8tion.jda.api.requests.restaction.CommandUpdateAction;
+import net.dv8tion.jda.api.requests.restaction.CommandListUpdateAction;
 import org.jetbrains.annotations.NotNull;
 import org.schema.game.common.controller.SegmentController;
 import org.schema.game.common.data.chat.ChannelRouter;
@@ -29,6 +29,7 @@ import org.schema.game.network.objects.ChatMessage;
 import org.schema.game.server.data.GameServerState;
 import org.schema.game.server.data.ServerConfig;
 import org.schema.schine.network.RegisteredClientOnServer;
+import thederpgamer.starbridge.StarBridge;
 import thederpgamer.starbridge.data.MessageData;
 import thederpgamer.starbridge.data.config.ConfigFile;
 import thederpgamer.starbridge.data.player.PlayerData;
@@ -121,7 +122,7 @@ public class DiscordBot extends ListenerAdapter {
             public void run() {
                 updateChannelInfo();
             }
-        }, 0, 300);
+        }, 0, StarBridge.PLAY_TIME_UPDATE);
     }
 
     public void initializeConfig() {
@@ -152,14 +153,35 @@ public class DiscordBot extends ListenerAdapter {
                 new InfoFactionCommand(),
                 new HelpDiscordCommand()
         };
-        CommandUpdateAction commands = bot.updateCommands();
+        CommandListUpdateAction commands = bot.updateCommands();
 
-        for(CommandInterface commandInterface : commandArray) {
+        ArrayList<CommandInterface> commandList = new ArrayList<>(Arrays.asList(commandArray));
+        //addAPICommands(commandList);
+
+        for(CommandInterface commandInterface : commandList) {
             commands.addCommands(((DiscordCommand) commandInterface).getCommandData()).queue();
             LogManager.logInfo( "Registered command /" + commandInterface.getCommand());
         }
         commands.queue();
     }
+
+    /*
+    private void addAPICommands(ArrayList<CommandInterface> commandList) {
+        try {
+            Field commandsField = StarLoader.class.getDeclaredField("commands");
+            commandsField.setAccessible(true);
+            HashList<StarMod, CommandInterface> commands = (HashList<StarMod, CommandInterface>) commandsField.get(null);
+            if(StarLoader.getModFromName("EdenCore") != null) {
+                commands.getList(EdenCore.getInstance()).remove(StarLoader.getCommand("send_money"));
+                commands.getList(EdenCore.getInstance()).add(new SendCommandCommand());
+            }
+            commandsField.set(null, commands);
+        } catch(NoSuchFieldException | IllegalAccessException | ClassCastException exception) {
+            exception.printStackTrace();
+        }
+    }
+
+     */
 
     public String getBotName() {
         return ConfigManager.getMainConfig().getString("bot-name");
@@ -214,10 +236,10 @@ public class DiscordBot extends ListenerAdapter {
         } else if(event instanceof PlayerJoinWorldEvent) {
             PlayerJoinWorldEvent playerJoinWorldEvent = (PlayerJoinWorldEvent) event;
             ServerDatabase.getPlayerDataWithoutNull(playerJoinWorldEvent.getPlayerName());
-            updateChannelInfo();
+            //updateChannelInfo();
             sendBotEventMessage(playerJoinMessage, playerJoinWorldEvent.getPlayerName());
         } else if(event instanceof PlayerLeaveWorldEvent) {
-            updateChannelInfo();
+            //updateChannelInfo();
             sendBotEventMessage(playerLeaveMessage, ((PlayerLeaveWorldEvent) event).getPlayerName());
         } else if(event instanceof FactionCreateEvent) {
             FactionCreateEvent factionCreateEvent = (FactionCreateEvent) event;
@@ -271,7 +293,7 @@ public class DiscordBot extends ListenerAdapter {
             //LogManager.logMessage(MessageType.INFO, chatChannelStats);
             //LogManager.logMessage(MessageType.INFO, logChannelStats);
         } catch(Exception exception) {
-            //LogManager.logException("Failed to update channel info", exception);
+            LogManager.logException("Failed to update channel info", exception);
         }
     }
 
@@ -518,7 +540,7 @@ public class DiscordBot extends ListenerAdapter {
     }
 
     @Override
-    public void onSlashCommand(SlashCommandEvent event) {
+    public void onSlashCommandInteraction(SlashCommandInteractionEvent event) {
         if(event.getGuild() != null) {
             CommandInterface commandInterface = StarLoader.getCommand(event.getName());
             if(commandInterface != null) {
@@ -528,13 +550,15 @@ public class DiscordBot extends ListenerAdapter {
                         return;
                     }
                     ((DiscordCommand) commandInterface).execute(event);
+                    /*
                     if(!event.isAcknowledged()) {
                         try {
-                            event.acknowledge(true).queue();
+                            event.reply()
                         } catch(Exception exception) {
                             LogManager.logException("An exception occurred while trying to acknowledge command \"/" + commandInterface.getCommand() + "\"", exception);
                         }
                     }
+                     */
                 } else event.reply("This command is only available in-game").queue();
             } else event.reply("/" + event.getCommandPath().replace("/", " ") + " is not a valid command").queue();
         }

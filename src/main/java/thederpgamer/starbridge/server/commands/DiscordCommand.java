@@ -1,7 +1,7 @@
 package thederpgamer.starbridge.server.commands;
 
-import net.dv8tion.jda.api.events.interaction.SlashCommandEvent;
-import net.dv8tion.jda.api.requests.restaction.CommandUpdateAction;
+import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
+import net.dv8tion.jda.api.interactions.commands.build.CommandData;
 
 /**
  * DiscordCommand
@@ -11,6 +11,6 @@ import net.dv8tion.jda.api.requests.restaction.CommandUpdateAction;
  * @since 04/08/2021
  */
 public interface DiscordCommand {
-    void execute(SlashCommandEvent event);
-    CommandUpdateAction.CommandData getCommandData();
+    void execute(SlashCommandInteractionEvent event);
+    CommandData getCommandData();
 }

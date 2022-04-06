@@ -4,9 +4,10 @@ import api.common.GameCommon;
 import api.mod.StarMod;
 import api.utils.game.PlayerUtils;
 import api.utils.game.chat.CommandInterface;
-import net.dv8tion.jda.api.entities.Command;
-import net.dv8tion.jda.api.events.interaction.SlashCommandEvent;
-import net.dv8tion.jda.api.requests.restaction.CommandUpdateAction;
+import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
+import net.dv8tion.jda.api.interactions.commands.OptionType;
+import net.dv8tion.jda.api.interactions.commands.build.CommandData;
+import net.dv8tion.jda.internal.interactions.CommandDataImpl;
 import org.jetbrains.annotations.Nullable;
 import org.schema.game.common.data.player.PlayerState;
 import thederpgamer.starbridge.StarBridge;
@@ -71,17 +72,16 @@ public class InfoPlayerCommand implements CommandInterface, DiscordCommand {
     }
 
     @Override
-    public void execute(SlashCommandEvent event) {
+    public void execute(SlashCommandInteractionEvent event) {
         String playerName = event.getOption("player_name").getAsString();
         PlayerData playerData = ServerDatabase.getPlayerDataWithoutNull(playerName);
-        if(playerData != null) event.reply(formatPlayerData(playerData)).queue();
-        else event.reply("Player " + playerName + "doesn't exist!").queue();
+        event.reply(formatPlayerData(playerData)).queue();
     }
 
     @Override
-    public CommandUpdateAction.CommandData getCommandData() {
-        CommandUpdateAction.CommandData commandData = new CommandUpdateAction.CommandData(getCommand(), "Displays information about a player.");
-        commandData.addOption(new CommandUpdateAction.OptionData(Command.OptionType.STRING, "player_name", "The name of the player").setRequired(true));
+    public CommandData getCommandData() {
+        CommandDataImpl commandData = new CommandDataImpl(getCommand(), "Displays information about a player.");
+        commandData.addOption(OptionType.STRING, "player_name", "The name of the player", true);
         return commandData;
     }
 

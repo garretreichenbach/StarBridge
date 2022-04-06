@@ -3,9 +3,10 @@ package thederpgamer.starbridge.server.commands;
 import api.mod.StarMod;
 import api.utils.game.PlayerUtils;
 import api.utils.game.chat.CommandInterface;
-import net.dv8tion.jda.api.entities.Command;
-import net.dv8tion.jda.api.events.interaction.SlashCommandEvent;
-import net.dv8tion.jda.api.requests.restaction.CommandUpdateAction;
+import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
+import net.dv8tion.jda.api.interactions.commands.OptionType;
+import net.dv8tion.jda.api.interactions.commands.build.CommandData;
+import net.dv8tion.jda.internal.interactions.CommandDataImpl;
 import org.jetbrains.annotations.Nullable;
 import org.schema.game.common.data.player.PlayerState;
 import org.schema.game.common.data.player.faction.Faction;
@@ -71,7 +72,7 @@ public class InfoFactionCommand implements CommandInterface, DiscordCommand {
     }
 
     @Override
-    public void execute(SlashCommandEvent event) {
+    public void execute(SlashCommandInteractionEvent event) {
         String factionName = event.getOption("faction_name").getAsString();
         Faction faction = ServerDatabase.getFaction(factionName.replace("\"", ""));
         if(faction != null) event.reply(formatFactionData(faction)).queue();
@@ -79,9 +80,9 @@ public class InfoFactionCommand implements CommandInterface, DiscordCommand {
     }
 
     @Override
-    public CommandUpdateAction.CommandData getCommandData() {
-        CommandUpdateAction.CommandData commandData = new CommandUpdateAction.CommandData(getCommand(), "Displays information about a faction.");
-        commandData.addOption(new CommandUpdateAction.OptionData(Command.OptionType.STRING, "faction_name", "The name of the faction").setRequired(true));
+    public CommandData getCommandData() {
+        CommandDataImpl commandData = new CommandDataImpl(getCommand(), "Displays information about a faction.");
+        commandData.addOption(OptionType.STRING, "faction_name", "The name of the faction", true);
         return commandData;
     }
 

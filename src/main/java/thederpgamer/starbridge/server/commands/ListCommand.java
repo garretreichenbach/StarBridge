@@ -4,9 +4,11 @@ import api.common.GameServer;
 import api.mod.StarMod;
 import api.utils.game.PlayerUtils;
 import api.utils.game.chat.CommandInterface;
-import net.dv8tion.jda.api.entities.Command;
-import net.dv8tion.jda.api.events.interaction.SlashCommandEvent;
-import net.dv8tion.jda.api.requests.restaction.CommandUpdateAction;
+import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
+import net.dv8tion.jda.api.interactions.commands.OptionType;
+import net.dv8tion.jda.api.interactions.commands.build.CommandData;
+import net.dv8tion.jda.api.interactions.commands.build.OptionData;
+import net.dv8tion.jda.internal.interactions.CommandDataImpl;
 import org.schema.game.common.data.player.PlayerState;
 import thederpgamer.starbridge.StarBridge;
 import thederpgamer.starbridge.manager.LogManager;
@@ -84,7 +86,7 @@ public class ListCommand implements CommandInterface, DiscordCommand {
     }
 
     @Override
-    public void execute(SlashCommandEvent event) {
+    public void execute(SlashCommandInteractionEvent event) {
         String message = event.getCommandPath().trim().replace("/", " ").toLowerCase();
         String type = "players";
         if(event.getOption("list") != null) type = event.getOption("list").getAsString();
@@ -117,12 +119,12 @@ public class ListCommand implements CommandInterface, DiscordCommand {
     }
 
     @Override
-    public CommandUpdateAction.CommandData getCommandData() {
-        CommandUpdateAction.CommandData commandData = new CommandUpdateAction.CommandData("list", "Lists the specified server info");
-        CommandUpdateAction.OptionData optionData = new CommandUpdateAction.OptionData(Command.OptionType.STRING, "list", "The data to list");
+    public CommandData getCommandData() {
+        CommandDataImpl commandData = new CommandDataImpl("list", "Lists the specified server info");
+        OptionData optionData = new OptionData(OptionType.STRING, "list", "The data to list");
         optionData.addChoice("players", "players");
         optionData.addChoice("staff", "staff");
-        commandData.addOption(optionData);
+        commandData.addOptions(optionData);
         return commandData;
     }
 }

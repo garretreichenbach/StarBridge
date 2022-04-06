@@ -3,15 +3,16 @@ package thederpgamer.starbridge.server.commands;
 import api.mod.StarMod;
 import api.mod.config.PersistentObjectUtil;
 import api.utils.game.chat.CommandInterface;
-import net.dv8tion.jda.api.entities.Command;
-import net.dv8tion.jda.api.events.interaction.SlashCommandEvent;
-import net.dv8tion.jda.api.requests.restaction.CommandUpdateAction;
+import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
+import net.dv8tion.jda.api.interactions.commands.OptionType;
+import net.dv8tion.jda.api.interactions.commands.build.CommandData;
+import net.dv8tion.jda.internal.interactions.CommandDataImpl;
 import org.jetbrains.annotations.Nullable;
 import org.schema.game.common.data.player.PlayerState;
 import thederpgamer.starbridge.StarBridge;
 import thederpgamer.starbridge.data.player.PlayerData;
-import thederpgamer.starbridge.server.ServerDatabase;
 import thederpgamer.starbridge.manager.LogManager;
+import thederpgamer.starbridge.server.ServerDatabase;
 
 import java.util.Objects;
 
@@ -65,7 +66,7 @@ public class LinkCommand implements CommandInterface, DiscordCommand {
     }
 
     @Override
-    public void execute(SlashCommandEvent event) {
+    public void execute(SlashCommandInteractionEvent event) {
         try {
             int linkCode = Integer.parseInt(Objects.requireNonNull(event.getOption("link_code")).getAsString());
             PlayerData playerData = StarBridge.getInstance().botThread.getBot().getLinkRequest(linkCode);
@@ -87,9 +88,9 @@ public class LinkCommand implements CommandInterface, DiscordCommand {
     }
 
     @Override
-    public CommandUpdateAction.CommandData getCommandData() {
-        CommandUpdateAction.CommandData commandData = new CommandUpdateAction.CommandData(getCommand(), "Links your Discord and StarMade accounts using the provided link code");
-        commandData.addOption(new CommandUpdateAction.OptionData(Command.OptionType.INTEGER, "link_code", "The link code to use").setRequired(true));
+    public CommandData getCommandData() {
+        CommandDataImpl commandData = new CommandDataImpl(getCommand(), "Links your Discord and StarMade accounts using the provided link code");
+        commandData.addOption(OptionType.INTEGER, "link_code", "The link code to use", true);
         return commandData;
     }
 }

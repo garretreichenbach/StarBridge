@@ -4,9 +4,11 @@ import api.common.GameServer;
 import api.mod.StarMod;
 import api.utils.StarRunnable;
 import api.utils.game.chat.CommandInterface;
-import net.dv8tion.jda.api.entities.Command;
-import net.dv8tion.jda.api.events.interaction.SlashCommandEvent;
-import net.dv8tion.jda.api.requests.restaction.CommandUpdateAction;
+import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
+import net.dv8tion.jda.api.interactions.commands.OptionType;
+import net.dv8tion.jda.api.interactions.commands.build.CommandData;
+import net.dv8tion.jda.api.interactions.commands.build.OptionData;
+import net.dv8tion.jda.internal.interactions.CommandDataImpl;
 import org.apache.commons.lang3.math.NumberUtils;
 import org.jetbrains.annotations.Nullable;
 import org.schema.common.util.StringTools;
@@ -90,14 +92,14 @@ public class RestartCommand implements CommandInterface, DiscordCommand {
     }
 
     @Override
-    public void execute(SlashCommandEvent event) {
+    public void execute(SlashCommandInteractionEvent event) {
         String message = event.getCommandPath().trim().replace("/", " ").toLowerCase();
         String[] args = StringTools.splitParameters(message);
         if(args.length == 1) {
             StarBridge.getInstance().getBot().sendMessageToDiscord(":octagonal_sign: Server restarting in " + ConfigManager.getMainConfig().getInt("default-shutdown-timer") + " seconds.");
             GameServer.getServerState().addCountdownMessage(ConfigManager.getMainConfig().getInt("default-shutdown-timer"), "Server restarting in " + ConfigManager.getMainConfig().getInt("default-shutdown-timer") + " seconds.");
             triggerRestart(ConfigManager.getMainConfig().getInt("default-shutdown-timer"));
-            event.acknowledge(true).queue();
+            //event.acknowledge(true).queue();
         } else {
             if(event.getOption("countdown") != null && NumberUtils.isNumber(event.getOption("countdown").getAsString())) {
                 int timer = Integer.parseInt(Objects.requireNonNull(event.getOption("countdown")).getAsString());
@@ -110,17 +112,16 @@ public class RestartCommand implements CommandInterface, DiscordCommand {
                     GameServer.getServerState().addCountdownMessage(timer, "Server restarting in " + timer + " seconds\n");
                 }
                 triggerRestart(timer);
-                event.acknowledge(true).queue();
+                //event.acknowledge(true).queue();
             }
         }
         if(!event.isAcknowledged()) event.reply("Incorrect usage \"/" + message + "\". Use /help restart for proper usages.").queue();
     }
 
     @Override
-    public CommandUpdateAction.CommandData getCommandData() {
-        CommandUpdateAction.CommandData commandData = new CommandUpdateAction.CommandData(getCommand(), "Restarts the server with an optional count down timer and description.");
-        commandData.addOption(new CommandUpdateAction.OptionData(Command.OptionType.INTEGER, "countdown", "The countdown (in seconds)").setRequired(false));
-        commandData.addOption(new CommandUpdateAction.OptionData(Command.OptionType.STRING, "description", "The reason for the restart").setRequired(false));
+    public CommandData getCommandData() {
+        CommandDataImpl commandData = new CommandDataImpl(getCommand(), "Restarts the server with an optional count down timer and description.");
+        commandData.addOptions(new OptionData(OptionType.INTEGER, "countdown", "The countdown (in seconds)").setRequired(false), new OptionData(OptionType.STRING, "description", "The reason for the restart").setRequired(false));
         return commandData;
     }
 

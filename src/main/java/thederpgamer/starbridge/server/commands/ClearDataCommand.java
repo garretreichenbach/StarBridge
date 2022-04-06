@@ -3,9 +3,10 @@ package thederpgamer.starbridge.server.commands;
 import api.mod.StarMod;
 import api.utils.game.PlayerUtils;
 import api.utils.game.chat.CommandInterface;
-import net.dv8tion.jda.api.entities.Command;
-import net.dv8tion.jda.api.events.interaction.SlashCommandEvent;
-import net.dv8tion.jda.api.requests.restaction.CommandUpdateAction;
+import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
+import net.dv8tion.jda.api.interactions.commands.OptionType;
+import net.dv8tion.jda.api.interactions.commands.build.CommandData;
+import net.dv8tion.jda.internal.interactions.CommandDataImpl;
 import org.apache.commons.lang3.math.NumberUtils;
 import org.jetbrains.annotations.Nullable;
 import org.schema.game.common.data.player.PlayerState;
@@ -87,7 +88,7 @@ public class ClearDataCommand implements CommandInterface, DiscordCommand {
     }
 
     @Override
-    public void execute(SlashCommandEvent event) {
+    public void execute(SlashCommandInteractionEvent event) {
         String message = event.getCommandPath().trim().replace("/", " ").toLowerCase();
         String dataType = Objects.requireNonNull(event.getOption("data_type")).getAsString();
         if(dataType.equalsIgnoreCase("logs")) {
@@ -97,9 +98,9 @@ public class ClearDataCommand implements CommandInterface, DiscordCommand {
     }
 
     @Override
-    public CommandUpdateAction.CommandData getCommandData() {
-        CommandUpdateAction.CommandData commandData = new CommandUpdateAction.CommandData(getCommand(), "Clears old data of the specified type");
-        commandData.addOption(new CommandUpdateAction.OptionData(Command.OptionType.STRING, "data_type", "The type of the data to clear").setRequired(true));
+    public CommandData getCommandData() {
+        CommandDataImpl commandData = new CommandDataImpl(getCommand(), "Clears old data of the specified type");
+        commandData.addOption(OptionType.STRING, "data_type", "The type of the data to clear", true);
         return commandData;
     }
 }
