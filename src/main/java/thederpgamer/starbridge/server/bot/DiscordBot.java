@@ -562,7 +562,11 @@ public class DiscordBot extends ListenerAdapter {
         chatMessage.text = message;
         chatMessage.receiverType = ChatMessage.ChatMessageType.CHANNEL;
         chatMessage.receiver = "all";
-        chatMessage.setChannel(ChatChannels.ALL.toChatChannel());
+        try {
+            chatMessage.setChannel(ChatChannels.ALL.toChatChannel());
+        } catch(Exception exception) {
+            exception.printStackTrace();
+        }
         LogManager.logChat(chatMessage, "GENERAL");
     }
 

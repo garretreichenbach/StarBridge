@@ -23,7 +23,7 @@ public enum ChatChannels {
     STAFF;
 
     public ChatChannel toChatChannel() {
-        return GameServer.getServerState().getChannelRouter().getChannel(toString().toLowerCase());
+        return GameServer.getServerState().getChannelRouter().getChannel(toString().toUpperCase());
     }
 
     public static String fromChatChannel(ChatChannel chatChannel) {
