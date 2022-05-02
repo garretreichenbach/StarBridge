@@ -79,7 +79,7 @@ public class PlayerUtils {
                 String name = q.getString(1);
                 if(name.equals(playerName)) {
                     fields = new String[] {
-                            String.valueOf(q.getInt(0)),
+                            String.valueOf(q.getLong(0)),
                             name,
                             q.getString(2),
                             String.valueOf(q.getInt(3)),
