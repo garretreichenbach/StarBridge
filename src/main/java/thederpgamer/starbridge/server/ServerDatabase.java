@@ -9,13 +9,6 @@ import thederpgamer.starbridge.data.player.PlayerData;
 
 import java.util.ArrayList;
 
-/**
- * ServerDatabase.java
- * <Description>
- *
- * @since 03/10/2021
- * @author TheDerpGamer
- */
 public class ServerDatabase {
 
     private static final ModSkeleton instance = StarBridge.getInstance().getSkeleton();

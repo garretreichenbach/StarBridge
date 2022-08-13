@@ -1,0 +1,149 @@
+package thederpgamer.starbridge.bot;
+
+import api.common.GameServer;
+import api.mod.config.FileConfiguration;
+import api.utils.game.chat.CommandInterface;
+import net.dv8tion.jda.api.JDA;
+import net.dv8tion.jda.api.JDABuilder;
+import net.dv8tion.jda.api.entities.Activity;
+import net.dv8tion.jda.api.requests.restaction.CommandListUpdateAction;
+import org.schema.game.server.data.ServerConfig;
+import thederpgamer.starbridge.bot.runnable.BotRunnable;
+import thederpgamer.starbridge.bot.runnable.RunnableStatus;
+import thederpgamer.starbridge.commands.*;
+import thederpgamer.starbridge.manager.ConfigManager;
+import thederpgamer.starbridge.manager.LogManager;
+
+import javax.security.auth.login.LoginException;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+
+/**
+ * Handles bot runners.
+ */
+public class BotThread extends Thread {
+
+	private boolean running = true;
+	private final ConcurrentHashMap<BotRunnable, Long> runners = new ConcurrentHashMap<>();
+	public static int idCount = 0;
+	public JDA bot;
+	private final long startTime = System.currentTimeMillis();
+	private final long restartTime;
+
+	public BotThread(FileConfiguration config) {
+		JDABuilder builder = JDABuilder.createDefault(config.getString("bot-token"));
+		builder.setActivity(Activity.playing("StarMade"));
+		builder.addEventListeners(this);
+		try {
+			bot = builder.build();
+			LogManager.logInfo("Successfully initialized bot.");
+		} catch(LoginException exception) {
+			LogManager.logException("An exception occurred while initializing the bot", exception);
+		}
+		registerCommands();
+		(new Timer("channel_updater")).scheduleAtFixedRate(new TimerTask() {
+			@Override
+			public void run() {
+				updateChannelInfo();
+			}
+		}, 0, 10000);
+		restartTime = System.currentTimeMillis() + config.getLong("restart-timer");
+		Bot.getInstance().sendDiscordMessage(":white_check_mark: Server Started");
+	}
+
+	@Override
+	public void run() {
+		while(running) {
+			for(Map.Entry<BotRunnable, Long> entry : runners.entrySet()) {
+				RunnableStatus status = entry.getKey().getStatus();
+				switch(status) {
+					case WAITING:
+						entry.getKey().start();
+						entry.getKey().setStatus(RunnableStatus.RUNNING);
+						break;
+					case RUNNING:
+						if(entry.getValue() > ConfigManager.getMainConfig().getConfigurableLong("max-runner-time", 10000)) {
+							entry.getKey().stop();
+							entry.getKey().setStatus(RunnableStatus.STOPPED);
+							LogManager.logWarning("Runner " + entry.getKey().getClass().getSimpleName() + "[" + entry.getKey().getId() + "] has been stopped due to timeout.", null);
+							runners.remove(entry.getKey());
+						} else entry.setValue(entry.getValue() + (System.currentTimeMillis() - entry.getValue()));
+						break;
+					case STOPPED:
+						//Check for error, if one is found report it to the console. If not, remove it from the list.
+						if(entry.getKey().getStatus() == RunnableStatus.ERROR) {
+							LogManager.logException("Runner " + entry.getKey().getClass().getSimpleName() + "[" + entry.getKey().getId() + "] has been stopped due to an error.", entry.getKey().getException());
+							runners.remove(entry.getKey());
+						} else runners.remove(entry.getKey());
+						break;
+					case ERROR:
+						LogManager.logException("Runner " + entry.getKey().getClass().getSimpleName() + "[" + entry.getKey().getId() + "] has been stopped due to an error.", entry.getKey().getException());
+						runners.remove(entry.getKey());
+						break;
+				}
+			}
+
+			long currentTime = System.currentTimeMillis();
+			if(currentTime - restartTime <= 900000) { //15 minute warning
+				Bot.getInstance().sendDiscordMessage(":warning: Server will restart in 15 minutes");
+				Bot.getInstance().sendServerMessage("Server will restart in 15 minutes");
+			} else if(currentTime - restartTime <= 30000) { //5 minute warning
+				Bot.getInstance().sendDiscordMessage(":warning: Server will restart in 5 minutes");
+				Bot.getInstance().sendServerMessage("Server will restart in 5 minutes");
+			} else if(currentTime - restartTime <= 60000) { //1 minute warning
+				Bot.getInstance().sendDiscordMessage(":warning: Server will restart in 1 minute");
+				Bot.getInstance().sendServerMessage("Server will restart in 1 minute");
+			} else if(currentTime > restartTime) running = false;
+		}
+
+		LogManager.logInfo("Bot thread shutting down.");
+		//Stop all runners and send bot shutdown message.
+		for(BotRunnable runner : runners.keySet()) runner.stop();
+		Bot.getInstance().sendDiscordMessage(":stop_sign: Server is restarting.");
+		Bot.getInstance().sendServerMessage("Server is restarting.");
+		GameServer.getServerState().executeAdminCommand(null, "shutdown", GameServer.getServerState().getAdminLocalClient());
+		//Todo: How do I boot the server up again?
+	}
+
+	public void queue(BotRunnable runner) {
+		runners.put(runner, System.currentTimeMillis());
+	}
+
+	private void registerCommands() {
+		CommandInterface[] commandArray = new CommandInterface[] {
+				new ListCommand(),
+				new LinkCommand(),
+				new ClearDataCommand(),
+				new InfoPlayerCommand(),
+				new InfoFactionCommand(),
+				new HelpDiscordCommand()
+		};
+		CommandListUpdateAction commands = bot.updateCommands();
+
+		ArrayList<CommandInterface> commandList = new ArrayList<>(Arrays.asList(commandArray));
+		//addAPICommands(commandList);
+
+		for(CommandInterface commandInterface : commandList) {
+			commands.addCommands(((DiscordCommand) commandInterface).getCommandData()).queue();
+			LogManager.logInfo( "Registered command /" + commandInterface.getCommand());
+		}
+		commands.queue();
+	}
+
+	public void updateChannelInfo() {
+		try {
+			int playerCount = GameServer.getServerState().getPlayerStatesByName().size();
+			int playerMax = (int) ServerConfig.MAX_CLIENTS.getCurrentState();
+
+			String chatChannelStats = ("Players: " + playerCount + " / " + playerMax
+					//"Next Restart: " + ServerUtils.getNextRestart()
+			);
+			Objects.requireNonNull(bot.getTextChannelById(Bot.getInstance().getChatChannelId())).getManager().setTopic(chatChannelStats).queue();
+			String logChannelStats = ("Clients: " + playerCount + " / " + playerMax  + " \nCurrent Uptime: " + (System.currentTimeMillis() - startTime));
+			Objects.requireNonNull(bot.getTextChannelById(Bot.getInstance().getLogChannelId())).getManager().setTopic(logChannelStats).queue();
+		} catch(Exception exception) {
+			LogManager.logException("Failed to update channel info", exception);
+		}
+	}
+
+}

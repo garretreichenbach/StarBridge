@@ -3,7 +3,6 @@ package thederpgamer.starbridge.manager;
 import api.DebugFile;
 import org.schema.game.network.objects.ChatMessage;
 import thederpgamer.starbridge.StarBridge;
-import thederpgamer.starbridge.server.bot.DiscordBot;
 import thederpgamer.starbridge.utils.DataUtils;
 import thederpgamer.starbridge.utils.DateUtils;
 
@@ -132,7 +131,7 @@ public class LogManager {
     }
 
     private static void logMessage(MessageType messageType, String message) {
-        message = DiscordBot.sanitizeMessage(message);
+        message = message.replaceAll("@", "").replaceAll("\"", "");
         if(!logQueue.contains(message) || messageType.equals(MessageType.CRITICAL)) {
             StringBuilder builder = new StringBuilder();
             String prefix = "[" + DateUtils.getTimeFormatted() + "] " + messageType.prefix;
@@ -147,7 +146,6 @@ public class LogManager {
                         }
                     }
                 } else builder.append(message);
-                StarBridge.getInstance().getBot().sendLogMessage(builder.toString());
                 System.out.println(builder.toString());
                 logWriter.append(builder.toString()).append("\n");
                 logWriter.flush();
@@ -166,7 +164,6 @@ public class LogManager {
     public static void logCommand(String sender, String command) {
         String logMessage = "[" + DateUtils.getTimeFormatted() + "] [COMMAND FROM " + sender + "]: " + command;
         try {
-            StarBridge.getInstance().getBot().sendLogMessage(logMessage);
             chatWriter.append(logMessage).append("\n");
             chatWriter.flush();
         } catch(IOException exception) {
@@ -179,7 +176,7 @@ public class LogManager {
             StringBuilder builder = new StringBuilder();
             String prefix = "[" + channel + "] [" + chatMessage.sender + "]: ";
             builder.append(prefix);
-            String message = DiscordBot.sanitizeMessage(chatMessage.text);
+            String message = chatMessage.text.replaceAll("@", "").replaceAll("\"", "");
             String[] lines = message.split("\n");
             if(lines.length > 1) {
                 for(int i = 0; i < lines.length; i ++) {
@@ -189,7 +186,6 @@ public class LogManager {
                     }
                 }
             } else builder.append(message);
-            StarBridge.getInstance().getBot().sendLogMessage("[" + DateUtils.getTimeFormatted() + "] [CHAT]: " + builder.toString());
             chatWriter.append(builder.toString()).append("\n");
             chatWriter.flush();
         } catch(IOException var3) {

@@ -1,4 +1,4 @@
-package thederpgamer.starbridge.server.commands;
+package thederpgamer.starbridge.commands;
 
 import api.mod.StarMod;
 import api.mod.config.PersistentObjectUtil;
@@ -10,6 +10,7 @@ import net.dv8tion.jda.internal.interactions.CommandDataImpl;
 import org.jetbrains.annotations.Nullable;
 import org.schema.game.common.data.player.PlayerState;
 import thederpgamer.starbridge.StarBridge;
+import thederpgamer.starbridge.bot.Bot;
 import thederpgamer.starbridge.data.player.PlayerData;
 import thederpgamer.starbridge.manager.LogManager;
 import thederpgamer.starbridge.server.ServerDatabase;
@@ -51,7 +52,7 @@ public class LinkCommand implements CommandInterface, DiscordCommand {
 
     @Override
     public boolean onCommand(PlayerState playerState, String[] args) {
-        StarBridge.getInstance().botThread.getBot().addLinkRequest(playerState);
+        Bot.getInstance().addLinkRequest(playerState);
         return true;
     }
 
@@ -69,13 +70,13 @@ public class LinkCommand implements CommandInterface, DiscordCommand {
     public void execute(SlashCommandInteractionEvent event) {
         try {
             int linkCode = Integer.parseInt(Objects.requireNonNull(event.getOption("link_code")).getAsString());
-            PlayerData playerData = StarBridge.getInstance().botThread.getBot().getLinkRequest(linkCode);
+            PlayerData playerData = Bot.getInstance().getLinkRequest(linkCode);
             if(playerData != null) {
                 playerData.setDiscordId(event.getUser().getIdLong());
                 ServerDatabase.updatePlayerData(playerData);
                 PersistentObjectUtil.save(StarBridge.getInstance().getSkeleton());
                 String logMessage = "Successfully linked user " + event.getUser().getName() + " to " + playerData.getPlayerName();
-                StarBridge.getInstance().botThread.getBot().removeLinkRequest(playerData);
+                Bot.getInstance().removeLinkRequest(playerData);
                 event.reply(logMessage).queue();
                 LogManager.logInfo(logMessage);
                 event.getHook().deleteOriginal().queue();

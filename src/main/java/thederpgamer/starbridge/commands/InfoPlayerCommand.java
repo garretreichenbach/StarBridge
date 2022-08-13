@@ -1,4 +1,4 @@
-package thederpgamer.starbridge.server.commands;
+package thederpgamer.starbridge.commands;
 
 import api.common.GameCommon;
 import api.mod.StarMod;
@@ -92,7 +92,7 @@ public class InfoPlayerCommand implements CommandInterface, DiscordCommand {
         builder.append("Time played: ").append(String.format("%,.2f", (playerData.getHoursPlayed()))).append(" hours\n");
         if(playerData.getDiscordId() != -1) {
             try {
-                String tag = StarBridge.getInstance().getBot().bot.retrieveUserById(playerData.getDiscordId()).complete().getAsTag();
+                String tag = StarBridge.getInstance().getBot().getBotThread().bot.retrieveUserById(playerData.getDiscordId()).complete().getAsTag();
                 builder.append("Discord: ").append(tag).append("\n");
             } catch(Exception ignored) { }
         }

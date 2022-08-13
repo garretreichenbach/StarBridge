@@ -1,4 +1,4 @@
-package thederpgamer.starbridge.server.commands;
+package thederpgamer.starbridge.commands;
 
 import api.mod.StarLoader;
 import api.utils.game.chat.CommandInterface;
@@ -40,6 +40,6 @@ public class HelpDiscordCommand extends HelpCommand implements DiscordCommand {
     }
 
     private boolean isAdmin(Member member) {
-        return StarBridge.getInstance().getBot().hasRole(member, ConfigManager.getMainConfig().getLong("admin-role-id"));
+        return StarBridge.getBot().hasRole(member, ConfigManager.getMainConfig().getLong("admin-role-id"));
     }
 }

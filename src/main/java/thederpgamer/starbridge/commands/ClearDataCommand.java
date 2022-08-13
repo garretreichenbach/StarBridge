@@ -1,4 +1,4 @@
-package thederpgamer.starbridge.server.commands;
+package thederpgamer.starbridge.commands;
 
 import api.mod.StarMod;
 import api.utils.game.PlayerUtils;

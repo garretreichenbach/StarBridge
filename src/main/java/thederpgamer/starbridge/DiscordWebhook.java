@@ -1,4 +1,5 @@
-package thederpgamer.starbridge.server;
+package thederpgamer.starbridge;
+
 
 import java.awt.*;
 import java.io.IOException;
@@ -15,7 +16,7 @@ public class DiscordWebhook {
     private String username;
     private String avatarUrl;
     private boolean tts;
-    private List<EmbedObject> embeds = new ArrayList<EmbedObject>();
+    private final List<EmbedObject> embeds = new ArrayList<EmbedObject>();
 
     /**
      * Constructs a new DiscordWebhook instance
@@ -47,33 +48,28 @@ public class DiscordWebhook {
     }
 
     public void execute() throws IOException {
-        if (this.content == null && this.embeds.isEmpty()) {
-            throw new IllegalArgumentException("Set content or add at least one EmbedObject");
-        }
-
+        if(this.content == null && this.embeds.isEmpty()) throw new IllegalArgumentException("Set content or add at least one EmbedObject");
         JSONObject json = new JSONObject();
-
         json.put("content", this.content);
         json.put("username", this.username);
         json.put("avatar_url", this.avatarUrl);
         json.put("tts", this.tts);
 
-        if (!this.embeds.isEmpty()) {
-            List<JSONObject> embedObjects = new ArrayList<JSONObject>();
+        if(!this.embeds.isEmpty()) {
+            List<JSONObject> embedObjects = new ArrayList<>();
 
-            for (EmbedObject embed : this.embeds) {
+            for(EmbedObject embed : this.embeds) {
                 JSONObject jsonEmbed = new JSONObject();
 
                 jsonEmbed.put("title", embed.getTitle());
                 jsonEmbed.put("description", embed.getDescription());
                 jsonEmbed.put("url", embed.getUrl());
 
-                if (embed.getColor() != null) {
+                if(embed.getColor() != null) {
                     Color color = embed.getColor();
                     int rgb = color.getRed();
                     rgb = (rgb << 8) + color.getGreen();
                     rgb = (rgb << 8) + color.getBlue();
-
                     jsonEmbed.put("color", rgb);
                 }
 
@@ -82,32 +78,27 @@ public class DiscordWebhook {
                 EmbedObject.Thumbnail thumbnail = embed.getThumbnail();
                 EmbedObject.Author author = embed.getAuthor();
                 List<EmbedObject.Field> fields = embed.getFields();
-
-                if (footer != null) {
+                if(footer != null) {
                     JSONObject jsonFooter = new JSONObject();
-
                     jsonFooter.put("text", footer.getText());
                     jsonFooter.put("icon_url", footer.getIconUrl());
                     jsonEmbed.put("footer", jsonFooter);
                 }
 
-                if (image != null) {
+                if(image != null) {
                     JSONObject jsonImage = new JSONObject();
-
                     jsonImage.put("url", image.getUrl());
                     jsonEmbed.put("image", jsonImage);
                 }
 
-                if (thumbnail != null) {
+                if(thumbnail != null) {
                     JSONObject jsonThumbnail = new JSONObject();
-
                     jsonThumbnail.put("url", thumbnail.getUrl());
                     jsonEmbed.put("thumbnail", jsonThumbnail);
                 }
 
-                if (author != null) {
+                if(author != null) {
                     JSONObject jsonAuthor = new JSONObject();
-
                     jsonAuthor.put("name", author.getName());
                     jsonAuthor.put("url", author.getUrl());
                     jsonAuthor.put("icon_url", author.getIconUrl());
@@ -117,21 +108,17 @@ public class DiscordWebhook {
                 List<JSONObject> jsonFields = new ArrayList<JSONObject>();
                 for (EmbedObject.Field field : fields) {
                     JSONObject jsonField = new JSONObject();
-
                     jsonField.put("name", field.getName());
                     jsonField.put("value", field.getValue());
                     jsonField.put("inline", field.isInline());
-
                     jsonFields.add(jsonField);
                 }
-
                 jsonEmbed.put("fields", jsonFields.toArray());
                 embedObjects.add(jsonEmbed);
             }
 
             json.put("embeds", embedObjects.toArray());
         }
-
         json.writeToURL(this.url);
     }
 

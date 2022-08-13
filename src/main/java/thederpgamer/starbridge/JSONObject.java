@@ -1,10 +1,9 @@
-package thederpgamer.starbridge.server;
+package thederpgamer.starbridge;
 
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.HttpClients;
-import thederpgamer.starbridge.StarBridge;
 import thederpgamer.starbridge.manager.ConfigManager;
 
 import java.io.IOException;
