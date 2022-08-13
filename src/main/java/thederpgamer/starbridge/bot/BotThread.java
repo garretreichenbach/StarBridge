@@ -30,6 +30,9 @@ public class BotThread extends Thread {
 	private final long startTime = System.currentTimeMillis();
 	private final long restartTime;
 	public String lastMessage = "";
+	private boolean firstWarning = false;
+	private boolean secondWarning = false;
+	private boolean thirdWarning = false;
 
 	public BotThread(FileConfiguration config, Bot instance) {
 		JDABuilder builder = JDABuilder.createDefault(config.getString("bot-token"));
@@ -84,15 +87,18 @@ public class BotThread extends Thread {
 			}
 
 			long currentTime = System.currentTimeMillis();
-			if(restartTime - currentTime <= 900000) { //15 minute warning
+			if(restartTime - currentTime <= 900000 && !firstWarning) { //15 minute warning
 				Bot.getInstance().sendDiscordMessage(":warning: Server will restart in 15 minutes");
 				Bot.getInstance().sendServerMessage("Server will restart in 15 minutes");
-			} else if(restartTime - currentTime <= 30000) { //5 minute warning
+				firstWarning = true;
+			} else if(restartTime - currentTime <= 30000 && !secondWarning) { //5 minute warning
 				Bot.getInstance().sendDiscordMessage(":warning: Server will restart in 5 minutes");
 				Bot.getInstance().sendServerMessage("Server will restart in 5 minutes");
-			} else if(restartTime - currentTime <= 60000) { //1 minute warning
+				secondWarning = true;
+			} else if(restartTime - currentTime <= 60000 && !thirdWarning) { //1 minute warning
 				Bot.getInstance().sendDiscordMessage(":warning: Server will restart in 1 minute");
 				Bot.getInstance().sendServerMessage("Server will restart in 1 minute");
+				thirdWarning = true;
 			} else if(restartTime <= currentTime) running = false;
 		}
 
