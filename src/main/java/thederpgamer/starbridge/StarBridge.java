@@ -33,18 +33,12 @@ public class StarBridge extends StarMod {
 	@Override
 	public void onEnable() {
 		instance = this;
-
 		ConfigManager.initialize();
 		LogManager.initialize();
 		doOverwrites();
 		registerListeners();
 		registerCommands();
-		Bot.initialize(this);
-	}
-
-	@Override
-	public void onDisable() {
-		//Send shutdown message and stop bot thread.
+		new Bot();
 	}
 
 	private void doOverwrites() {
@@ -61,56 +55,56 @@ public class StarBridge extends StarMod {
 	}
 
 	private void registerListeners() {
-		StarLoader.registerListener(PlayerCustomCommandEvent.class, new Listener<>() {
+		StarLoader.registerListener(PlayerCustomCommandEvent.class, new Listener<PlayerCustomCommandEvent>() {
 			@Override
 			public void onEvent(PlayerCustomCommandEvent event) {
 				getBot().handleEvent(event);
 			}
 		}, this);
 
-		StarLoader.registerListener(PlayerChatEvent.class, new Listener<>() {
+		StarLoader.registerListener(PlayerChatEvent.class, new Listener<PlayerChatEvent>() {
 			@Override
 			public void onEvent(PlayerChatEvent event) {
 				getBot().handleEvent(event);
 			}
 		}, this);
 
-		StarLoader.registerListener(PlayerJoinWorldEvent.class, new Listener<>() {
+		StarLoader.registerListener(PlayerJoinWorldEvent.class, new Listener<PlayerJoinWorldEvent>() {
 			@Override
 			public void onEvent(PlayerJoinWorldEvent event) {
 				getBot().handleEvent(event);
 			}
 		}, this);
 
-		StarLoader.registerListener(PlayerLeaveWorldEvent.class, new Listener<>() {
+		StarLoader.registerListener(PlayerLeaveWorldEvent.class, new Listener<PlayerLeaveWorldEvent>() {
 			@Override
 			public void onEvent(PlayerLeaveWorldEvent event) {
 				getBot().handleEvent(event);
 			}
 		}, this);
 
-		StarLoader.registerListener(FactionCreateEvent.class, new Listener<>() {
+		StarLoader.registerListener(FactionCreateEvent.class, new Listener<FactionCreateEvent>() {
 			@Override
 			public void onEvent(FactionCreateEvent event) {
 				getBot().handleEvent(event);
 			}
 		}, this);
 
-		StarLoader.registerListener(PlayerJoinFactionEvent.class, new Listener<>() {
+		StarLoader.registerListener(PlayerJoinFactionEvent.class, new Listener<PlayerJoinFactionEvent>() {
 			@Override
 			public void onEvent(PlayerJoinFactionEvent event) {
 				getBot().handleEvent(event);
 			}
 		}, this);
 
-		StarLoader.registerListener(PlayerLeaveFactionEvent.class, new Listener<>() {
+		StarLoader.registerListener(PlayerLeaveFactionEvent.class, new Listener<PlayerLeaveFactionEvent>() {
 			@Override
 			public void onEvent(PlayerLeaveFactionEvent event) {
 				getBot().handleEvent(event);
 			}
 		}, this);
 
-		StarLoader.registerListener(PlayerDeathEvent.class, new Listener<>() {
+		StarLoader.registerListener(PlayerDeathEvent.class, new Listener<PlayerDeathEvent>() {
 			@Override
 			public void onEvent(PlayerDeathEvent event) {
 				getBot().handleEvent(event);

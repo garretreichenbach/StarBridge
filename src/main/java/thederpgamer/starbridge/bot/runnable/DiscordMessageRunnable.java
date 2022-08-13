@@ -42,14 +42,16 @@ public class DiscordMessageRunnable implements BotRunnable {
 	public void run() {
 		status = RunnableStatus.RUNNING;
 		try {
-			PlayerData playerData = ServerDatabase.getPlayerDataWithoutNull(sender);
+			PlayerData playerData = null;
+			if(sender != null) playerData = ServerDatabase.getPlayerDataWithoutNull(sender);
+			else sender = ConfigManager.getMainConfig().getString("bot-name");
 			Bot.getInstance().resetWebhook();
 
-			if(playerData.getDiscordId() != -1) Bot.getInstance().getChatWebhook().setAvatarUrl(Bot.getInstance().getBotThread().bot.retrieveUserById(playerData.getDiscordId()).complete(true).getEffectiveAvatarUrl());
+			if(playerData != null && playerData.getDiscordId() != -1) Bot.getInstance().getChatWebhook().setAvatarUrl(Bot.getInstance().getBotThread().bot.retrieveUserById(playerData.getDiscordId()).complete(true).getEffectiveAvatarUrl());
 			else Bot.getInstance().getChatWebhook().setAvatarUrl(ConfigManager.getMainConfig().getString("bot-avatar"));
 
-			if(playerData.inFaction()) Bot.getInstance().getChatWebhook().setUsername(playerData.getPlayerName() + "[" + playerData.getFactionName() + "]");
-			else Bot.getInstance().getChatWebhook().setUsername(playerData.getPlayerName());
+			if(playerData != null && playerData.inFaction()) Bot.getInstance().getChatWebhook().setUsername(playerData.getPlayerName() + "[" + playerData.getFactionName() + "]");
+			else Bot.getInstance().getChatWebhook().setUsername(sender);
 
 			Bot.getInstance().getChatWebhook().setContent(message);
 			Bot.getInstance().getChatWebhook().execute();

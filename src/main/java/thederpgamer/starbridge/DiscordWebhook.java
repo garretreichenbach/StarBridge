@@ -37,6 +37,7 @@ public class DiscordWebhook {
 
     public void setAvatarUrl(String avatarUrl) {
         this.avatarUrl = avatarUrl;
+        if(!this.avatarUrl.startsWith("https://")) this.avatarUrl = "https://" + this.avatarUrl;
     }
 
     public void setTts(boolean tts) {

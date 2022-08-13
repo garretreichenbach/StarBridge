@@ -4,9 +4,13 @@ import api.listener.events.Event;
 import api.listener.events.faction.FactionCreateEvent;
 import api.listener.events.faction.FactionRelationChangeEvent;
 import api.listener.events.player.*;
+import api.mod.StarLoader;
 import api.utils.game.PlayerUtils;
+import api.utils.game.chat.CommandInterface;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Role;
+import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
+import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import org.schema.game.common.controller.SegmentController;
 import org.schema.game.common.data.chat.ChannelRouter;
@@ -14,14 +18,15 @@ import org.schema.game.common.data.player.PlayerState;
 import org.schema.game.common.data.player.faction.FactionRelation;
 import org.schema.game.network.objects.ChatMessage;
 import thederpgamer.starbridge.DiscordWebhook;
-import thederpgamer.starbridge.StarBridge;
 import thederpgamer.starbridge.bot.runnable.DiscordMessageRunnable;
 import thederpgamer.starbridge.bot.runnable.ServerMessageRunnable;
+import thederpgamer.starbridge.commands.DiscordCommand;
 import thederpgamer.starbridge.data.player.PlayerData;
 import thederpgamer.starbridge.manager.ConfigManager;
 import thederpgamer.starbridge.manager.LogManager;
 import thederpgamer.starbridge.server.ServerDatabase;
 
+import java.util.Objects;
 import java.util.Random;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -46,20 +51,18 @@ public class Bot extends ListenerAdapter {
 		return instance;
 	}
 
-	public static void initialize(StarBridge modInstance) {
-		instance = new Bot();
-	}
-
 	private final BotThread botThread;
 
 	public Bot() {
-		this.token = ConfigManager.getMainConfig().getString("bot-token");
-		this.chatWebhook = new DiscordWebhook("https://" + ConfigManager.getMainConfig().getString("chat-webhook"));
-		this.chatChannelId = ConfigManager.getMainConfig().getLong("chat-channel-id");
-		this.logWebhook = new DiscordWebhook("https://" + ConfigManager.getMainConfig().getString("log-webhook"));
-		this.logChannelId = ConfigManager.getMainConfig().getLong("log-channel-id");
-		this.botThread = new BotThread(ConfigManager.getMainConfig());
-		this.botThread.start();
+		instance = this;
+		botThread = new BotThread(ConfigManager.getMainConfig(), this);
+		botThread.start();
+		token = ConfigManager.getMainConfig().getString("bot-token");
+		chatWebhook = new DiscordWebhook("https://" + ConfigManager.getMainConfig().getString("chat-webhook"));
+		chatChannelId = ConfigManager.getMainConfig().getLong("chat-channel-id");
+		logWebhook = new DiscordWebhook("https://" + ConfigManager.getMainConfig().getString("log-webhook"));
+		logChannelId = ConfigManager.getMainConfig().getLong("log-channel-id");
+		sendDiscordMessage(":white_check_mark: Server Started");
 	}
 
 	public void handleEvent(Event event) {
@@ -72,6 +75,7 @@ public class Bot extends ListenerAdapter {
 			String message = playerChatEvent.getMessage().text;
 			message = message.replace("@", "");
 			message = message.replace("\"", "");
+			if(botThread.lastMessage.equals(message)) return;
 			ChatMessage chatMessage = new ChatMessage(playerChatEvent.getMessage());
 			PlayerData playerData = ServerDatabase.getPlayerDataWithoutNull(chatMessage.sender);
 			if(chatMessage.receiverType.equals(ChatMessage.ChatMessageType.CHANNEL)) {
@@ -82,6 +86,7 @@ public class Bot extends ListenerAdapter {
 					LogManager.logChat(chatMessage, "GENERAL");
 				}
 			}
+			botThread.lastMessage = message;
 		} else if(event instanceof PlayerJoinWorldEvent) {
 			PlayerJoinWorldEvent playerJoinWorldEvent = (PlayerJoinWorldEvent) event;
 			ServerDatabase.getPlayerDataWithoutNull(playerJoinWorldEvent.getPlayerName());
@@ -248,5 +253,34 @@ public class Bot extends ListenerAdapter {
 		chatWebhook.setUsername(ConfigManager.getMainConfig().getString("bot-name"));
 		chatWebhook.setAvatarUrl("https://" + ConfigManager.getMainConfig().getString("bot-avatar"));
 		chatWebhook.setContent("");
+	}
+
+	@Override
+	public void onSlashCommandInteraction(SlashCommandInteractionEvent event) {
+		if(event.getGuild() != null) {
+			CommandInterface commandInterface = StarLoader.getCommand(event.getName());
+			if(commandInterface != null) {
+				if(commandInterface instanceof DiscordCommand) {
+					if(commandInterface.isAdminOnly() && !hasRole(Objects.requireNonNull(event.getMember()), ConfigManager.getMainConfig().getLong("admin-role-id"))) {
+						event.reply("You don't have permission to use this command!").queue();
+						return;
+					}
+					((DiscordCommand) commandInterface).execute(event);
+				} else event.reply("This command is only available in-game").queue();
+			} else event.reply("/" + event.getCommandPath().replace("/", " ") + " is not a valid command").queue();
+		}
+	}
+
+	@Override
+	public void onMessageReceived(MessageReceivedEvent event) {
+		String content = event.getMessage().getContentDisplay().trim();
+		if(content.length() > 0) {
+			if(!event.getAuthor().isBot() && !event.isWebhookMessage()) {
+				if(event.getChannel().getIdLong() == chatChannelId) {
+					if(content.charAt(0) != '/') sendServerMessage(event.getAuthor().getName(), content.trim());
+					else event.getMessage().delete().queue();
+				}
+			}
+		}
 	}
 }

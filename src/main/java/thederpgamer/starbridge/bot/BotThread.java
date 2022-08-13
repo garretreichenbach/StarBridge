@@ -29,11 +29,12 @@ public class BotThread extends Thread {
 	public JDA bot;
 	private final long startTime = System.currentTimeMillis();
 	private final long restartTime;
+	public String lastMessage = "";
 
-	public BotThread(FileConfiguration config) {
+	public BotThread(FileConfiguration config, Bot instance) {
 		JDABuilder builder = JDABuilder.createDefault(config.getString("bot-token"));
 		builder.setActivity(Activity.playing("StarMade"));
-		builder.addEventListeners(this);
+		builder.addEventListeners(instance);
 		try {
 			bot = builder.build();
 			LogManager.logInfo("Successfully initialized bot.");
@@ -47,8 +48,7 @@ public class BotThread extends Thread {
 				updateChannelInfo();
 			}
 		}, 0, 10000);
-		restartTime = System.currentTimeMillis() + config.getLong("restart-timer");
-		Bot.getInstance().sendDiscordMessage(":white_check_mark: Server Started");
+		restartTime = config.getLong("restart-timer") + System.currentTimeMillis();
 	}
 
 	@Override
@@ -84,16 +84,16 @@ public class BotThread extends Thread {
 			}
 
 			long currentTime = System.currentTimeMillis();
-			if(currentTime - restartTime <= 900000) { //15 minute warning
+			if(restartTime - currentTime <= 900000) { //15 minute warning
 				Bot.getInstance().sendDiscordMessage(":warning: Server will restart in 15 minutes");
 				Bot.getInstance().sendServerMessage("Server will restart in 15 minutes");
-			} else if(currentTime - restartTime <= 30000) { //5 minute warning
+			} else if(restartTime - currentTime <= 30000) { //5 minute warning
 				Bot.getInstance().sendDiscordMessage(":warning: Server will restart in 5 minutes");
 				Bot.getInstance().sendServerMessage("Server will restart in 5 minutes");
-			} else if(currentTime - restartTime <= 60000) { //1 minute warning
+			} else if(restartTime - currentTime <= 60000) { //1 minute warning
 				Bot.getInstance().sendDiscordMessage(":warning: Server will restart in 1 minute");
 				Bot.getInstance().sendServerMessage("Server will restart in 1 minute");
-			} else if(currentTime > restartTime) running = false;
+			} else if(restartTime <= currentTime) running = false;
 		}
 
 		LogManager.logInfo("Bot thread shutting down.");
