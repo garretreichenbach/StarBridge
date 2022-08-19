@@ -91,22 +91,28 @@ public class BotThread extends Thread {
 				Bot.getInstance().sendDiscordMessage(":warning: Server will restart in 15 minutes");
 				Bot.getInstance().sendServerMessage("Server will restart in 15 minutes");
 				firstWarning = true;
-			} else if(restartTime - currentTime <= 30000 && !secondWarning) { //5 minute warning
-				Bot.getInstance().sendDiscordMessage(":warning: Server will restart in 5 minutes");
+			} else if(restartTime - currentTime <= 300000 && !secondWarning) { //5 minute warning
+				//Bot.getInstance().sendDiscordMessage(":warning: Server will restart in 5 minutes"); Only send the 15-min warning to avoid spam
 				Bot.getInstance().sendServerMessage("Server will restart in 5 minutes");
 				secondWarning = true;
 			} else if(restartTime - currentTime <= 60000 && !thirdWarning) { //1 minute warning
-				Bot.getInstance().sendDiscordMessage(":warning: Server will restart in 1 minute");
+				//Bot.getInstance().sendDiscordMessage(":warning: Server will restart in 1 minute");
 				Bot.getInstance().sendServerMessage("Server will restart in 1 minute");
 				thirdWarning = true;
 			} else if(restartTime <= currentTime) running = false;
 		}
 
 		LogManager.logInfo("Bot thread shutting down.");
-		//Stop all runners and send bot shutdown message.
-		for(BotRunnable runner : runners.keySet()) runner.stop();
 		Bot.getInstance().sendDiscordMessage(":stop_sign: Server is restarting.");
 		Bot.getInstance().sendServerMessage("Server is restarting.");
+		//Stop all runners and send bot shutdown message.
+		//for(BotRunnable runner : runners.keySet()) runner.stop();
+		//Wait for messages to be sent before stopping.
+		try {
+			Thread.sleep(5000);
+		} catch(InterruptedException e) {
+			e.printStackTrace();
+		}
 		GameServer.getServerState().executeAdminCommand(null, "shutdown", GameServer.getServerState().getAdminLocalClient());
 		//Todo: How do I boot the server up again?
 	}
