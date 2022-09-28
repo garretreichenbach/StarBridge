@@ -2,7 +2,7 @@
   "name": "StarBridge",
   "author": "TheDerpGamer",
   "description": "Discord to StarMade chat and link functionality.",
-  "version": "1.5.2",
+  "version": "1.5.3",
   "starmade_version": "0.203.115",
   "client_mod": false,
   "server_mod": true,

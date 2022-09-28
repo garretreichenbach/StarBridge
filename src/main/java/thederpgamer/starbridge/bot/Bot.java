@@ -78,13 +78,17 @@ public class Bot extends ListenerAdapter {
 			if(botThread.lastMessage.equals(message)) return;
 			ChatMessage chatMessage = new ChatMessage(playerChatEvent.getMessage());
 			PlayerData playerData = ServerDatabase.getPlayerDataWithoutNull(chatMessage.sender);
-			if(chatMessage.receiverType.equals(ChatMessage.ChatMessageType.CHANNEL)) {
-				if(chatMessage.getChannel() != null && chatMessage.getChannel().getType().equals(ChannelRouter.ChannelType.FACTION)) {
-					LogManager.logChat(chatMessage, "FACTION");
-				} else if(chatMessage.getChannel() == null && chatMessage.receiver.toLowerCase().equals("all") || (chatMessage.getChannel().getType().equals(ChannelRouter.ChannelType.PUBLIC) && !chatMessage.getChannel().hasPassword() && !chatMessage.getChannel().getType().equals(ChannelRouter.ChannelType.FACTION))) {
-					sendDiscordMessage(playerData.getPlayerName(), message);
-					LogManager.logChat(chatMessage, "GENERAL");
+			try {
+				if (chatMessage.receiverType.equals(ChatMessage.ChatMessageType.CHANNEL)) {
+					if (chatMessage.getChannel() != null && chatMessage.getChannel().getType().equals(ChannelRouter.ChannelType.FACTION)) {
+						LogManager.logChat(chatMessage, "FACTION");
+					} else if (chatMessage.getChannel() == null && chatMessage.receiver.toLowerCase().equals("all") || (chatMessage.getChannel().getType().equals(ChannelRouter.ChannelType.PUBLIC) && !chatMessage.getChannel().hasPassword() && !chatMessage.getChannel().getType().equals(ChannelRouter.ChannelType.FACTION))) {
+						sendDiscordMessage(playerData.getPlayerName(), message);
+						LogManager.logChat(chatMessage, "GENERAL");
+					}
 				}
+			} catch(Exception exception) {
+				exception.printStackTrace();
 			}
 			botThread.lastMessage = message;
 		} else if(event instanceof PlayerJoinWorldEvent) {
