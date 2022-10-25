@@ -17,7 +17,6 @@ import org.schema.game.common.data.chat.ChannelRouter;
 import org.schema.game.common.data.player.PlayerState;
 import org.schema.game.common.data.player.faction.FactionRelation;
 import org.schema.game.network.objects.ChatMessage;
-import thederpgamer.starbridge.DiscordWebhook;
 import thederpgamer.starbridge.bot.runnable.BotThread;
 import thederpgamer.starbridge.bot.runnable.DiscordMessageRunnable;
 import thederpgamer.starbridge.bot.runnable.ServerMessageRunnable;

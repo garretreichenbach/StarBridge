@@ -1,6 +1,7 @@
-package thederpgamer.starbridge;
+package thederpgamer.starbridge.bot;
 
 import api.utils.StarRunnable;
+import thederpgamer.starbridge.StarBridge;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;

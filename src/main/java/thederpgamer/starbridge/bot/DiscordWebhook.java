@@ -1,4 +1,4 @@
-package thederpgamer.starbridge;
+package thederpgamer.starbridge.bot;
 
 
 import java.awt.*;

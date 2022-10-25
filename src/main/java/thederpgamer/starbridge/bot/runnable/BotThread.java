@@ -8,12 +8,11 @@ import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.entities.Activity;
 import net.dv8tion.jda.api.requests.restaction.CommandListUpdateAction;
 import org.schema.game.server.data.ServerConfig;
-import thederpgamer.starbridge.BotLogger;
+import thederpgamer.starbridge.bot.BotLogger;
 import thederpgamer.starbridge.bot.StarBot;
 import thederpgamer.starbridge.commands.*;
 import thederpgamer.starbridge.manager.ConfigManager;
 import thederpgamer.starbridge.manager.LogManager;
-import thederpgamer.starbridge.commands.*;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
