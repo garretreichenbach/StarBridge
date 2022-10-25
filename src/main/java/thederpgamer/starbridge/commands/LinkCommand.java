@@ -10,7 +10,7 @@ import net.dv8tion.jda.internal.interactions.CommandDataImpl;
 import org.jetbrains.annotations.Nullable;
 import org.schema.game.common.data.player.PlayerState;
 import thederpgamer.starbridge.StarBridge;
-import thederpgamer.starbridge.bot.Bot;
+import thederpgamer.starbridge.bot.StarBot;
 import thederpgamer.starbridge.data.player.PlayerData;
 import thederpgamer.starbridge.manager.LogManager;
 import thederpgamer.starbridge.server.ServerDatabase;
@@ -52,7 +52,7 @@ public class LinkCommand implements CommandInterface, DiscordCommand {
 
     @Override
     public boolean onCommand(PlayerState playerState, String[] args) {
-        Bot.getInstance().addLinkRequest(playerState);
+        StarBot.getInstance().addLinkRequest(playerState);
         return true;
     }
 
@@ -70,13 +70,13 @@ public class LinkCommand implements CommandInterface, DiscordCommand {
     public void execute(SlashCommandInteractionEvent event) {
         try {
             int linkCode = Integer.parseInt(Objects.requireNonNull(event.getOption("link_code")).getAsString());
-            PlayerData playerData = Bot.getInstance().getLinkRequest(linkCode);
+            PlayerData playerData = StarBot.getInstance().getLinkRequest(linkCode);
             if(playerData != null) {
                 playerData.setDiscordId(event.getUser().getIdLong());
                 ServerDatabase.updatePlayerData(playerData);
                 PersistentObjectUtil.save(StarBridge.getInstance().getSkeleton());
                 String logMessage = "Successfully linked user " + event.getUser().getName() + " to " + playerData.getPlayerName();
-                Bot.getInstance().removeLinkRequest(playerData);
+                StarBot.getInstance().removeLinkRequest(playerData);
                 event.reply(logMessage).queue();
                 LogManager.logInfo(logMessage);
                 event.getHook().deleteOriginal().queue();

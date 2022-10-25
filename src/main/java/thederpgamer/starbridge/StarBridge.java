@@ -9,7 +9,7 @@ import api.mod.StarLoader;
 import api.mod.StarMod;
 import api.utils.game.chat.CommandInterface;
 import api.utils.other.HashList;
-import thederpgamer.starbridge.bot.Bot;
+import thederpgamer.starbridge.bot.StarBot;
 import thederpgamer.starbridge.commands.*;
 import thederpgamer.starbridge.manager.ConfigManager;
 import thederpgamer.starbridge.manager.LogManager;
@@ -38,7 +38,7 @@ public class StarBridge extends StarMod {
 		doOverwrites();
 		registerListeners();
 		registerCommands();
-		new Bot();
+		new StarBot();
 	}
 
 	private void doOverwrites() {
@@ -131,7 +131,7 @@ public class StarBridge extends StarMod {
 		for(CommandInterface commandInterface : commands) StarLoader.registerCommand(commandInterface);
 	}
 
-	public static Bot getBot() {
-		return Bot.getInstance();
+	public static StarBot getBot() {
+		return StarBot.getInstance();
 	}
 }

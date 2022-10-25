@@ -1,4 +1,4 @@
-package thederpgamer.starbridge.bot;
+package thederpgamer.starbridge.bot.runnable;
 
 import api.common.GameServer;
 import api.mod.config.FileConfiguration;
@@ -8,13 +8,12 @@ import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.entities.Activity;
 import net.dv8tion.jda.api.requests.restaction.CommandListUpdateAction;
 import org.schema.game.server.data.ServerConfig;
-import thederpgamer.starbridge.bot.runnable.BotRunnable;
-import thederpgamer.starbridge.bot.runnable.RunnableStatus;
+import thederpgamer.starbridge.BotLogger;
+import thederpgamer.starbridge.bot.StarBot;
 import thederpgamer.starbridge.commands.*;
 import thederpgamer.starbridge.manager.ConfigManager;
 import thederpgamer.starbridge.manager.LogManager;
 
-import javax.security.auth.login.LoginException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -33,17 +32,14 @@ public class BotThread extends Thread {
 	private boolean firstWarning = false;
 	private boolean secondWarning = false;
 	private boolean thirdWarning = false;
+	private BotLogger botLogger;
 
-	public BotThread(FileConfiguration config, Bot instance) {
+	public BotThread(FileConfiguration config, StarBot instance) {
 		JDABuilder builder = JDABuilder.createDefault(config.getString("bot-token"));
 		builder.setActivity(Activity.playing("StarMade"));
 		builder.addEventListeners(instance);
-		try {
-			bot = builder.build();
-			LogManager.logInfo("Successfully initialized bot.");
-		} catch(LoginException exception) {
-			LogManager.logException("An exception occurred while initializing the bot", exception);
-		}
+		bot = builder.build();
+		LogManager.logInfo("Successfully initialized bot.");
 		registerCommands();
 		(new Timer("channel_updater")).scheduleAtFixedRate(new TimerTask() {
 			@Override
@@ -52,6 +48,8 @@ public class BotThread extends Thread {
 			}
 		}, 0, 10000);
 		restartTime = config.getLong("restart-timer") + System.currentTimeMillis();
+		botLogger = new BotLogger();
+		botLogger.startWatch();
 	}
 
 	@Override
@@ -88,33 +86,28 @@ public class BotThread extends Thread {
 
 			long currentTime = System.currentTimeMillis();
 			if(restartTime - currentTime <= 900000 && !firstWarning) { //15 minute warning
-				Bot.getInstance().sendDiscordMessage(":warning: Server will restart in 15 minutes");
-				Bot.getInstance().sendServerMessage("Server will restart in 15 minutes");
+				GameServer.getServerState().executeAdminCommand(null, "shutdown " + (ConfigManager.getMainConfig().getInt("default-shutdown-timer") / 1000) + 5, GameServer.getServerState().getAdminLocalClient());
+				StarBot.getInstance().sendDiscordMessage(":warning: Server will restart in 15 minutes");
+				StarBot.getInstance().sendServerMessage("Server will restart in 15 minutes");
 				firstWarning = true;
 			} else if(restartTime - currentTime <= 300000 && !secondWarning) { //5 minute warning
-				//Bot.getInstance().sendDiscordMessage(":warning: Server will restart in 5 minutes"); Only send the 15-min warning to avoid spam
-				Bot.getInstance().sendServerMessage("Server will restart in 5 minutes");
+				StarBot.getInstance().sendDiscordMessage(":warning: Server will restart in 5 minutes");
+				StarBot.getInstance().sendServerMessage("Server will restart in 5 minutes");
 				secondWarning = true;
 			} else if(restartTime - currentTime <= 60000 && !thirdWarning) { //1 minute warning
-				//Bot.getInstance().sendDiscordMessage(":warning: Server will restart in 1 minute");
-				Bot.getInstance().sendServerMessage("Server will restart in 1 minute");
+				StarBot.getInstance().sendDiscordMessage(":warning: Server will restart in 1 minute");
+				StarBot.getInstance().sendServerMessage("Server will restart in 1 minute");
 				thirdWarning = true;
 			} else if(restartTime <= currentTime) running = false;
 		}
 
 		LogManager.logInfo("Bot thread shutting down.");
-		Bot.getInstance().sendDiscordMessage(":stop_sign: Server is restarting.");
-		Bot.getInstance().sendServerMessage("Server is restarting.");
+		StarBot.getInstance().sendDiscordMessage(":stop_sign: Server is restarting.");
+		StarBot.getInstance().sendServerMessage("Server is restarting.");
 		//Stop all runners and send bot shutdown message.
-		//for(BotRunnable runner : runners.keySet()) runner.stop();
-		//Wait for messages to be sent before stopping.
 		try {
-			Thread.sleep(5000);
-		} catch(InterruptedException e) {
-			e.printStackTrace();
-		}
-		GameServer.getServerState().executeAdminCommand(null, "shutdown", GameServer.getServerState().getAdminLocalClient());
-		//Todo: How do I boot the server up again?
+			for(BotRunnable runner : runners.keySet()) runner.stop();
+		} catch(Exception ignored) {} //If the runners fail to finish, it's probably a good idea to just ignore it.
 	}
 
 	public void queue(BotRunnable runner) {
@@ -150,9 +143,9 @@ public class BotThread extends Thread {
 			String chatChannelStats = ("Players: " + playerCount + " / " + playerMax
 					//"Next Restart: " + ServerUtils.getNextRestart()
 			);
-			Objects.requireNonNull(bot.getTextChannelById(Bot.getInstance().getChatChannelId())).getManager().setTopic(chatChannelStats).queue();
+			Objects.requireNonNull(bot.getTextChannelById(StarBot.getInstance().getChatChannelId())).getManager().setTopic(chatChannelStats).queue();
 			String logChannelStats = ("Clients: " + playerCount + " / " + playerMax  + " \nCurrent Uptime: " + (System.currentTimeMillis() - startTime));
-			Objects.requireNonNull(bot.getTextChannelById(Bot.getInstance().getLogChannelId())).getManager().setTopic(logChannelStats).queue();
+			Objects.requireNonNull(bot.getTextChannelById(StarBot.getInstance().getLogChannelId())).getManager().setTopic(logChannelStats).queue();
 		} catch(Exception exception) {
 			LogManager.logException("Failed to update channel info", exception);
 		}

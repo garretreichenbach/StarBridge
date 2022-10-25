@@ -18,6 +18,7 @@ import org.schema.game.common.data.player.PlayerState;
 import org.schema.game.common.data.player.faction.FactionRelation;
 import org.schema.game.network.objects.ChatMessage;
 import thederpgamer.starbridge.DiscordWebhook;
+import thederpgamer.starbridge.bot.runnable.BotThread;
 import thederpgamer.starbridge.bot.runnable.DiscordMessageRunnable;
 import thederpgamer.starbridge.bot.runnable.ServerMessageRunnable;
 import thederpgamer.starbridge.commands.DiscordCommand;
@@ -26,20 +27,18 @@ import thederpgamer.starbridge.manager.ConfigManager;
 import thederpgamer.starbridge.manager.LogManager;
 import thederpgamer.starbridge.server.ServerDatabase;
 
-import java.util.Objects;
-import java.util.Random;
-import java.util.Timer;
-import java.util.TimerTask;
+import java.io.IOException;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Controls discord bot.
  */
-public class Bot extends ListenerAdapter {
+public class StarBot extends ListenerAdapter {
 
-	private String newPlayerMessage = ":confetti_ball: Everybody welcome %PLAYER_NAME% to %SERVER_NAME%";
+	private final String newPlayerMessage = ":confetti_ball: Everybody welcome %PLAYER_NAME% to %SERVER_NAME%";
 
-	private static Bot instance;
+	private static StarBot instance;
 	private final String token;
 	private final DiscordWebhook chatWebhook;
 	private final long chatChannelId;
@@ -47,13 +46,13 @@ public class Bot extends ListenerAdapter {
 	private final long logChannelId;
 	private final ConcurrentHashMap<Integer, PlayerData> linkRequestMap = new ConcurrentHashMap<>();
 
-	public static Bot getInstance() {
+	public static StarBot getInstance() {
 		return instance;
 	}
 
 	private final BotThread botThread;
 
-	public Bot() {
+	public StarBot() {
 		instance = this;
 		botThread = new BotThread(ConfigManager.getMainConfig(), this);
 		botThread.start();
@@ -286,5 +285,18 @@ public class Bot extends ListenerAdapter {
 				}
 			}
 		}
+	}
+
+	public void logException(Exception exception) {
+		logWebhook.setUsername(getBotThread().getName());
+		logWebhook.setAvatarUrl(getBotThread().bot.getSelfUser().getAvatarUrl());
+		logWebhook.setContent("```" + exception.getMessage() + "```");
+		logWebhook.addEmbed(new DiscordWebhook.EmbedObject().setDescription("```" + Arrays.toString(exception.getStackTrace()) + "```"));
+		try {
+			logWebhook.execute();
+		} catch(IOException e) {
+			e.printStackTrace();
+		}
+		resetWebhook();
 	}
 }

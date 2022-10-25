@@ -2,39 +2,27 @@ plugins {
     id 'java'
     id'application'
     id'com.github.johnrengelman.shadow' version '5.2.0'
-    id 'com.appland.appmap' version '1.1.0'
 }
 
 def starmadeDirectory = 'C:/Program Files (x86)/Steam/steamapps/common/StarMade/StarMade/'
 def jarName = 'StarBridge'
 mainClassName = 'thederpgamer.starbridge.StarBridge'
 group 'thederpgamer.starbridge'
-version '1.5.3'
+version '1.5.4'
+
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
 
 repositories {
     mavenCentral()
-    maven {
-        name 'jaudiotagger'
-        url 'https://m2.dv8tion.net/releases'
-    }
     maven { url 'https://jitpack.io' }
 }
 
-//java {
-//    registerFeature('EdenCoreSupport') {
-//        usingSourceSet(sourceSets.main)
-//    }
-//}
-
 dependencies {
-    testImplementation "org.junit.jupiter:junit-jupiter-api:5.6.0"
-    testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine"
-    //compile(files(starmadeDirectory + "starloader.jar"))
+    implementation("net.dv8tion:JDA:5.0.0-alpha.22")
     implementation(files(starmadeDirectory + "StarMade.jar"))
     implementation(fileTree(dir: (starmadeDirectory + "lib"), include: "*.jar"))
-    //compile("com.github.dv8fromtheworld:jda:7c2a506778515ea7913beac1980d41c57dfbf467")
-    implementation group: 'net.dv8tion', name: 'JDA', version: '5.0.0-alpha.9'
-    //EdenCoreSupportImplementation(files(starmadeDirectory + "mods/EdenCorev" + edenCoreVersion + ".jar"))
+    implementation(fileTree(dir: ("lib"), include: "*.jar"))
 }
 
 compileJava.options.encoding = 'UTF-8'
@@ -42,7 +30,7 @@ compileJava.options.encoding = 'UTF-8'
 jar {
     duplicatesStrategy(DuplicatesStrategy.EXCLUDE)
     destinationDirectory.set(file(starmadeDirectory + "mods"))
-    archiveFileName = jarName + '.jar'
+    archiveFileName = jarName + 'v' + archiveVersion +  '.jar'
     manifest.attributes('Main-Class': mainClassName)
     from {
         configurations.runtimeClasspath.collect {
@@ -51,11 +39,4 @@ jar {
             } else return null;
         }
     }
-}
-
-sourceCompatibility = 1.8
-targetCompatibility = 1.8
-
-test {
-    useJUnitPlatform()
 }
