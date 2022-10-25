@@ -11,8 +11,8 @@ targetCompatibility = 1.8
 def starmadeDirectory = 'C:/Program Files (x86)/Steam/steamapps/common/StarMade/StarMade/'
 def jarName = 'StarBridge'
 mainClassName = 'thederpgamer.starbridge.StarBridge'
-group 'main.starbridge'
-version '1.5.4'
+group 'thederpgamer.starbridge'
+version '1.5.5'
 
 repositories {
     mavenCentral()
@@ -20,7 +20,7 @@ repositories {
 }
 
 dependencies {
-    implementation("net.dv8tion:JDA:5.0.0-alpha.22")
+    implementation("net.dv8tion:JDA:5.0.0-alpha.9")
     implementation(files(starmadeDirectory + "StarMade.jar"))
     implementation(fileTree(dir: (starmadeDirectory + "lib"), include: "*.jar"))
     implementation(fileTree(dir: ("lib"), include: "*.jar"))

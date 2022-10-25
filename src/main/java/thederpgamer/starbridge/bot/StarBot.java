@@ -26,6 +26,7 @@ import thederpgamer.starbridge.manager.ConfigManager;
 import thederpgamer.starbridge.manager.LogManager;
 import thederpgamer.starbridge.server.ServerDatabase;
 
+import javax.security.auth.login.LoginException;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -53,14 +54,18 @@ public class StarBot extends ListenerAdapter {
 
 	public StarBot() {
 		instance = this;
-		botThread = new BotThread(ConfigManager.getMainConfig(), this);
-		botThread.start();
-		token = ConfigManager.getMainConfig().getString("bot-token");
-		chatWebhook = new DiscordWebhook("https://" + ConfigManager.getMainConfig().getString("chat-webhook"));
-		chatChannelId = ConfigManager.getMainConfig().getLong("chat-channel-id");
-		logWebhook = new DiscordWebhook("https://" + ConfigManager.getMainConfig().getString("log-webhook"));
-		logChannelId = ConfigManager.getMainConfig().getLong("log-channel-id");
-		sendDiscordMessage(":white_check_mark: Server Started");
+		try {
+			botThread = new BotThread(ConfigManager.getMainConfig(), this);
+			botThread.start();
+			token = ConfigManager.getMainConfig().getString("bot-token");
+			chatWebhook = new DiscordWebhook("https://" + ConfigManager.getMainConfig().getString("chat-webhook"));
+			chatChannelId = ConfigManager.getMainConfig().getLong("chat-channel-id");
+			logWebhook = new DiscordWebhook("https://" + ConfigManager.getMainConfig().getString("log-webhook"));
+			logChannelId = ConfigManager.getMainConfig().getLong("log-channel-id");
+			sendDiscordMessage(":white_check_mark: Server Started");
+		} catch(LoginException e) {
+			throw new RuntimeException(e);
+		}
 	}
 
 	public void handleEvent(Event event) {
@@ -286,11 +291,24 @@ public class StarBot extends ListenerAdapter {
 		}
 	}
 
-	public void logException(Exception exception) {
+	public void logException(Exception exception, String stackTrace) {
 		logWebhook.setUsername(getBotThread().getName());
 		logWebhook.setAvatarUrl(getBotThread().bot.getSelfUser().getAvatarUrl());
-		logWebhook.setContent("```" + exception.getMessage() + "```");
-		logWebhook.addEmbed(new DiscordWebhook.EmbedObject().setDescription("```" + Arrays.toString(exception.getStackTrace()) + "```"));
+		String message = "<@&" + ConfigManager.getMainConfig().getLong("admin-role-id") + ">\n```" + exception.getMessage() + "```";
+		logWebhook.setContent(message);
+		logWebhook.addEmbed(new DiscordWebhook.EmbedObject().setDescription("```" + stackTrace + "```"));
+		try {
+			logWebhook.execute();
+		} catch(IOException e) {
+			e.printStackTrace();
+		}
+		resetWebhook();
+	}
+
+	public void log(String line) {
+		logWebhook.setUsername(getBotThread().getName());
+		logWebhook.setAvatarUrl(getBotThread().bot.getSelfUser().getAvatarUrl());
+		logWebhook.setContent(line);
 		try {
 			logWebhook.execute();
 		} catch(IOException e) {

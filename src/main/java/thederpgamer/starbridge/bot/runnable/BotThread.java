@@ -2,18 +2,21 @@ package thederpgamer.starbridge.bot.runnable;
 
 import api.common.GameServer;
 import api.mod.config.FileConfiguration;
+import api.utils.StarRunnable;
 import api.utils.game.chat.CommandInterface;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.entities.Activity;
 import net.dv8tion.jda.api.requests.restaction.CommandListUpdateAction;
 import org.schema.game.server.data.ServerConfig;
+import thederpgamer.starbridge.StarBridge;
 import thederpgamer.starbridge.bot.BotLogger;
 import thederpgamer.starbridge.bot.StarBot;
 import thederpgamer.starbridge.commands.*;
 import thederpgamer.starbridge.manager.ConfigManager;
 import thederpgamer.starbridge.manager.LogManager;
 
+import javax.security.auth.login.LoginException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -34,7 +37,7 @@ public class BotThread extends Thread {
 	private boolean thirdWarning = false;
 	private BotLogger botLogger;
 
-	public BotThread(FileConfiguration config, StarBot instance) {
+	public BotThread(FileConfiguration config, StarBot instance) throws LoginException {
 		JDABuilder builder = JDABuilder.createDefault(config.getString("bot-token"));
 		builder.setActivity(Activity.playing("StarMade"));
 		builder.addEventListeners(instance);

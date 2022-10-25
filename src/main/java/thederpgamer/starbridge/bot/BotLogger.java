@@ -3,10 +3,7 @@ package thederpgamer.starbridge.bot;
 import api.utils.StarRunnable;
 import thederpgamer.starbridge.StarBridge;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.io.PrintStream;
+import java.io.*;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
@@ -35,12 +32,19 @@ public class BotLogger {
 				public void run() {
 					String out = output.toString();
 					//Go through each line, looking for exceptions
-					List<String> lines = Arrays.asList(out.split("\r\n|\r|\n"));
+					String[] lines = out.split("\r\n|\r|\n");
 					for(String line : lines) {
-						if(line.contains("Exception")) StarBridge.getBot().logException(new Exception(line));
+						if(line.contains("Exception") && !line.contains("IOException")) {
+							//Get the stacktrace
+							List<String> stacktrace = Arrays.asList(lines);
+							int index = stacktrace.indexOf(line);
+							String[] stacktraceLines = new String[stacktrace.size() - index];
+							for(int i = index; i < stacktrace.size(); i++) stacktraceLines[i - index] = stacktrace.get(i);
+							StarBridge.getBot().logException(new Exception(line), String.join("\n", stacktraceLines));
+						} else StarBridge.getBot().log(line);
 					}
 				}
-			}.runTimer(StarBridge.getInstance(), 5000); //Run every 5 seconds
+			}.runTimer(StarBridge.getInstance(), 500); //Run every 5 seconds
 		} catch(Exception exception) {
 			exception.printStackTrace();
 			if(fails <= 5) {
@@ -51,10 +55,12 @@ public class BotLogger {
 	}
 
 	public void startWatch() {
-		startWatch("/logs/logstarmade.0.log");
+		startWatch("logs/logstarmade.0.log");
 	}
 
 	public void startWatch(String path) {
+		File file = new File(path);
+		if(!file.exists()) throw new IllegalArgumentException("File does not exist!");
 		String logName = path.substring(path.lastIndexOf("/") + 1);
 		if(!streams.containsKey(logName)) {
 			OutputStream outputStream;
