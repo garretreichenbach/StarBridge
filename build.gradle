@@ -11,7 +11,7 @@ targetCompatibility = 1.8
 def starmadeDirectory = 'C:/Program Files (x86)/Steam/steamapps/common/StarMade/StarMade/'
 def jarName = 'StarBridge'
 mainClassName = 'thederpgamer.starbridge.StarBridge'
-group 'thederpgamer.starbridge'
+group 'main.starbridge'
 version '1.5.4'
 
 repositories {
@@ -31,7 +31,7 @@ compileJava.options.encoding = 'UTF-8'
 jar {
     duplicatesStrategy(DuplicatesStrategy.EXCLUDE)
     destinationDirectory.set(file(starmadeDirectory + "mods"))
-    archiveFileName = jarName + 'v' + archiveVersion +  '.jar'
+    archiveFileName = jarName + 'v' + getVersion() +  '.jar'
     manifest.attributes('Main-Class': mainClassName)
     from {
         configurations.runtimeClasspath.collect {
