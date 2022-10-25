@@ -89,7 +89,7 @@ public class BotThread extends Thread {
 
 			long currentTime = System.currentTimeMillis();
 			if(restartTime - currentTime <= 900000 && !firstWarning) { //15 minute warning
-				GameServer.getServerState().executeAdminCommand(null, "shutdown " + (ConfigManager.getMainConfig().getInt("default-shutdown-timer") / 1000) + 5, GameServer.getServerState().getAdminLocalClient());
+				GameServer.getServerState().executeAdminCommand(null, "/shutdown " + (ConfigManager.getMainConfig().getInt("default-shutdown-timer") / 1000) + 5, GameServer.getServerState().getAdminLocalClient());
 				StarBot.getInstance().sendDiscordMessage(":warning: Server will restart in 15 minutes");
 				StarBot.getInstance().sendServerMessage("Server will restart in 15 minutes");
 				firstWarning = true;

@@ -1,10 +1,12 @@
 package thederpgamer.starbridge.bot;
 
+import api.common.GameServer;
 import api.listener.events.Event;
 import api.listener.events.faction.FactionCreateEvent;
 import api.listener.events.faction.FactionRelationChangeEvent;
 import api.listener.events.player.*;
 import api.mod.StarLoader;
+import api.utils.StarRunnable;
 import api.utils.game.PlayerUtils;
 import api.utils.game.chat.CommandInterface;
 import net.dv8tion.jda.api.entities.Member;
@@ -17,6 +19,7 @@ import org.schema.game.common.data.chat.ChannelRouter;
 import org.schema.game.common.data.player.PlayerState;
 import org.schema.game.common.data.player.faction.FactionRelation;
 import org.schema.game.network.objects.ChatMessage;
+import thederpgamer.starbridge.StarBridge;
 import thederpgamer.starbridge.bot.runnable.BotThread;
 import thederpgamer.starbridge.bot.runnable.DiscordMessageRunnable;
 import thederpgamer.starbridge.bot.runnable.ServerMessageRunnable;
@@ -99,6 +102,7 @@ public class StarBot extends ListenerAdapter {
 			ServerDatabase.getPlayerDataWithoutNull(playerJoinWorldEvent.getPlayerName());
 			String playerJoinMessage = ":arrow_right: %PLAYER_NAME% has joined the server";
 			sendBotEventMessage(playerJoinMessage, playerJoinWorldEvent.getPlayerName());
+			checkAlt(((PlayerJoinWorldEvent) event).getPlayerName());
 		} else if(event instanceof PlayerLeaveWorldEvent) {
 			//updateChannelInfo();
 			String playerLeaveMessage = ":door: %PLAYER_NAME% has left the server";
@@ -145,6 +149,40 @@ public class StarBot extends ListenerAdapter {
 				sendBotEventMessage(factionWarMessage, factionRelationChangeEvent.getTo().getName(), factionRelationChangeEvent.getFrom().getName());
 			}
 		}
+	}
+
+	private void checkAlt(String playerName) {
+		new StarRunnable() {
+			@Override
+			public void run() {
+				try {
+					PlayerState player = GameServer.getServerState().getPlayerFromNameIgnoreCase(playerName);
+					if(!player.isAdmin() && !player.getName().toLowerCase().contains("admin")) {
+						PlayerData playerData = ServerDatabase.getPlayerData(playerName);
+						if(playerData != null) {
+							playerData.setStarMadeName(playerName);
+							playerData.setIP(player.getIp());
+							for(PlayerData playerData1 : ServerDatabase.getAllPlayerData()) {
+								if(playerData1.getPlayerName().toLowerCase().contains("admin")) continue;
+								if(playerData.getIP().equals(playerData1.getIP()) && !playerData1.getPlayerName().equals(playerData.getPlayerName())) {
+									if(ConfigManager.getMainConfig().getConfigurableBoolean("kick-non-admin-alts", true)) {
+										StarBot.getInstance().sendDiscordMessage(":clown: Player " + playerData1.getPlayerName() + " attempted to log-in as " + playerData.getPlayerName() + " but the server doesn't allow alts!");
+										GameServer.getServerState().getController().sendLogout(player.getClientId(), "This server does not allow alternative accounts.");
+									}
+								} else if(playerData.getStarmadeName().equals(playerData1.getStarmadeName()) && !playerData1.getPlayerName().equals(playerData.getPlayerName())) {
+									if(ConfigManager.getMainConfig().getConfigurableBoolean("kick-non-admin-alts", true)) {
+										StarBot.getInstance().sendDiscordMessage(":clown: Player " + playerData1.getPlayerName() + " attempted to log-in as " + playerData.getPlayerName() + " but the server doesn't allow alts!");
+										GameServer.getServerState().getController().sendLogout(player.getClientId(), "This server does not allow alternative accounts.");
+									}
+								}
+							}
+						}
+					}
+				} catch(Exception exception) {
+					exception.printStackTrace();
+				}
+			}
+		}.runLater(StarBridge.getInstance(), 30);
 	}
 
 	private void sendBotEventMessage(String message, String... args) {
@@ -228,9 +266,10 @@ public class StarBot extends ListenerAdapter {
 	public void addLinkRequest(PlayerState playerState) {
 		final PlayerData playerData = ServerDatabase.getPlayerDataWithoutNull(playerState.getName());
 		removeLinkRequest(playerData);
-		linkRequestMap.put((new Random()).nextInt(9999 - 1000) + 1000, playerData);
-		PlayerUtils.sendMessage(playerState, "Use /link " + linkRequestMap.get(playerData) + " in #" + botThread.bot.getTextChannelById(chatChannelId).getName() + " to link your account. This code will expire in 15 minutes.");
-		new Timer("link_timer_" + linkRequestMap.get(playerData)).schedule(new TimerTask() {
+		int num = (new Random()).nextInt(9999 - 1000) + 1000;
+		linkRequestMap.put(num, playerData);
+		PlayerUtils.sendMessage(playerState, "Use /link " + num + " in #" + botThread.bot.getTextChannelById(chatChannelId).getName() + " to link your account. This code will expire in 15 minutes.");
+		new Timer("link_timer_" + linkRequestMap.get(num).getPlayerName()).schedule(new TimerTask() {
 			@Override
 			public void run() {
 				removeLinkRequest(playerData);

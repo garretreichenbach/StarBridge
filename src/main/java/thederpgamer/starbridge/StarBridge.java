@@ -13,7 +13,6 @@ import thederpgamer.starbridge.bot.StarBot;
 import thederpgamer.starbridge.commands.*;
 import thederpgamer.starbridge.manager.ConfigManager;
 import thederpgamer.starbridge.manager.LogManager;
-import thederpgamer.starbridge.commands.*;
 
 import java.lang.reflect.Field;
 

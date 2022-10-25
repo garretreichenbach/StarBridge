@@ -41,7 +41,7 @@ public class BotLogger {
 							String[] stacktraceLines = new String[stacktrace.size() - index];
 							for(int i = index; i < stacktrace.size(); i++) stacktraceLines[i - index] = stacktrace.get(i);
 							StarBridge.getBot().logException(new Exception(line), String.join("\n", stacktraceLines));
-						} else StarBridge.getBot().log(line);
+						}
 					}
 				}
 			}.runTimer(StarBridge.getInstance(), 500); //Run every 5 seconds

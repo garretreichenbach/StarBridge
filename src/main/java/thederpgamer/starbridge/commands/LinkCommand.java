@@ -34,6 +34,7 @@ public class LinkCommand implements CommandInterface, DiscordCommand {
     @Override
     public String[] getAliases() {
         return new String[] {
+                "link",
                 "link%SEPARATOR%discord",
                 "discord%SEPARATOR%link"
         };

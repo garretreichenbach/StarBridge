@@ -20,6 +20,8 @@ public class PlayerData implements Serializable {
     private long playTime;
     private long discordId;
     private boolean[] flags;
+    private String lastIp;
+    private String starmadeName;
 
     public PlayerData(String playerName) {
         this.playerName = playerName;
@@ -79,5 +81,22 @@ public class PlayerData implements Serializable {
 
     public void setFirstDM(boolean bool) {
         flags[0] = bool;
+    }
+
+	public String getIP() {
+        if(lastIp == null) return "Unknown";
+        else return lastIp;
+	}
+
+    public void setIP(String ip) {
+        lastIp = ip;
+    }
+
+    public String getStarmadeName() {
+        return starmadeName;
+    }
+
+    public void setStarMadeName(String starmadeName) {
+        this.starmadeName = starmadeName;
     }
 }

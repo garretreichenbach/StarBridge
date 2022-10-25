@@ -26,7 +26,8 @@ public class ConfigManager {
             "chat-channel-id: CHAT_CHANNEL_ID",
             "log-webhook: LOG_WEBHOOK",
             "log-channel-id: LOG_CHANNEL_ID",
-            "admin-role-id: ADMIN_ROLE_ID"
+            "admin-role-id: ADMIN_ROLE_ID",
+            "kick-non-admin-alts: true"
     };
 
     public static void initialize() {
