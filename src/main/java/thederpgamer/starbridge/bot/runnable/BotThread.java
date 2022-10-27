@@ -89,7 +89,8 @@ public class BotThread extends Thread {
 
 			long currentTime = System.currentTimeMillis();
 			if(restartTime - currentTime <= 900000 && !firstWarning) { //15 minute warning
-				GameServer.getServerState().executeAdminCommand(null, "/shutdown " + (ConfigManager.getMainConfig().getInt("default-shutdown-timer") / 1000) + 5, GameServer.getServerState().getAdminLocalClient());
+				int seconds = (ConfigManager.getMainConfig().getInt("default-shutdown-timer") / 1000) + 5;
+				GameServer.getServerState().addTimedShutdown(seconds);
 				StarBot.getInstance().sendDiscordMessage(":warning: Server will restart in 15 minutes");
 				StarBot.getInstance().sendServerMessage("Server will restart in 15 minutes");
 				firstWarning = true;
@@ -135,6 +136,8 @@ public class BotThread extends Thread {
 			commands.addCommands(((DiscordCommand) commandInterface).getCommandData()).queue();
 			LogManager.logInfo( "Registered command /" + commandInterface.getCommand());
 		}
+		commands.addCommands(new RestartCommand().getCommandData()).queue();
+		commands.addCommands(new EditExceptionDataCommand().getCommandData()).queue();
 		commands.queue();
 	}
 
@@ -150,8 +153,7 @@ public class BotThread extends Thread {
 			String logChannelStats = ("Clients: " + playerCount + " / " + playerMax  + " \nCurrent Uptime: " + (System.currentTimeMillis() - startTime));
 			Objects.requireNonNull(bot.getTextChannelById(StarBot.getInstance().getLogChannelId())).getManager().setTopic(logChannelStats).queue();
 		} catch(Exception exception) {
-			LogManager.logException("Failed to update channel info", exception);
+			//LogManager.logException("Failed to update channel info", exception);
 		}
 	}
-
 }

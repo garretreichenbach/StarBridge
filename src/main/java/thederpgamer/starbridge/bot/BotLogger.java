@@ -2,6 +2,7 @@ package thederpgamer.starbridge.bot;
 
 import api.utils.StarRunnable;
 import thederpgamer.starbridge.StarBridge;
+import thederpgamer.starbridge.data.exception.ExceptionData;
 
 import java.io.*;
 import java.util.Arrays;
@@ -40,7 +41,10 @@ public class BotLogger {
 							int index = stacktrace.indexOf(line);
 							String[] stacktraceLines = new String[stacktrace.size() - index];
 							for(int i = index; i < stacktrace.size(); i++) stacktraceLines[i - index] = stacktrace.get(i);
-							StarBridge.getBot().logException(new Exception(line), String.join("\n", stacktraceLines));
+							//Create a new exception data object
+							ExceptionData exceptionData = new ExceptionData(line, stacktraceLines);
+							//Now log the exception to the bot
+							StarBot.getInstance().logException(exceptionData);
 						}
 					}
 				}
