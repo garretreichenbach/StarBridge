@@ -24,6 +24,7 @@ import thederpgamer.starbridge.bot.runnable.BotThread;
 import thederpgamer.starbridge.bot.runnable.DiscordMessageRunnable;
 import thederpgamer.starbridge.bot.runnable.ServerMessageRunnable;
 import thederpgamer.starbridge.commands.DiscordCommand;
+import thederpgamer.starbridge.data.exception.ExceptionData;
 import thederpgamer.starbridge.data.player.PlayerData;
 import thederpgamer.starbridge.manager.ConfigManager;
 import thederpgamer.starbridge.manager.LogManager;
@@ -164,12 +165,7 @@ public class StarBot extends ListenerAdapter {
 							playerData.setIP(player.getIp());
 							for(PlayerData playerData1 : ServerDatabase.getAllPlayerData()) {
 								if(playerData1.getPlayerName().toLowerCase().contains("admin")) continue;
-								if(playerData.getIP().equals(playerData1.getIP()) && !playerData1.getPlayerName().equals(playerData.getPlayerName())) {
-									if(ConfigManager.getMainConfig().getConfigurableBoolean("kick-non-admin-alts", true)) {
-										StarBot.getInstance().sendDiscordMessage(":clown: Player " + playerData1.getPlayerName() + " attempted to log-in as " + playerData.getPlayerName() + " but the server doesn't allow alts!");
-										GameServer.getServerState().getController().sendLogout(player.getClientId(), "This server does not allow alternative accounts.");
-									}
-								} else if(playerData.getStarmadeName().equals(playerData1.getStarmadeName()) && !playerData1.getPlayerName().equals(playerData.getPlayerName())) {
+								if(playerData.getStarmadeName().equals(playerData1.getStarmadeName()) && !playerData1.getPlayerName().equals(playerData.getPlayerName())) {
 									if(ConfigManager.getMainConfig().getConfigurableBoolean("kick-non-admin-alts", true)) {
 										StarBot.getInstance().sendDiscordMessage(":clown: Player " + playerData1.getPlayerName() + " attempted to log-in as " + playerData.getPlayerName() + " but the server doesn't allow alts!");
 										GameServer.getServerState().getController().sendLogout(player.getClientId(), "This server does not allow alternative accounts.");
@@ -330,16 +326,36 @@ public class StarBot extends ListenerAdapter {
 		}
 	}
 
-	public void logException(Exception exception, String stackTrace) {
-		logWebhook.setUsername(getBotThread().getName());
+	public void logException(ExceptionData exceptionData) {
+		logWebhook.setUsername(getBotThread().bot.getSelfUser().getName());
 		logWebhook.setAvatarUrl(getBotThread().bot.getSelfUser().getAvatarUrl());
-		String message = "<@&" + ConfigManager.getMainConfig().getLong("admin-role-id") + ">\n```" + exception.getMessage() + "```";
-		logWebhook.setContent(message);
-		logWebhook.addEmbed(new DiscordWebhook.EmbedObject().setDescription("```" + stackTrace + "```"));
+		String message;
+		if(exceptionData.getName().contains("New Exception")) {
+			message = "<@&" + ConfigManager.getMainConfig().getLong("admin-role-id") + ">" + exceptionData.getName() + "\n```" + exceptionData.getDescription() + "```";
+			logWebhook.setContent(message);
+			logWebhook.addEmbed(new DiscordWebhook.EmbedObject().setDescription("```" + Arrays.asList(exceptionData.getStacktrace()) + "```"));
+		} else {
+			message = exceptionData.getName() + "\n```" + exceptionData.getDescription() + "```\nThis exception has occurred " + exceptionData.getSeverity() + " times so far.";
+			logWebhook.setContent(message);
+		}
 		try {
 			logWebhook.execute();
-		} catch(IOException e) {
-			e.printStackTrace();
+		} catch(IOException exception) {
+			exception.printStackTrace();
+		}
+		resetWebhook();
+	}
+
+	public void logException(String line, String[] stacktraceLines) {
+		logWebhook.setUsername(getBotThread().bot.getSelfUser().getName());
+		logWebhook.setAvatarUrl(getBotThread().bot.getSelfUser().getAvatarUrl());
+		//String message = "<@&" + ConfigManager.getMainConfig().getLong("admin-role-id") + ">\n" + line;
+		logWebhook.setContent(line);
+		logWebhook.addEmbed(new DiscordWebhook.EmbedObject().setDescription("```" + Arrays.asList(stacktraceLines) + "```"));
+		try {
+			logWebhook.execute();
+		} catch(IOException exception) {
+			exception.printStackTrace();
 		}
 		resetWebhook();
 	}

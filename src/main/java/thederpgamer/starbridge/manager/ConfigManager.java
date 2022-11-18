@@ -16,8 +16,8 @@ public class ConfigManager {
     public static final String[] defaultMainConfig = {
             "debug-mode: false",
             "max-world-logs: 5",
-            "restart-timer: 21600000", //6 hours
-            "default-shutdown-timer: 900", //15 minutes
+            "restart-timer: ", //6 hours
+            "default-shutdown-timer: 900000", //15 minutes
             "bot-name: BOT_NAME",
             "bot-token: BOT_TOKEN",
             "bot-avatar: BOT_AVATAR",

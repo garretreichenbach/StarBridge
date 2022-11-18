@@ -7,6 +7,7 @@ import org.schema.game.common.controller.database.DatabaseIndex;
 import org.schema.game.common.data.player.PlayerState;
 import org.schema.game.server.data.GameServerState;
 import org.schema.game.server.data.ServerConfig;
+import org.schema.schine.network.RegisteredClientOnServer;
 import org.schema.schine.resource.FileExt;
 import org.schema.schine.resource.tag.Tag;
 import thederpgamer.starbridge.data.player.PlayerData;
