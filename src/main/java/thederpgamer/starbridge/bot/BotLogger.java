@@ -42,13 +42,14 @@ public class BotLogger {
 							String[] stacktraceLines = new String[stacktrace.size() - index];
 							for(int i = index; i < stacktrace.size(); i++) stacktraceLines[i - index] = stacktrace.get(i);
 							//Create a new exception data object
-							ExceptionData exceptionData = new ExceptionData(line, stacktraceLines);
+							//ExceptionData exceptionData = new ExceptionData(line, stacktraceLines);
 							//Now log the exception to the bot
-							StarBot.getInstance().logException(exceptionData);
+							//StarBot.getInstance().logException(exceptionData);
+							StarBot.getInstance().logException(line, stacktraceLines);
 						}
 					}
 				}
-			}.runTimer(StarBridge.getInstance(), 500); //Run every 5 seconds
+			}.runTimer(StarBridge.getInstance(), 50); //Run every 5 seconds
 		} catch(Exception exception) {
 			exception.printStackTrace();
 			if(fails <= 5) {

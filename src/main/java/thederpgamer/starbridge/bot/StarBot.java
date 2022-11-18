@@ -165,12 +165,7 @@ public class StarBot extends ListenerAdapter {
 							playerData.setIP(player.getIp());
 							for(PlayerData playerData1 : ServerDatabase.getAllPlayerData()) {
 								if(playerData1.getPlayerName().toLowerCase().contains("admin")) continue;
-								if(playerData.getIP().equals(playerData1.getIP()) && !playerData1.getPlayerName().equals(playerData.getPlayerName())) {
-									if(ConfigManager.getMainConfig().getConfigurableBoolean("kick-non-admin-alts", true)) {
-										StarBot.getInstance().sendDiscordMessage(":clown: Player " + playerData1.getPlayerName() + " attempted to log-in as " + playerData.getPlayerName() + " but the server doesn't allow alts!");
-										GameServer.getServerState().getController().sendLogout(player.getClientId(), "This server does not allow alternative accounts.");
-									}
-								} else if(playerData.getStarmadeName().equals(playerData1.getStarmadeName()) && !playerData1.getPlayerName().equals(playerData.getPlayerName())) {
+								if(playerData.getStarmadeName().equals(playerData1.getStarmadeName()) && !playerData1.getPlayerName().equals(playerData.getPlayerName())) {
 									if(ConfigManager.getMainConfig().getConfigurableBoolean("kick-non-admin-alts", true)) {
 										StarBot.getInstance().sendDiscordMessage(":clown: Player " + playerData1.getPlayerName() + " attempted to log-in as " + playerData.getPlayerName() + " but the server doesn't allow alts!");
 										GameServer.getServerState().getController().sendLogout(player.getClientId(), "This server does not allow alternative accounts.");
@@ -332,7 +327,7 @@ public class StarBot extends ListenerAdapter {
 	}
 
 	public void logException(ExceptionData exceptionData) {
-		logWebhook.setUsername(getBotThread().getName());
+		logWebhook.setUsername(getBotThread().bot.getSelfUser().getName());
 		logWebhook.setAvatarUrl(getBotThread().bot.getSelfUser().getAvatarUrl());
 		String message;
 		if(exceptionData.getName().contains("New Exception")) {
@@ -343,6 +338,20 @@ public class StarBot extends ListenerAdapter {
 			message = exceptionData.getName() + "\n```" + exceptionData.getDescription() + "```\nThis exception has occurred " + exceptionData.getSeverity() + " times so far.";
 			logWebhook.setContent(message);
 		}
+		try {
+			logWebhook.execute();
+		} catch(IOException exception) {
+			exception.printStackTrace();
+		}
+		resetWebhook();
+	}
+
+	public void logException(String line, String[] stacktraceLines) {
+		logWebhook.setUsername(getBotThread().bot.getSelfUser().getName());
+		logWebhook.setAvatarUrl(getBotThread().bot.getSelfUser().getAvatarUrl());
+		//String message = "<@&" + ConfigManager.getMainConfig().getLong("admin-role-id") + ">\n" + line;
+		logWebhook.setContent(line);
+		logWebhook.addEmbed(new DiscordWebhook.EmbedObject().setDescription("```" + Arrays.asList(stacktraceLines) + "```"));
 		try {
 			logWebhook.execute();
 		} catch(IOException exception) {

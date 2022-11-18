@@ -56,6 +56,7 @@ public class ExceptionData {
 				PersistentObjectUtil.addObject(StarBridge.getInstance().getSkeleton(), this);
 			} else { //This is a new exception, save it
 				//Figure out the mod name and version
+				this.name = exception.getName();
 				this.modName = "Unknown";
 				this.modVersion = "Unknown";
 				for(ModSkeleton mod : StarLoader.starMods) {
