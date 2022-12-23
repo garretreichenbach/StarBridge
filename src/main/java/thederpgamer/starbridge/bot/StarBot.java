@@ -14,6 +14,7 @@ import net.dv8tion.jda.api.entities.Role;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
+import org.schema.common.util.data.DataUtil;
 import org.schema.game.common.controller.SegmentController;
 import org.schema.game.common.data.chat.ChannelRouter;
 import org.schema.game.common.data.player.PlayerState;
@@ -29,6 +30,7 @@ import thederpgamer.starbridge.data.player.PlayerData;
 import thederpgamer.starbridge.manager.ConfigManager;
 import thederpgamer.starbridge.manager.LogManager;
 import thederpgamer.starbridge.server.ServerDatabase;
+import thederpgamer.starbridge.utils.DataUtils;
 
 import javax.security.auth.login.LoginException;
 import java.io.IOException;
@@ -165,7 +167,7 @@ public class StarBot extends ListenerAdapter {
 							playerData.setIP(player.getIp());
 							for(PlayerData playerData1 : ServerDatabase.getAllPlayerData()) {
 								if(playerData1.getPlayerName().toLowerCase().contains("admin")) continue;
-								if(playerData.getStarmadeName().equals(playerData1.getStarmadeName()) && !playerData1.getPlayerName().equals(playerData.getPlayerName())) {
+								if((playerData.getStarmadeName().equals(playerData1.getStarmadeName()) || playerData1.getIP().equals(playerData.getIP())) && !playerData1.getPlayerName().equals(playerData.getPlayerName())) {
 									if(ConfigManager.getMainConfig().getConfigurableBoolean("kick-non-admin-alts", true)) {
 										StarBot.getInstance().sendDiscordMessage(":clown: Player " + playerData1.getPlayerName() + " attempted to log-in as " + playerData.getPlayerName() + " but the server doesn't allow alts!");
 										GameServer.getServerState().getController().sendLogout(player.getClientId(), "This server does not allow alternative accounts.");

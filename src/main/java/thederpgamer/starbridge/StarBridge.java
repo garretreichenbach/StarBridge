@@ -1,14 +1,17 @@
 package thederpgamer.starbridge;
 
 import api.ModPlayground;
+import api.listener.EventPriority;
 import api.listener.Listener;
 import api.listener.events.faction.FactionCreateEvent;
 import api.listener.events.faction.FactionRelationChangeEvent;
 import api.listener.events.player.*;
+import api.listener.events.world.SystemNameGetEvent;
 import api.mod.StarLoader;
 import api.mod.StarMod;
 import api.utils.game.chat.CommandInterface;
 import api.utils.other.HashList;
+import org.schema.common.util.linAlg.Vector3i;
 import thederpgamer.starbridge.bot.StarBot;
 import thederpgamer.starbridge.commands.*;
 import thederpgamer.starbridge.manager.ConfigManager;
@@ -55,6 +58,17 @@ public class StarBridge extends StarMod {
 	}
 
 	private void registerListeners() {
+		StarLoader.registerListener(SystemNameGetEvent.class, new Listener<SystemNameGetEvent>(EventPriority.LOW) {
+			@Override
+			public void onEvent(SystemNameGetEvent s) {
+				Vector3i pos = s.getPosition();
+				pos.add(-64,-64,-64);
+				String centerOriginPos = pos.toString();
+				String name = ConfigManager.getSystemNamesConfig().getString(centerOriginPos);
+				if(name != null) s.setName(name);
+			}
+		}, this);
+
 		StarLoader.registerListener(PlayerCustomCommandEvent.class, new Listener<PlayerCustomCommandEvent>() {
 			@Override
 			public void onEvent(PlayerCustomCommandEvent event) {
@@ -125,7 +139,8 @@ public class StarBridge extends StarMod {
 				new LinkCommand(),
 				new ClearDataCommand(),
 				new InfoPlayerCommand(),
-				new InfoFactionCommand()
+				new InfoFactionCommand(),
+				new RenameSystemCommand()
 		};
 
 		for(CommandInterface commandInterface : commands) StarLoader.registerCommand(commandInterface);

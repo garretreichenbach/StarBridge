@@ -27,15 +27,25 @@ public class ConfigManager {
             "log-webhook: LOG_WEBHOOK",
             "log-channel-id: LOG_CHANNEL_ID",
             "admin-role-id: ADMIN_ROLE_ID",
-            "kick-non-admin-alts: true"
+            "kick-non-admin-alts: true",
+            "tier-1-role-id: 1055652219497758725",
+            "tier-2-role-id: 1055656604256706564"
     };
+
+    // System names
+    private static FileConfiguration systemNamesConfig;
 
     public static void initialize() {
         mainConfig = StarBridge.getInstance().getConfig("config");
         mainConfig.saveDefault(defaultMainConfig);
+        systemNamesConfig = StarBridge.getInstance().getConfig("systems");
     }
 
     public static FileConfiguration getMainConfig() {
         return mainConfig;
+    }
+
+    public static FileConfiguration getSystemNamesConfig() {
+        return systemNamesConfig;
     }
 }
