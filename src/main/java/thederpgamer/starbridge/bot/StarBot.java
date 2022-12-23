@@ -6,11 +6,13 @@ import api.listener.events.faction.FactionCreateEvent;
 import api.listener.events.faction.FactionRelationChangeEvent;
 import api.listener.events.player.*;
 import api.mod.StarLoader;
+import api.mod.config.PersistentObjectUtil;
 import api.utils.StarRunnable;
 import api.utils.game.PlayerUtils;
 import api.utils.game.chat.CommandInterface;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Role;
+import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
@@ -33,6 +35,8 @@ import thederpgamer.starbridge.server.ServerDatabase;
 import thederpgamer.starbridge.utils.DataUtils;
 
 import javax.security.auth.login.LoginException;
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -69,8 +73,33 @@ public class StarBot extends ListenerAdapter {
 			logWebhook = new DiscordWebhook("https://" + ConfigManager.getMainConfig().getString("log-webhook"));
 			logChannelId = ConfigManager.getMainConfig().getLong("log-channel-id");
 			sendDiscordMessage(":white_check_mark: Server Started");
+			loadDonators();
 		} catch(LoginException e) {
 			throw new RuntimeException(e);
+		}
+	}
+
+	private void loadDonators() {
+		try {
+			File donatorsFile = new File("../donators.smdat");
+			if(!donatorsFile.exists()) donatorsFile.createNewFile();
+			FileOutputStream outputStream = new FileOutputStream(donatorsFile);
+			for(Object obj : PersistentObjectUtil.getObjects(StarBridge.getInstance().getSkeleton(), PlayerData.class)) {
+				PlayerData playerData = (PlayerData) obj;
+				if(playerData.getDiscordId() > 0) {
+					Member user = (Member) botThread.bot.getUserById(playerData.getDiscordId());
+					if(hasRole(user, 1055652219497758725L)) {
+						String donatorData = playerData.getPlayerName() + " | " + playerData.getDiscordId() + " | Explorer";
+						outputStream.write((donatorData + "\n").getBytes());
+					} else if(hasRole(user, 1055656604256706564L)) {
+						String donatorData = playerData.getPlayerName() + " | " + playerData.getDiscordId() + " | Captain";
+						outputStream.write((donatorData + "\n").getBytes());
+					}
+				}
+			}
+			outputStream.close();
+		} catch(Exception exception) {
+			exception.printStackTrace();
 		}
 	}
 
