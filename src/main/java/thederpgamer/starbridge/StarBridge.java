@@ -140,7 +140,8 @@ public class StarBridge extends StarMod {
 				new ClearDataCommand(),
 				new InfoPlayerCommand(),
 				new InfoFactionCommand(),
-				new RenameSystemCommand()
+				new RenameSystemCommand(),
+				new SetExemptCommand()
 		};
 
 		for(CommandInterface commandInterface : commands) StarLoader.registerCommand(commandInterface);

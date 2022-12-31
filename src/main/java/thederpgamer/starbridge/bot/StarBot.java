@@ -1,5 +1,6 @@
 package thederpgamer.starbridge.bot;
 
+import api.ModPlayground;
 import api.common.GameServer;
 import api.listener.events.Event;
 import api.listener.events.faction.FactionCreateEvent;
@@ -35,9 +36,8 @@ import thederpgamer.starbridge.server.ServerDatabase;
 import thederpgamer.starbridge.utils.DataUtils;
 
 import javax.security.auth.login.LoginException;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
+import java.io.*;
+import java.net.URL;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -81,7 +81,7 @@ public class StarBot extends ListenerAdapter {
 
 	private void loadDonators() {
 		try {
-			File donatorsFile = new File("../donators.smdat");
+			File donatorsFile = new File(ModPlayground.inst.getSkeleton().getResourcesFolder().getPath().replace('\\', '/') + "/donators.smdat");
 			if(!donatorsFile.exists()) donatorsFile.createNewFile();
 			FileOutputStream outputStream = new FileOutputStream(donatorsFile);
 			for(Object obj : PersistentObjectUtil.getObjects(StarBridge.getInstance().getSkeleton(), PlayerData.class)) {
@@ -90,13 +90,17 @@ public class StarBot extends ListenerAdapter {
 					Member user = (Member) botThread.bot.getUserById(playerData.getDiscordId());
 					if(hasRole(user, 1055652219497758725L)) {
 						String donatorData = playerData.getPlayerName() + " | " + playerData.getDiscordId() + " | Explorer";
-						outputStream.write((donatorData + "\n").getBytes());
+						outputStream.write((donatorData + ", ").getBytes());
 					} else if(hasRole(user, 1055656604256706564L)) {
 						String donatorData = playerData.getPlayerName() + " | " + playerData.getDiscordId() + " | Captain";
-						outputStream.write((donatorData + "\n").getBytes());
+						outputStream.write((donatorData + ", ").getBytes());
+					} else if(hasRole(user, 618955319367696384L)) {
+						String donatorData = playerData.getPlayerName() + " | " + playerData.getDiscordId() + " | Staff";
+						outputStream.write((donatorData + ", ").getBytes());
 					}
 				}
 			}
+			outputStream.flush();
 			outputStream.close();
 		} catch(Exception exception) {
 			exception.printStackTrace();
@@ -189,13 +193,18 @@ public class StarBot extends ListenerAdapter {
 			public void run() {
 				try {
 					PlayerState player = GameServer.getServerState().getPlayerFromNameIgnoreCase(playerName);
-					if(!player.isAdmin() && !player.getName().toLowerCase().contains("admin")) {
+					if(!player.isAdmin()) {
 						PlayerData playerData = ServerDatabase.getPlayerData(playerName);
 						if(playerData != null) {
 							playerData.setStarMadeName(playerName);
 							playerData.setIP(player.getIp());
+							if(isVPN(player.getIp())) {
+								StarBot.getInstance().sendDiscordMessage(":clown: Player " + playerData.getPlayerName() + " attempted to use a VPN. Laugh at this user!");
+								GameServer.getServerState().getController().sendLogout(player.getClientId(), "This server does not allow VPNs.");
+								return;
+							}
+							if(playerData.isExempt()) return;
 							for(PlayerData playerData1 : ServerDatabase.getAllPlayerData()) {
-								if(playerData1.getPlayerName().toLowerCase().contains("admin")) continue;
 								if((playerData.getStarmadeName().equals(playerData1.getStarmadeName()) || playerData1.getIP().equals(playerData.getIP())) && !playerData1.getPlayerName().equals(playerData.getPlayerName())) {
 									if(ConfigManager.getMainConfig().getConfigurableBoolean("kick-non-admin-alts", true)) {
 										StarBot.getInstance().sendDiscordMessage(":clown: Player " + playerData1.getPlayerName() + " attempted to log-in as " + playerData.getPlayerName() + " but the server doesn't allow alts!");
@@ -210,6 +219,17 @@ public class StarBot extends ListenerAdapter {
 				}
 			}
 		}.runLater(StarBridge.getInstance(), 30);
+	}
+
+	private boolean isVPN(String ip) {
+		String url = "http://check.getipintel.net/check.php?ip=" + ip;
+		try {
+			String response = new BufferedReader(new InputStreamReader(new URL(url).openStream())).readLine();
+			return Double.parseDouble(response) > 0.9;
+		} catch(Exception exception) {
+			exception.printStackTrace();
+			return false;
+		}
 	}
 
 	private void sendBotEventMessage(String message, String... args) {

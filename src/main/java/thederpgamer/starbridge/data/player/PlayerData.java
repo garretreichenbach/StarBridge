@@ -27,7 +27,7 @@ public class PlayerData implements Serializable {
         this.playerName = playerName;
         this.playTime = 0;
         this.discordId = -1;
-        this.flags = new boolean[] {true};
+        this.flags = new boolean[] {true, false};
     }
 
     public String getPlayerName() {
@@ -81,6 +81,16 @@ public class PlayerData implements Serializable {
 
     public void setFirstDM(boolean bool) {
         flags[0] = bool;
+    }
+
+    public boolean isExempt() {
+        if(flags.length == 1) flags = new boolean[] {true, false};
+        return flags[1];
+    }
+
+    public void setExempt(boolean bool) {
+        if(flags.length == 1) flags = new boolean[] {true, false};
+        flags[1] = bool;
     }
 
 	public String getIP() {
