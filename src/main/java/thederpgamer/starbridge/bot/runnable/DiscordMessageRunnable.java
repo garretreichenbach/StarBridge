@@ -1,5 +1,6 @@
 package thederpgamer.starbridge.bot.runnable;
 
+import com.vdurmont.emoji.EmojiParser;
 import thederpgamer.starbridge.bot.StarBot;
 import thederpgamer.starbridge.data.player.PlayerData;
 import thederpgamer.starbridge.manager.ConfigManager;
@@ -86,5 +87,6 @@ public class DiscordMessageRunnable implements BotRunnable {
 	private void sanitizeMessage() {
 		message = message.replace("@", "");
 		message = message.replace("\"", "");
+		message = EmojiParser.parseToAliases(message);
 	}
 }

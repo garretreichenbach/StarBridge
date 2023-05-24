@@ -1,6 +1,5 @@
 package thederpgamer.starbridge.bot;
 
-import api.ModPlayground;
 import api.common.GameServer;
 import api.listener.events.Event;
 import api.listener.events.faction.FactionCreateEvent;
@@ -13,11 +12,9 @@ import api.utils.game.PlayerUtils;
 import api.utils.game.chat.CommandInterface;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Role;
-import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
-import org.schema.common.util.data.DataUtil;
 import org.schema.game.common.controller.SegmentController;
 import org.schema.game.common.data.chat.ChannelRouter;
 import org.schema.game.common.data.player.PlayerState;
@@ -33,7 +30,6 @@ import thederpgamer.starbridge.data.player.PlayerData;
 import thederpgamer.starbridge.manager.ConfigManager;
 import thederpgamer.starbridge.manager.LogManager;
 import thederpgamer.starbridge.server.ServerDatabase;
-import thederpgamer.starbridge.utils.DataUtils;
 
 import javax.security.auth.login.LoginException;
 import java.io.*;
@@ -81,27 +77,38 @@ public class StarBot extends ListenerAdapter {
 
 	private void loadDonators() {
 		try {
-			File donatorsFile = new File(ModPlayground.inst.getSkeleton().getResourcesFolder().getPath().replace('\\', '/') + "/donators.smdat");
+			File donatorsFile = new File("donators.smdat");
 			if(!donatorsFile.exists()) donatorsFile.createNewFile();
 			FileOutputStream outputStream = new FileOutputStream(donatorsFile);
-			for(Object obj : PersistentObjectUtil.getObjects(StarBridge.getInstance().getSkeleton(), PlayerData.class)) {
-				PlayerData playerData = (PlayerData) obj;
+			ArrayList<Object> donators = PersistentObjectUtil.getObjects(StarBridge.getInstance().getSkeleton(), PlayerData.class);
+			for(int i  = 0; i < donators.size(); i ++) {
+				PlayerData playerData = (PlayerData) donators.get(i);
 				if(playerData.getDiscordId() > 0) {
-					Member user = (Member) botThread.bot.getUserById(playerData.getDiscordId());
-					if(hasRole(user, 1055652219497758725L)) {
-						String donatorData = playerData.getPlayerName() + " | " + playerData.getDiscordId() + " | Explorer";
-						outputStream.write((donatorData + ", ").getBytes());
-					} else if(hasRole(user, 1055656604256706564L)) {
-						String donatorData = playerData.getPlayerName() + " | " + playerData.getDiscordId() + " | Captain";
-						outputStream.write((donatorData + ", ").getBytes());
-					} else if(hasRole(user, 618955319367696384L)) {
-						String donatorData = playerData.getPlayerName() + " | " + playerData.getDiscordId() + " | Staff";
-						outputStream.write((donatorData + ", ").getBytes());
-					}
+					int finalI = i;
+					botThread.bot.retrieveUserById(playerData.getDiscordId()).queue(user -> {
+						if(user != null) {
+							try {
+								if(hasRole((Member) user, 1055652219497758725L)) {
+									String donatorData = playerData.getPlayerName() + " | " + playerData.getDiscordId() + " | Explorer";
+									outputStream.write((donatorData + ", ").getBytes());
+								} else if(hasRole((Member) user, 1055656604256706564L)) {
+									String donatorData = playerData.getPlayerName() + " | " + playerData.getDiscordId() + " | Captain";
+									outputStream.write((donatorData + ", ").getBytes());
+								} else if(hasRole((Member) user, 618955319367696384L)) {
+									String donatorData = playerData.getPlayerName() + " | " + playerData.getDiscordId() + " | Staff";
+									outputStream.write((donatorData + ", ").getBytes());
+								}
+								if(finalI == donators.size() - 1) {
+									outputStream.flush();
+									outputStream.close();
+								}
+							} catch(IOException exception) {
+								exception.printStackTrace();
+							}
+						}
+					});
 				}
 			}
-			outputStream.flush();
-			outputStream.close();
 		} catch(Exception exception) {
 			exception.printStackTrace();
 		}
@@ -199,7 +206,7 @@ public class StarBot extends ListenerAdapter {
 							playerData.setStarMadeName(playerName);
 							playerData.setIP(player.getIp());
 							if(isVPN(player.getIp())) {
-								StarBot.getInstance().sendDiscordMessage(":clown: Player " + playerData.getPlayerName() + " attempted to use a VPN. Laugh at this user!");
+								getInstance().sendDiscordMessage(":clown: Player " + playerData.getPlayerName() + " attempted to use a VPN. Laugh at this user!");
 								GameServer.getServerState().getController().sendLogout(player.getClientId(), "This server does not allow VPNs.");
 								return;
 							}
@@ -207,7 +214,7 @@ public class StarBot extends ListenerAdapter {
 							for(PlayerData playerData1 : ServerDatabase.getAllPlayerData()) {
 								if((playerData.getStarmadeName().equals(playerData1.getStarmadeName()) || playerData1.getIP().equals(playerData.getIP())) && !playerData1.getPlayerName().equals(playerData.getPlayerName())) {
 									if(ConfigManager.getMainConfig().getConfigurableBoolean("kick-non-admin-alts", true)) {
-										StarBot.getInstance().sendDiscordMessage(":clown: Player " + playerData1.getPlayerName() + " attempted to log-in as " + playerData.getPlayerName() + " but the server doesn't allow alts!");
+										getInstance().sendDiscordMessage(":clown: Player " + playerData1.getPlayerName() + " attempted to log-in as " + playerData.getPlayerName() + " but the server doesn't allow alts!");
 										GameServer.getServerState().getController().sendLogout(player.getClientId(), "This server does not allow alternative accounts.");
 									}
 								}
@@ -222,6 +229,7 @@ public class StarBot extends ListenerAdapter {
 	}
 
 	private boolean isVPN(String ip) {
+		ip = ip.substring(0, ip.lastIndexOf(':'));
 		String url = "http://check.getipintel.net/check.php?ip=" + ip;
 		try {
 			String response = new BufferedReader(new InputStreamReader(new URL(url).openStream())).readLine();
@@ -377,18 +385,12 @@ public class StarBot extends ListenerAdapter {
 		}
 	}
 
-	public void logException(ExceptionData exceptionData) {
+	public void logException(String exceptionMessage) {
 		logWebhook.setUsername(getBotThread().bot.getSelfUser().getName());
 		logWebhook.setAvatarUrl(getBotThread().bot.getSelfUser().getAvatarUrl());
-		String message;
-		if(exceptionData.getName().contains("New Exception")) {
-			message = "<@&" + ConfigManager.getMainConfig().getLong("admin-role-id") + ">" + exceptionData.getName() + "\n```" + exceptionData.getDescription() + "```";
-			logWebhook.setContent(message);
-			logWebhook.addEmbed(new DiscordWebhook.EmbedObject().setDescription("```" + Arrays.asList(exceptionData.getStacktrace()) + "```"));
-		} else {
-			message = exceptionData.getName() + "\n```" + exceptionData.getDescription() + "```\nThis exception has occurred " + exceptionData.getSeverity() + " times so far.";
-			logWebhook.setContent(message);
-		}
+		String message = "<@&" + ConfigManager.getMainConfig().getLong("admin-role-id") + ">An exception has occurred:\n";
+		logWebhook.setContent(message);
+		logWebhook.addEmbed(new DiscordWebhook.EmbedObject().setDescription("```" + exceptionMessage + "```"));
 		try {
 			logWebhook.execute();
 		} catch(IOException exception) {

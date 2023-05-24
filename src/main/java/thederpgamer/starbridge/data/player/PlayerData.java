@@ -47,10 +47,8 @@ public class PlayerData implements Serializable {
         if(playerState != null && playerState.getFactionId() > 0) return GameCommon.getGameState().getFactionManager().getFaction(playerState.getFactionId());
         else {
             try {
-                return GameCommon.getGameState().getFactionManager().getFaction(PlayerUtils.getPlayerState(playerName).getFactionId());
-            } catch(Exception exception) {
-                exception.printStackTrace();
-            }
+                if(PlayerUtils.getPlayerState(playerName).getFactionId() > 0) return GameCommon.getGameState().getFactionManager().getFaction(PlayerUtils.getPlayerState(playerName).getFactionId());
+            } catch(Exception ignored) {}
         }
         return null;
     }

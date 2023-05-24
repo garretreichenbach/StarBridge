@@ -52,7 +52,6 @@ public class BotThread extends Thread {
 		}, 0, 10000);
 		restartTime = config.getLong("restart-timer") + System.currentTimeMillis();
 		botLogger = new BotLogger();
-		botLogger.startWatch();
 	}
 
 	@Override

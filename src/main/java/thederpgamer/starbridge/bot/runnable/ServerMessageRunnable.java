@@ -1,6 +1,7 @@
 package thederpgamer.starbridge.bot.runnable;
 
 import api.common.GameServer;
+import com.vdurmont.emoji.EmojiParser;
 import org.schema.game.server.data.GameServerState;
 import org.schema.schine.network.RegisteredClientOnServer;
 import thederpgamer.starbridge.bot.StarBot;
@@ -84,5 +85,6 @@ public class ServerMessageRunnable implements BotRunnable {
 	private void sanitizeMessage() {
 		message = message.replace("@", "");
 		message = message.replace("\"", "");
+		message = EmojiParser.parseToUnicode(message);
 	}
 }

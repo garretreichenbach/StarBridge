@@ -36,6 +36,7 @@ public class StarBridge extends StarMod {
 	@Override
 	public void onEnable() {
 		instance = this;
+		super.onEnable();
 		ConfigManager.initialize();
 		LogManager.initialize();
 		doOverwrites();
@@ -134,7 +135,7 @@ public class StarBridge extends StarMod {
 	}
 
 	private void registerCommands() {
-		CommandInterface[] commands = new CommandInterface[] {
+		CommandInterface[] commands = {
 				new ListCommand(),
 				new LinkCommand(),
 				new ClearDataCommand(),
