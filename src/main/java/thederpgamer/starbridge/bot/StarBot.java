@@ -16,7 +16,6 @@ import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEve
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import org.schema.game.common.controller.SegmentController;
-import org.schema.game.common.data.chat.ChannelRouter;
 import org.schema.game.common.data.player.PlayerState;
 import org.schema.game.common.data.player.faction.FactionRelation;
 import org.schema.game.network.objects.ChatMessage;
@@ -25,15 +24,14 @@ import thederpgamer.starbridge.bot.runnable.BotThread;
 import thederpgamer.starbridge.bot.runnable.DiscordMessageRunnable;
 import thederpgamer.starbridge.bot.runnable.ServerMessageRunnable;
 import thederpgamer.starbridge.commands.DiscordCommand;
-import thederpgamer.starbridge.data.exception.ExceptionData;
 import thederpgamer.starbridge.data.player.PlayerData;
 import thederpgamer.starbridge.manager.ConfigManager;
-import thederpgamer.starbridge.manager.LogManager;
 import thederpgamer.starbridge.server.ServerDatabase;
 
 import javax.security.auth.login.LoginException;
 import java.io.*;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -41,21 +39,14 @@ import java.util.concurrent.ConcurrentHashMap;
  * Controls discord bot.
  */
 public class StarBot extends ListenerAdapter {
-
-	private final String newPlayerMessage = ":confetti_ball: Everybody welcome %PLAYER_NAME% to %SERVER_NAME%";
-
 	private static StarBot instance;
+	private final String newPlayerMessage = ":confetti_ball: Everybody welcome %PLAYER_NAME% to %SERVER_NAME%";
 	private final String token;
 	private final DiscordWebhook chatWebhook;
 	private final long chatChannelId;
 	private final DiscordWebhook logWebhook;
 	private final long logChannelId;
 	private final ConcurrentHashMap<Integer, PlayerData> linkRequestMap = new ConcurrentHashMap<>();
-
-	public static StarBot getInstance() {
-		return instance;
-	}
-
 	private final BotThread botThread;
 
 	public StarBot() {
@@ -68,11 +59,16 @@ public class StarBot extends ListenerAdapter {
 			chatChannelId = ConfigManager.getMainConfig().getLong("chat-channel-id");
 			logWebhook = new DiscordWebhook("https://" + ConfigManager.getMainConfig().getString("log-webhook"));
 			logChannelId = ConfigManager.getMainConfig().getLong("log-channel-id");
-			sendDiscordMessage(":white_check_mark: Server Started");
+			sendDiscordMessage(":white_check_mark: Server Starting...");
+			StarBridge.getInstance().logInfo("Server Starting...");
 			loadDonators();
 		} catch(LoginException e) {
 			throw new RuntimeException(e);
 		}
+	}
+
+	public void sendDiscordMessage(String message) {
+		botThread.queue(new DiscordMessageRunnable(message));
 	}
 
 	private void loadDonators() {
@@ -81,7 +77,7 @@ public class StarBot extends ListenerAdapter {
 			if(!donatorsFile.exists()) donatorsFile.createNewFile();
 			FileOutputStream outputStream = new FileOutputStream(donatorsFile);
 			ArrayList<Object> donators = PersistentObjectUtil.getObjects(StarBridge.getInstance().getSkeleton(), PlayerData.class);
-			for(int i  = 0; i < donators.size(); i ++) {
+			for(int i = 0; i < donators.size(); i++) {
 				PlayerData playerData = (PlayerData) donators.get(i);
 				if(playerData.getDiscordId() > 0) {
 					int finalI = i;
@@ -90,13 +86,13 @@ public class StarBot extends ListenerAdapter {
 							try {
 								if(hasRole((Member) user, 1055652219497758725L)) {
 									String donatorData = playerData.getPlayerName() + " | " + playerData.getDiscordId() + " | Explorer";
-									outputStream.write((donatorData + ", ").getBytes());
+									outputStream.write((donatorData + ", ").getBytes(StandardCharsets.UTF_8));
 								} else if(hasRole((Member) user, 1055656604256706564L)) {
 									String donatorData = playerData.getPlayerName() + " | " + playerData.getDiscordId() + " | Captain";
-									outputStream.write((donatorData + ", ").getBytes());
+									outputStream.write((donatorData + ", ").getBytes(StandardCharsets.UTF_8));
 								} else if(hasRole((Member) user, 618955319367696384L)) {
 									String donatorData = playerData.getPlayerName() + " | " + playerData.getDiscordId() + " | Staff";
-									outputStream.write((donatorData + ", ").getBytes());
+									outputStream.write((donatorData + ", ").getBytes(StandardCharsets.UTF_8));
 								}
 								if(finalI == donators.size() - 1) {
 									outputStream.flush();
@@ -114,32 +110,79 @@ public class StarBot extends ListenerAdapter {
 		}
 	}
 
+	public boolean hasRole(Member member, long roleId) {
+		for(Role role : member.getRoles()) if(role.getIdLong() == roleId) return true;
+		return false;
+	}
+
 	public void handleEvent(Event event) {
 		if(event instanceof PlayerCustomCommandEvent) {
 			PlayerCustomCommandEvent playerCustomCommandEvent = (PlayerCustomCommandEvent) event;
 			if(playerCustomCommandEvent.getCommand().isAdminOnly() && !playerCustomCommandEvent.getSender().isAdmin()) return;
-			LogManager.logCommand(playerCustomCommandEvent.getSender().getName(), playerCustomCommandEvent.getFullLine());
+			StarBridge.getInstance().logInfo(playerCustomCommandEvent.getSender().getName() + " executed command: " + playerCustomCommandEvent.getCommand().getCommand());
 		} else if(event instanceof PlayerChatEvent) {
 			PlayerChatEvent playerChatEvent = (PlayerChatEvent) event;
 			String message = playerChatEvent.getMessage().text;
 			message = message.replace("@", "");
 			message = message.replace("\"", "");
-			if(botThread.lastMessage.equals(message)) return;
+			if(botThread.lastMessage.equals(message) && System.currentTimeMillis() - botThread.lastMessageMs < 300) return;
 			ChatMessage chatMessage = new ChatMessage(playerChatEvent.getMessage());
 			PlayerData playerData = ServerDatabase.getPlayerDataWithoutNull(chatMessage.sender);
 			try {
-				if (chatMessage.receiverType.equals(ChatMessage.ChatMessageType.CHANNEL)) {
-					if (chatMessage.getChannel() != null && chatMessage.getChannel().getType().equals(ChannelRouter.ChannelType.FACTION)) {
-						LogManager.logChat(chatMessage, "FACTION");
-					} else if (chatMessage.getChannel() == null && chatMessage.receiver.toLowerCase().equals("all") || (chatMessage.getChannel().getType().equals(ChannelRouter.ChannelType.PUBLIC) && !chatMessage.getChannel().hasPassword() && !chatMessage.getChannel().getType().equals(ChannelRouter.ChannelType.FACTION))) {
-						sendDiscordMessage(playerData.getPlayerName(), message);
-						LogManager.logChat(chatMessage, "GENERAL");
-					}
+				switch(chatMessage.receiverType) {
+					case SYSTEM:
+						StarBridge.getInstance().logInfo(chatMessage.sender + ": " + message);
+						break;
+					case DIRECT:
+						if(chatMessage.receiver != null) {
+							String messageToSend = chatMessage.sender + " -> " + chatMessage.receiver + ": " + message;
+							StarBridge.getInstance().logInfo(messageToSend);
+						}
+						break;
+					case CHANNEL:
+						if(chatMessage.getChannel() != null) {
+							String messageToSend;
+							try {
+								switch(chatMessage.getChannel().getType()) {
+									case FACTION:
+										int factionId = Integer.parseInt(chatMessage.receiver.substring(chatMessage.receiver.indexOf("Faction") + 7));
+										String factionName = GameServer.getServerState().getFactionManager().getFaction(factionId).getName();
+										messageToSend = chatMessage.sender + " -> [" + factionName + "]: " + message;
+										break;
+									case PUBLIC:
+										messageToSend = chatMessage.sender + " -> Public: " + message;
+										sendDiscordMessage(playerData.getPlayerName(), message);
+										break;
+									case PARTY:
+										messageToSend = chatMessage.sender + " -> Party: " + message;
+										break;
+									default:
+										messageToSend = chatMessage.sender + " -> " + chatMessage.receiver + ": " + message;
+										break;
+								}
+							} catch(Exception ignored) {
+								messageToSend = chatMessage.sender + " -> " + chatMessage.receiver + ": " + message;
+							}
+							StarBridge.getInstance().logInfo(messageToSend);
+						} else if(chatMessage.receiver.toLowerCase(Locale.ENGLISH).startsWith("faction")) {
+							try {
+								int factionId = Integer.parseInt(chatMessage.receiver.substring(chatMessage.receiver.indexOf("Faction") + 7));
+								String factionName = GameServer.getServerState().getFactionManager().getFaction(factionId).getName();
+								StarBridge.getInstance().logInfo(chatMessage.sender + " -> [" + factionName + "]: " + message);
+							} catch(Exception ignored) {
+								StarBridge.getInstance().logInfo(chatMessage.sender + " -> [Unknown Faction]: " + message);
+							}
+						} else if("all".equalsIgnoreCase(chatMessage.receiver)) {
+							sendDiscordMessage(playerData.getPlayerName(), message);
+							StarBridge.getInstance().logInfo(chatMessage.sender + " -> Public: " + message);
+						}
+						break;
 				}
 			} catch(Exception exception) {
-				exception.printStackTrace();
+				StarBridge.getInstance().logException("An exception occurred while trying to handle a chat event", exception);
 			}
 			botThread.lastMessage = message;
+			botThread.lastMessageMs = System.currentTimeMillis();
 		} else if(event instanceof PlayerJoinWorldEvent) {
 			PlayerJoinWorldEvent playerJoinWorldEvent = (PlayerJoinWorldEvent) event;
 			ServerDatabase.getPlayerDataWithoutNull(playerJoinWorldEvent.getPlayerName());
@@ -184,13 +227,51 @@ public class StarBot extends ListenerAdapter {
 			}
 		} else if(event instanceof FactionRelationChangeEvent) {
 			FactionRelationChangeEvent factionRelationChangeEvent = (FactionRelationChangeEvent) event;
-			if(factionRelationChangeEvent.getNewRelation().equals(FactionRelation.RType.FRIEND)) {
+			if(factionRelationChangeEvent.getNewRelation() == FactionRelation.RType.FRIEND) {
 				String factionAllyMessage = ":shield: %FACTION_NAME_1% is now allied with %FACTION_NAME_2%";
 				sendBotEventMessage(factionAllyMessage, factionRelationChangeEvent.getTo().getName(), factionRelationChangeEvent.getFrom().getName());
-			} else if(factionRelationChangeEvent.getNewRelation().equals(FactionRelation.RType.ENEMY)) {
+			} else if(factionRelationChangeEvent.getNewRelation() == FactionRelation.RType.ENEMY) {
 				String factionWarMessage = ":crossed_swords: %FACTION_NAME_1% is now at war with %FACTION_NAME_2%";
 				sendBotEventMessage(factionWarMessage, factionRelationChangeEvent.getTo().getName(), factionRelationChangeEvent.getFrom().getName());
 			}
+		}
+	}
+
+	public void sendDiscordMessage(String sender, String message) {
+		botThread.queue(new DiscordMessageRunnable(sender, message));
+	}
+
+	private void sendBotEventMessage(String message, String... args) {
+		if(args != null && args.length > 0) {
+			StringBuilder builder = new StringBuilder();
+			int argIndex = 0;
+			int argsCount = 0;
+			for(char c : message.toCharArray()) {
+				if(c == '%') argsCount++;
+				builder.append(c);
+			}
+			message = builder.toString();
+			String[] words = message.split(" ");
+			builder = new StringBuilder();
+			if(args.length == argsCount / 2) {
+				for(int i = 0; i < words.length; i++) {
+					if(i != 0) builder.append(" ");
+					String word = words[i];
+					if(word.charAt(1) == '%' && word.charAt(word.length() - 2) == '%') {
+						builder.append('[').append(args[argIndex]).append(']');
+						argIndex++;
+					} else if(word.charAt(0) == '%' && word.charAt(word.length() - 1) == '%') {
+						builder.append(args[argIndex]);
+						argIndex++;
+					} else builder.append(word);
+				}
+				try {
+					sendDiscordMessage(builder.toString().trim());
+					sendServerMessage(ConfigManager.getMainConfig().getString("bot-name"), builder.toString().trim());
+				} catch(Exception exception) {
+					StarBridge.getInstance().logException("An exception encountered while trying to send a message from the bot", exception);
+				}
+			} else StarBridge.getInstance().logWarning("Invalid message arguments count! Should be " + argsCount / 2 + " arguments but only found " + args.length + ".");
 		}
 	}
 
@@ -228,11 +309,15 @@ public class StarBot extends ListenerAdapter {
 		}.runLater(StarBridge.getInstance(), 30);
 	}
 
+	public void sendServerMessage(String sender, String message) {
+		botThread.queue(new ServerMessageRunnable(sender, message));
+	}
+
 	private boolean isVPN(String ip) {
 		ip = ip.substring(0, ip.lastIndexOf(':'));
 		String url = "http://check.getipintel.net/check.php?ip=" + ip;
 		try {
-			String response = new BufferedReader(new InputStreamReader(new URL(url).openStream())).readLine();
+			String response = new BufferedReader(new InputStreamReader(new URL(url).openStream(), StandardCharsets.UTF_8)).readLine();
 			return Double.parseDouble(response) > 0.9;
 		} catch(Exception exception) {
 			exception.printStackTrace();
@@ -240,54 +325,12 @@ public class StarBot extends ListenerAdapter {
 		}
 	}
 
-	private void sendBotEventMessage(String message, String... args) {
-		if(args != null && args.length > 0) {
-			StringBuilder builder = new StringBuilder();
-			int argIndex = 0;
-			int argsCount = 0;
-			for(char c : message.toCharArray()) {
-				if(c == '%') argsCount ++;
-				builder.append(c);
-			}
-			message = builder.toString();
-			String[] words = message.split(" ");
-			builder = new StringBuilder();
-			if(args.length == argsCount / 2) {
-				for(int i = 0; i < words.length; i ++) {
-					if(i != 0) builder.append(" ");
-					String word = words[i];
-					if(word.charAt(1) == '%' && word.charAt(word.length() - 2) == '%') {
-						builder.append('[').append(args[argIndex]).append(']');
-						argIndex ++;
-					} else if(word.charAt(0) == '%' && word.charAt(word.length() - 1) == '%') {
-						builder.append(args[argIndex]);
-						argIndex ++;
-					} else builder.append(word);
-				}
-				try {
-					sendDiscordMessage(builder.toString().trim());
-					sendServerMessage(ConfigManager.getMainConfig().getString("bot-name"), builder.toString().trim());
-				} catch(Exception exception) {
-					LogManager.logException("An exception encountered while trying to send a message from the bot", exception);
-				}
-			} else LogManager.logWarning("Invalid message arguments count! Should be " + argsCount / 2 + " arguments but only found " + args.length + ".", null);
-		}
+	public static StarBot getInstance() {
+		return instance;
 	}
 
 	public void sendServerMessage(String message) {
 		botThread.queue(new ServerMessageRunnable(message));
-	}
-
-	public void sendServerMessage(String sender, String message) {
-		botThread.queue(new ServerMessageRunnable(sender, message));
-	}
-
-	public void sendDiscordMessage(String message) {
-		botThread.queue(new DiscordMessageRunnable(message));
-	}
-
-	public void sendDiscordMessage(String sender, String message) {
-		botThread.queue(new DiscordMessageRunnable(sender, message));
 	}
 
 	public String getToken() {
@@ -319,7 +362,7 @@ public class StarBot extends ListenerAdapter {
 	}
 
 	public void addLinkRequest(PlayerState playerState) {
-		final PlayerData playerData = ServerDatabase.getPlayerDataWithoutNull(playerState.getName());
+		PlayerData playerData = ServerDatabase.getPlayerDataWithoutNull(playerState.getName());
 		removeLinkRequest(playerData);
 		int num = (new Random()).nextInt(9999 - 1000) + 1000;
 		linkRequestMap.put(num, playerData);
@@ -330,11 +373,6 @@ public class StarBot extends ListenerAdapter {
 				removeLinkRequest(playerData);
 			}
 		}, 900000);
-	}
-
-	public boolean hasRole(Member member, long roleId) {
-		for(Role role : member.getRoles()) if(role.getIdLong() == roleId) return true;
-		return false;
 	}
 
 	public void removeLinkRequest(PlayerData playerData) {
@@ -348,12 +386,6 @@ public class StarBot extends ListenerAdapter {
 
 	public PlayerData getLinkRequest(int linkCode) {
 		return linkRequestMap.get(linkCode);
-	}
-
-	public void resetWebhook() {
-		chatWebhook.setUsername(ConfigManager.getMainConfig().getString("bot-name"));
-		chatWebhook.setAvatarUrl("https://" + ConfigManager.getMainConfig().getString("bot-avatar"));
-		chatWebhook.setContent("");
 	}
 
 	@Override
@@ -386,36 +418,43 @@ public class StarBot extends ListenerAdapter {
 	}
 
 	public void logException(String exceptionMessage) {
-		logWebhook.setUsername(getBotThread().bot.getSelfUser().getName());
-		logWebhook.setAvatarUrl(getBotThread().bot.getSelfUser().getAvatarUrl());
-		String message = "<@&" + ConfigManager.getMainConfig().getLong("admin-role-id") + ">An exception has occurred:\n";
+		logWebhook.setUsername(botThread.bot.getSelfUser().getName());
+		logWebhook.setAvatarUrl(botThread.bot.getSelfUser().getAvatarUrl());
+		String message = "An Exception has occurred:\n";
 		logWebhook.setContent(message);
 		logWebhook.addEmbed(new DiscordWebhook.EmbedObject().setDescription("```" + exceptionMessage + "```"));
 		try {
 			logWebhook.execute();
-		} catch(IOException exception) {
-			exception.printStackTrace();
+		} catch(IOException e) {
+			e.printStackTrace();
 		}
 		resetWebhook();
 	}
 
-	public void logException(String line, String[] stacktraceLines) {
-		logWebhook.setUsername(getBotThread().bot.getSelfUser().getName());
-		logWebhook.setAvatarUrl(getBotThread().bot.getSelfUser().getAvatarUrl());
-		//String message = "<@&" + ConfigManager.getMainConfig().getLong("admin-role-id") + ">\n" + line;
-		logWebhook.setContent(line);
-		logWebhook.addEmbed(new DiscordWebhook.EmbedObject().setDescription("```" + Arrays.asList(stacktraceLines) + "```"));
+	public void resetWebhook() {
+		chatWebhook.setUsername(ConfigManager.getMainConfig().getString("bot-name"));
+		chatWebhook.setAvatarUrl("https://" + ConfigManager.getMainConfig().getString("bot-avatar"));
+		chatWebhook.setContent("");
+	}
+
+	public void logException(Exception exception) {
+		logWebhook.setUsername(botThread.bot.getSelfUser().getName());
+		logWebhook.setAvatarUrl(botThread.bot.getSelfUser().getAvatarUrl());
+		logWebhook.setContent("A " + exception.getClass().getSimpleName() + " has occurred:\n");
+		String[] stackTrace = Arrays.toString(exception.getStackTrace()).split(",");
+		logWebhook.addEmbed(new DiscordWebhook.EmbedObject().setDescription("```" + Arrays.toString(stackTrace) + "```"));
 		try {
 			logWebhook.execute();
-		} catch(IOException exception) {
-			exception.printStackTrace();
+		} catch(IOException e) {
+			e.printStackTrace();
 		}
 		resetWebhook();
 	}
 
 	public void log(String line) {
-		logWebhook.setUsername(getBotThread().getName());
-		logWebhook.setAvatarUrl(getBotThread().bot.getSelfUser().getAvatarUrl());
+		if(botThread == null) return;
+		logWebhook.setUsername(botThread.getName());
+		logWebhook.setAvatarUrl(botThread.bot.getSelfUser().getAvatarUrl());
 		logWebhook.setContent(line);
 		try {
 			logWebhook.execute();

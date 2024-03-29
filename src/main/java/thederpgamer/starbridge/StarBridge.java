@@ -15,7 +15,6 @@ import org.schema.common.util.linAlg.Vector3i;
 import thederpgamer.starbridge.bot.StarBot;
 import thederpgamer.starbridge.commands.*;
 import thederpgamer.starbridge.manager.ConfigManager;
-import thederpgamer.starbridge.manager.LogManager;
 
 import java.lang.reflect.Field;
 
@@ -36,13 +35,35 @@ public class StarBridge extends StarMod {
 	@Override
 	public void onEnable() {
 		instance = this;
-		super.onEnable();
 		ConfigManager.initialize();
-		LogManager.initialize();
 		doOverwrites();
 		registerListeners();
 		registerCommands();
 		new StarBot();
+	}
+
+	@Override
+	public void onDisable() {
+		logInfo("Server Stopping...");
+		getBot().sendDiscordMessage(":stop_sign: Server Stopping...");
+	}
+
+	@Override
+	public void logInfo(String message) {
+		super.logInfo(message);
+		getBot().log(message);
+	}
+
+	@Override
+	public void logWarning(String message) {
+		super.logWarning(message);
+		getBot().log(message);
+	}
+
+	@Override
+	public void logException(String message, Exception exception) {
+		super.logException(message, exception);
+		getBot().logException(exception);
 	}
 
 	private void doOverwrites() {
@@ -138,7 +159,6 @@ public class StarBridge extends StarMod {
 		CommandInterface[] commands = {
 				new ListCommand(),
 				new LinkCommand(),
-				new ClearDataCommand(),
 				new InfoPlayerCommand(),
 				new InfoFactionCommand(),
 				new RenameSystemCommand(),

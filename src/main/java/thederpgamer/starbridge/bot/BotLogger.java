@@ -1,45 +1,36 @@
 package thederpgamer.starbridge.bot;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.util.Scanner;
+import thederpgamer.starbridge.StarBridge;
+
+import java.io.PrintStream;
+import java.nio.charset.Charset;
+import java.util.Locale;
 
 /**
- * [Description]
+ * Captures any Exceptions thrown by the game or mods and logs them to the staff log channel.
  *
- * @author TheDerpGamer (TheDerpGamer#0027)
+ * @author Garret Reichenbach
  */
 public class BotLogger {
 
-	private static final String LOG_PATH = "logs/logstarmade.0.log";
-	private String lastException = "";
-
 	public BotLogger() {
-		File logFile = new File(LOG_PATH);
-		Scanner scanner = null;
 		try {
-			scanner = new Scanner(logFile);
-		} catch(FileNotFoundException exception) {
-			exception.printStackTrace();
-			return;
+			PrintStream log = new PrintStream(System.err, true, Charset.defaultCharset().name()) {
+				@Override
+				public void println(String x) {
+					super.println(x);
+					//Log the message to the staff log channel
+					if(isException(x.toLowerCase(Locale.ENGLISH))) StarBot.getInstance().logException(x);
+				}
+			};
+			System.setErr(log);
+		} catch(Exception exception) {
+			StarBridge.getInstance().logException("An exception occurred when trying to set up error log", exception);
 		}
-		Scanner finalScanner = scanner;
-		(new Thread(() -> {
-			while(true) {
-				try {
-					Thread.sleep(100);
-				} catch(InterruptedException exception) {
-					exception.printStackTrace();
-					return;
-				}
-				if(finalScanner.hasNextLine()) {
-					String out = finalScanner.nextLine();
-					if(!out.equals(lastException) && out.contains("Exception") && !out.contains("IOException")) {
-						StarBot.getInstance().logException(out);
-						lastException = out;
-					}
-				}
-			}
-		})).start();
+	}
+
+	private boolean isException(String message) {
+		if(message.contains("exception")) return !message.contains("regular") && !message.contains("elementkeymap") && !message.contains("big update");
+		else return false;
 	}
 }

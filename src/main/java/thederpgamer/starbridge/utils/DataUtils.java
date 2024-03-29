@@ -1,9 +1,7 @@
 package thederpgamer.starbridge.utils;
 
-import api.common.GameClient;
 import api.common.GameCommon;
 import thederpgamer.starbridge.StarBridge;
-import thederpgamer.starbridge.manager.LogManager;
 
 /**
  * DataUtils
@@ -20,13 +18,7 @@ public class DataUtils {
 
     public static String getWorldDataPath() {
         String universeName = GameCommon.getUniqueContextId();
-        if(!universeName.contains(":")) {
-            return getResourcesPath() + "/data/" + universeName;
-        } else {
-            try {
-                LogManager.logWarning("Client " + GameClient.getClientPlayerState().getName() + " attempted to illegally access server data.", null);
-            } catch(Exception ignored) { }
-            return null;
-        }
+        if(!universeName.contains(":")) return getResourcesPath() + "/data/" + universeName;
+        return null;
     }
 }
