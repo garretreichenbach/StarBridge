@@ -15,15 +15,22 @@ public class BotLogger {
 
 	public BotLogger() {
 		try {
-			PrintStream log = new PrintStream(System.err, true, Charset.defaultCharset().name()) {
+			PrintStream outLog = new PrintStream(System.out, true, Charset.defaultCharset().name()) {
 				@Override
 				public void println(String x) {
 					super.println(x);
-					//Log the message to the staff log channel
 					if(isException(x.toLowerCase(Locale.ENGLISH))) StarBot.getInstance().logException(x);
 				}
 			};
-			System.setErr(log);
+			System.setOut(outLog);
+			PrintStream errorLog = new PrintStream(System.err, true, Charset.defaultCharset().name()) {
+				@Override
+				public void println(String x) {
+					super.println(x);
+					if(isException(x.toLowerCase(Locale.ENGLISH))) StarBot.getInstance().logException(x);
+				}
+			};
+			System.setErr(errorLog);
 		} catch(Exception exception) {
 			StarBridge.getInstance().logException("An exception occurred when trying to set up error log", exception);
 		}
