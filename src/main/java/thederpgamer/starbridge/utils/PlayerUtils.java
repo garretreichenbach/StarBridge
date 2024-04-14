@@ -135,6 +135,14 @@ public class PlayerUtils {
 		return null;
 	}
 
+	public static PlayerData getPlayerDataFromDiscordID(long id) {
+		HashMap<PlayerState, PlayerData> playerDataMap = getPlayerDataMap();
+		for(Map.Entry<PlayerState, PlayerData> entry : playerDataMap.entrySet()) {
+			if(entry.getValue().getDiscordId() == id) return entry.getValue();
+		}
+		return null;
+	}
+
 	public enum EntryType {
 		PLAYER_STATE("ENTITY_PLAYERSTATE");
 		public final String databasePrefix;

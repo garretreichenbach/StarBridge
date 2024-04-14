@@ -2,10 +2,8 @@ package thederpgamer.starbridge.data.exception;
 
 import api.mod.ModSkeleton;
 import api.mod.StarLoader;
-import api.mod.StarMod;
 import api.mod.config.PersistentObjectUtil;
 import thederpgamer.starbridge.StarBridge;
-import thederpgamer.starbridge.bot.StarBot;
 
 import java.util.ArrayList;
 

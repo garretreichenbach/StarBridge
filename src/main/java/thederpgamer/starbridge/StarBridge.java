@@ -1,20 +1,16 @@
 package thederpgamer.starbridge;
 
 import api.ModPlayground;
-import api.listener.EventPriority;
-import api.listener.Listener;
-import api.listener.events.faction.FactionCreateEvent;
-import api.listener.events.faction.FactionRelationChangeEvent;
-import api.listener.events.player.*;
-import api.listener.events.world.SystemNameGetEvent;
+import api.listener.events.Event;
 import api.mod.StarLoader;
 import api.mod.StarMod;
 import api.utils.game.chat.CommandInterface;
 import api.utils.other.HashList;
-import org.schema.common.util.linAlg.Vector3i;
-import thederpgamer.starbridge.bot.StarBot;
+import thederpgamer.starbridge.bot.DiscordBot;
+import thederpgamer.starbridge.bot.MessageType;
 import thederpgamer.starbridge.commands.*;
 import thederpgamer.starbridge.manager.ConfigManager;
+import thederpgamer.starbridge.manager.EventManager;
 
 import java.lang.reflect.Field;
 
@@ -31,39 +27,40 @@ public class StarBridge extends StarMod {
 	public StarBridge() {
 		instance = this;
 	}
+	private static DiscordBot bot;
 
 	@Override
 	public void onEnable() {
 		instance = this;
 		ConfigManager.initialize();
 		doOverwrites();
-		registerListeners();
+		bot = DiscordBot.initialize(this);
+		EventManager.initialize(this);
 		registerCommands();
-		new StarBot();
 	}
 
 	@Override
 	public void onDisable() {
-		logInfo("Server Stopping...");
-		getBot().sendDiscordMessage(":stop_sign: Server Stopping...");
+		super.logInfo("Server Stopping...");
+		MessageType.SERVER_STOPPING.sendMessage();
 	}
 
 	@Override
 	public void logInfo(String message) {
 		super.logInfo(message);
-		getBot().log(message);
+		MessageType.LOG_INFO.sendMessage(message);
 	}
 
 	@Override
 	public void logWarning(String message) {
 		super.logWarning(message);
-		getBot().log(message);
+		MessageType.LOG_WARNING.sendMessage(message);
 	}
 
 	@Override
 	public void logException(String message, Exception exception) {
 		super.logException(message, exception);
-		getBot().logException(exception);
+		MessageType.LOG_EXCEPTION.sendMessage(message, exception);
 	}
 
 	private void doOverwrites() {
@@ -79,96 +76,22 @@ public class StarBridge extends StarMod {
 		}
 	}
 
-	private void registerListeners() {
-		StarLoader.registerListener(SystemNameGetEvent.class, new Listener<SystemNameGetEvent>(EventPriority.LOW) {
-			@Override
-			public void onEvent(SystemNameGetEvent s) {
-				Vector3i pos = s.getPosition();
-				pos.add(-64,-64,-64);
-				String centerOriginPos = pos.toString();
-				String name = ConfigManager.getSystemNamesConfig().getString(centerOriginPos);
-				if(name != null) s.setName(name);
-			}
-		}, this);
-
-		StarLoader.registerListener(PlayerCustomCommandEvent.class, new Listener<PlayerCustomCommandEvent>() {
-			@Override
-			public void onEvent(PlayerCustomCommandEvent event) {
-				getBot().handleEvent(event);
-			}
-		}, this);
-
-		StarLoader.registerListener(PlayerChatEvent.class, new Listener<PlayerChatEvent>() {
-			@Override
-			public void onEvent(PlayerChatEvent event) {
-				getBot().handleEvent(event);
-			}
-		}, this);
-
-		StarLoader.registerListener(PlayerJoinWorldEvent.class, new Listener<PlayerJoinWorldEvent>() {
-			@Override
-			public void onEvent(PlayerJoinWorldEvent event) {
-				getBot().handleEvent(event);
-			}
-		}, this);
-
-		StarLoader.registerListener(PlayerLeaveWorldEvent.class, new Listener<PlayerLeaveWorldEvent>() {
-			@Override
-			public void onEvent(PlayerLeaveWorldEvent event) {
-				getBot().handleEvent(event);
-			}
-		}, this);
-
-		StarLoader.registerListener(FactionCreateEvent.class, new Listener<FactionCreateEvent>() {
-			@Override
-			public void onEvent(FactionCreateEvent event) {
-				getBot().handleEvent(event);
-			}
-		}, this);
-
-		StarLoader.registerListener(PlayerJoinFactionEvent.class, new Listener<PlayerJoinFactionEvent>() {
-			@Override
-			public void onEvent(PlayerJoinFactionEvent event) {
-				getBot().handleEvent(event);
-			}
-		}, this);
-
-		StarLoader.registerListener(PlayerLeaveFactionEvent.class, new Listener<PlayerLeaveFactionEvent>() {
-			@Override
-			public void onEvent(PlayerLeaveFactionEvent event) {
-				getBot().handleEvent(event);
-			}
-		}, this);
-
-		StarLoader.registerListener(PlayerDeathEvent.class, new Listener<PlayerDeathEvent>() {
-			@Override
-			public void onEvent(PlayerDeathEvent event) {
-				getBot().handleEvent(event);
-			}
-		}, this);
-
-		StarLoader.registerListener(FactionRelationChangeEvent.class, new Listener<FactionRelationChangeEvent>() {
-			@Override
-			public void onEvent(FactionRelationChangeEvent event) {
-				getBot().handleEvent(event);
-			}
-		}, this);
-	}
-
 	private void registerCommands() {
 		CommandInterface[] commands = {
 				new ListCommand(),
 				new LinkCommand(),
 				new InfoPlayerCommand(),
 				new InfoFactionCommand(),
-				new RenameSystemCommand(),
-				new SetExemptCommand()
+				new RenameSystemCommand()
 		};
-
 		for(CommandInterface commandInterface : commands) StarLoader.registerCommand(commandInterface);
 	}
 
-	public static StarBot getBot() {
-		return StarBot.getInstance();
+	public static DiscordBot getBot() {
+		return bot;
+	}
+
+	public void handleEvent(Event event) {
+		bot.handleEvent(event);
 	}
 }

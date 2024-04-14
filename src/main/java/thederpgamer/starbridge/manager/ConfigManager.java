@@ -34,10 +34,18 @@ public class ConfigManager {
     // System names
     private static FileConfiguration systemNamesConfig;
 
+    private static FileConfiguration loggingConfig;
+
+    private static final String[] defaultLoggingConfig = {
+            "ignored-exceptions: []"
+    };
+
     public static void initialize() {
         mainConfig = StarBridge.getInstance().getConfig("config");
         mainConfig.saveDefault(defaultMainConfig);
         systemNamesConfig = StarBridge.getInstance().getConfig("systems");
+        loggingConfig = StarBridge.getInstance().getConfig("logging");
+        loggingConfig.saveDefault(defaultLoggingConfig);
     }
 
     public static FileConfiguration getMainConfig() {
@@ -46,5 +54,9 @@ public class ConfigManager {
 
     public static FileConfiguration getSystemNamesConfig() {
         return systemNamesConfig;
+    }
+
+    public static FileConfiguration getLoggingConfig() {
+        return loggingConfig;
     }
 }
