@@ -106,13 +106,24 @@ public enum MessageType {
 				break;
 			case LOG_EXCEPTION:
 			case LOG_FATAL:
-				if(args != null && args.length == 2 && args[0] instanceof String && args[1] instanceof Exception) {
-					Exception exception = (Exception) args[1];
-					EmbedBuilder embed = new EmbedBuilder();
-					embed.setTitle((String) args[0]);
-					embed.setDescription(exception.getMessage());
-					embed.addField("Exception", Arrays.toString(exception.getStackTrace()), false);
-					target.sendMessage(bot, new MessageBuilder().setEmbeds(embed.build()).build());
+				if(args != null && args[0] instanceof String) {
+					if(args.length == 2) {
+						if(args[1] instanceof Throwable) {
+							Throwable exception = (Throwable) args[1];
+							EmbedBuilder embed = new EmbedBuilder();
+							embed.setTitle((String) args[0]);
+							embed.setDescription(exception.getMessage());
+							embed.addField("Exception", Arrays.toString(exception.getStackTrace()).substring(0, 1023), false);
+							target.sendMessage(bot, new MessageBuilder().setEmbeds(embed.build()).build());
+						} else {
+							EmbedBuilder embed = new EmbedBuilder();
+							embed.setTitle((String) args[0]);
+							embed.setDescription(args[1].toString());
+							target.sendMessage(bot, new MessageBuilder().setEmbeds(embed.build()).build());
+						}
+					} else {
+						target.sendMessage(bot, new MessageBuilder().append((String) args[0]).build());
+					}
 				}
 				break;
 		}

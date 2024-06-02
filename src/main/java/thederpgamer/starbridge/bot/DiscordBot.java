@@ -28,10 +28,11 @@ import org.schema.game.server.data.ServerConfig;
 import org.schema.schine.network.RegisteredClientOnServer;
 import thederpgamer.starbridge.StarBridge;
 import thederpgamer.starbridge.commands.*;
-import thederpgamer.starbridge.ui.DiscordUI;
 import thederpgamer.starbridge.data.player.PlayerData;
 import thederpgamer.starbridge.manager.ConfigManager;
 import thederpgamer.starbridge.server.ServerDatabase;
+import thederpgamer.starbridge.ui.DiscordUI;
+import thederpgamer.starbridge.utils.LogWatcher;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -53,6 +54,7 @@ public class DiscordBot extends ListenerAdapter implements Thread.UncaughtExcept
 		this.instance = instance;
 		bot = createBot(ConfigManager.getMainConfig());
 		Thread.setDefaultUncaughtExceptionHandler(this);
+		initLogWatcher();
 		(new Timer("channel_updater")).scheduleAtFixedRate(new TimerTask() {
 			@Override
 			public void run() {
@@ -70,6 +72,14 @@ public class DiscordBot extends ListenerAdapter implements Thread.UncaughtExcept
 			}
 		})).start();
 		startTime = System.currentTimeMillis();
+	}
+
+	/**
+	 * Adds a watcher to output streams to log exceptions.
+	 */
+	private void initLogWatcher() {
+		System.setOut(new LogWatcher(System.out));
+		System.setErr(new LogWatcher(System.err));
 	}
 
 	private JDA createBot(FileConfiguration config) {
@@ -381,9 +391,9 @@ public class DiscordBot extends ListenerAdapter implements Thread.UncaughtExcept
 	}
 
 	@Override
-	public void uncaughtException(Thread thread, Throwable exception) {
-		if(exception instanceof Exception) {
-			if(!isFiltered(exception)) instance.logException("An exception occurred in thread " + thread.getName(), (Exception) exception);
+	public void uncaughtException(Thread thread, Throwable thrown) {
+		if(!isFiltered(thrown)) {
+			MessageType.LOG_EXCEPTION.sendMessage("An error has occurred in thread " + thread.getName(), thrown);
 		}
 	}
 

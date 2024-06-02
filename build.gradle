@@ -12,7 +12,7 @@ def starmadeDirectory = 'C:/Program Files (x86)/Steam/steamapps/common/StarMade/
 def jarName = 'StarBridge'
 mainClassName = 'thederpgamer.starbridge.StarBridge'
 group 'thederpgamer.starbridge'
-version '2.0.3'
+version '2.0.7'
 
 repositories {
     mavenCentral()
