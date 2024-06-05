@@ -50,7 +50,6 @@ public class LogWatcher extends PrintStream {
 	public void print(String str) {
 		super.print(str);
 		for(String filteredMessage : filteredMessages) if(str.toLowerCase(Locale.ENGLISH).contains(filteredMessage)) return;
-		/*
 		for(String watch : watchList) {
 			if(str.toLowerCase(Locale.ENGLISH).contains(watch.toLowerCase(Locale.ENGLISH))) {
 				switch(watch) {
@@ -72,37 +71,6 @@ public class LogWatcher extends PrintStream {
 				}
 			}
 		}
-		 */
-		MessageType.LOG_INFO.sendMessage(str);
-	}
-
-	@Override
-	public void println(String str) {
-		super.println(str);
-		for(String filteredMessage : filteredMessages) if(str.toLowerCase(Locale.ENGLISH).contains(filteredMessage)) return;
-		/*
-		for(String watch : watchList) {
-			if(str.toLowerCase(Locale.ENGLISH).contains(watch.toLowerCase(Locale.ENGLISH))) {
-				switch(watch) {
-					case "error":
-					case "exception":
-					case "throw":
-					case "fail":
-						MessageType.LOG_EXCEPTION.sendMessage(str);
-						return;
-					case "fatal":
-					case "critical":
-					case "severe":
-					case "runtime":
-						MessageType.LOG_FATAL.sendMessage(str);
-						return;
-					case "warning":
-						MessageType.LOG_WARNING.sendMessage(str);
-						return;
-				}
-			}
-		}
-		 */
-		MessageType.LOG_INFO.sendMessage(str);
+//		MessageType.LOG_INFO.sendMessage(str);
 	}
 }

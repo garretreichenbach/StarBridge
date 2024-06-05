@@ -1,7 +1,6 @@
 package thederpgamer.starbridge.bot;
 
 import net.dv8tion.jda.api.JDA;
-import net.dv8tion.jda.api.entities.Message;
 import thederpgamer.starbridge.StarBridge;
 import thederpgamer.starbridge.manager.ConfigManager;
 
@@ -15,7 +14,7 @@ public enum ChannelTarget {
 	LOG,
 	BOTH;
 
-	public void sendMessage(JDA bot, Message message) {
+	public void sendMessage(JDA bot, String message) {
 		switch(this) {
 			case CHAT:
 				try {

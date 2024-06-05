@@ -9,16 +9,16 @@ import api.mod.config.FileConfiguration;
 import api.utils.game.PlayerUtils;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
-import net.dv8tion.jda.api.MessageBuilder;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Member;
-import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.Role;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import net.dv8tion.jda.api.interactions.commands.build.CommandData;
+import net.dv8tion.jda.api.utils.messages.MessageCreateBuilder;
+import net.dv8tion.jda.api.utils.messages.MessageCreateData;
 import org.schema.game.common.controller.SegmentController;
 import org.schema.game.common.data.player.PlayerState;
 import org.schema.game.common.data.player.faction.FactionRelation;
@@ -270,7 +270,7 @@ public class DiscordBot extends ListenerAdapter implements Thread.UncaughtExcept
 										break;
 									case PUBLIC:
 										messageToSend = chatMessage.sender + " -> Public: " + message;
-										sendDiscordMessage(new MessageBuilder().append("[").append(chatMessage.sender).append("]: ").append(message).build());
+										sendDiscordMessage(new MessageCreateBuilder().addContent("[" + chatMessage.sender + "]: " + message).build());
 										break;
 									case PARTY:
 										messageToSend = chatMessage.sender + " -> Party: " + message;
@@ -292,7 +292,7 @@ public class DiscordBot extends ListenerAdapter implements Thread.UncaughtExcept
 								StarBridge.getInstance().logInfo(chatMessage.sender + " -> [Unknown Faction]: " + message);
 							}
 						} else if("all".equalsIgnoreCase(chatMessage.receiver)) {
-							sendDiscordMessage(new MessageBuilder().append("[").append(chatMessage.sender).append("]: ").append(message).build());
+							sendDiscordMessage(new MessageCreateBuilder().addContent("[" + chatMessage.sender + "]: " + message).build());
 							StarBridge.getInstance().logInfo(chatMessage.sender + " -> Public: " + message);
 						}
 						break;
@@ -382,7 +382,7 @@ public class DiscordBot extends ListenerAdapter implements Thread.UncaughtExcept
 	 *
 	 * @param message the message to send.
 	 */
-	public void sendDiscordMessage(Message message) {
+	public void sendDiscordMessage(MessageCreateData message) {
 		try {
 			Objects.requireNonNull(bot.getTextChannelById(ConfigManager.getMainConfig().getLong("chat-channel-id"))).sendMessage(message).queue();
 		} catch(Exception exception) {
@@ -403,19 +403,6 @@ public class DiscordBot extends ListenerAdapter implements Thread.UncaughtExcept
 			if(exception.getClass().getName().equals(exceptionClass)) return true;
 		}
 		return false;
-	}
-
-	/**
-	 * Sends a message to the log channel.
-	 *
-	 * @param message the message to send.
-	 */
-	public void sendLogMessage(Message message) {
-		try {
-			Objects.requireNonNull(bot.getTextChannelById(ConfigManager.getMainConfig().getLong("log-channel-id"))).sendMessage(message).queue();
-		} catch(Exception exception) {
-			instance.logException("An exception occurred while sending log message", exception);
-		}
 	}
 
 	public JDA getJDA() {

@@ -1,9 +1,8 @@
 package thederpgamer.starbridge.ui;
 
-import net.dv8tion.jda.api.MessageBuilder;
 import net.dv8tion.jda.api.entities.Member;
-import net.dv8tion.jda.api.entities.Message;
-import net.dv8tion.jda.api.entities.TextChannel;
+import net.dv8tion.jda.api.entities.channel.Channel;
+import net.dv8tion.jda.api.utils.messages.MessageCreateBuilder;
 import thederpgamer.starbridge.utils.PlayerUtils;
 
 /**
@@ -12,12 +11,12 @@ import thederpgamer.starbridge.utils.PlayerUtils;
  * @author Garret Reichenbach
  */
 public class UserSettingsUI extends DiscordUI {
-	protected UserSettingsUI(Member member, TextChannel channel) {
+	protected UserSettingsUI(Member member, Channel channel) {
 		super(member, channel);
 	}
 
 	@Override
-	public void createUI(Member member, TextChannel channel) {
+	public void createUI(Member member, Channel channel) {
 		if(isLinked(member)) {
 //			Button button = new ButtonImpl();
 		} else {
@@ -26,8 +25,8 @@ public class UserSettingsUI extends DiscordUI {
 	}
 
 	@Override
-	public Message toMessage() {
-		return new MessageBuilder().setActionRows(row).setContent("User Settings Menu").build();
+	public MessageCreateBuilder toMessage() {
+		return new MessageCreateBuilder().setActionRow(row.getActionComponents()).setContent("User Settings Menu");
 	}
 
 	private boolean isLinked(Member member) {

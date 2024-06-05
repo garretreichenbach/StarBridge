@@ -1,15 +1,16 @@
 package thederpgamer.starbridge.ui;
 
-import net.dv8tion.jda.api.entities.*;
+import net.dv8tion.jda.api.entities.Member;
+import net.dv8tion.jda.api.entities.channel.Channel;
 import net.dv8tion.jda.api.interactions.components.ActionRow;
 import net.dv8tion.jda.api.interactions.components.ItemComponent;
 import net.dv8tion.jda.api.interactions.components.buttons.Button;
 import net.dv8tion.jda.api.interactions.components.buttons.ButtonInteraction;
 import net.dv8tion.jda.api.interactions.components.selections.SelectMenu;
+import net.dv8tion.jda.api.utils.messages.MessageCreateBuilder;
 import thederpgamer.starbridge.StarBridge;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Objects;
 
 /**
@@ -21,21 +22,15 @@ public abstract class DiscordUI {
 	protected final ActionRow row;
 	private final HashMap<ItemComponent, InteractionCallback> components = new HashMap<>();
 
-	protected DiscordUI(Member member, TextChannel channel) {
+	protected DiscordUI(Member member, Channel channel) {
 		createUI(member, channel);
 		row = ActionRow.of(components.keySet());
 		StarBridge.getBot().registerUI(this);
 	}
 
-	public abstract void createUI(Member member, TextChannel channel);
+	public abstract void createUI(Member member, Channel channel);
 
-	public abstract Message toMessage();
-
-	protected Emoji getEmote(String code) {
-		List<Emote> emotes = StarBridge.getBot().getGuild().getEmotesByName(code, true);
-		if(emotes.isEmpty()) return null;
-		else return Emoji.fromEmote(emotes.get(0));
-	}
+	public abstract MessageCreateBuilder toMessage();
 
 	public void addComponent(ItemComponent component, InteractionCallback callback) {
 		components.put(component, callback);

@@ -1,9 +1,8 @@
 package thederpgamer.starbridge.ui;
 
-import net.dv8tion.jda.api.MessageBuilder;
 import net.dv8tion.jda.api.entities.Member;
-import net.dv8tion.jda.api.entities.Message;
-import net.dv8tion.jda.api.entities.TextChannel;
+import net.dv8tion.jda.api.entities.channel.Channel;
+import net.dv8tion.jda.api.utils.messages.MessageCreateBuilder;
 
 /**
  * [Description]
@@ -12,16 +11,16 @@ import net.dv8tion.jda.api.entities.TextChannel;
  */
 public class ConfigSettingsUI extends DiscordUI {
 
-	protected ConfigSettingsUI(Member member, TextChannel channel) {
+	protected ConfigSettingsUI(Member member, Channel channel) {
 		super(member, channel);
 	}
 
 	@Override
-	public void createUI(Member member, TextChannel channel) {
+	public void createUI(Member member, Channel channel) {
 	}
 
 	@Override
-	public Message toMessage() {
-		return new MessageBuilder().setActionRows(row).setContent("Config Menu").build();
+	public MessageCreateBuilder toMessage() {
+		return new MessageCreateBuilder().setActionRow(row.getActionComponents()).setContent("Config Menu");
 	}
 }
