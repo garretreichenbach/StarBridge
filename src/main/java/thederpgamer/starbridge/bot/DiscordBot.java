@@ -236,6 +236,7 @@ public class DiscordBot extends ListenerAdapter implements Thread.UncaughtExcept
 	}
 
 	public void handleEvent(Event event) {
+		if(!event.isServer()) return;
 		if(event instanceof PlayerCustomCommandEvent) {
 			PlayerCustomCommandEvent playerCustomCommandEvent = (PlayerCustomCommandEvent) event;
 			if(playerCustomCommandEvent.getCommand().isAdminOnly() && !playerCustomCommandEvent.getSender().isAdmin()) return;
@@ -246,7 +247,6 @@ public class DiscordBot extends ListenerAdapter implements Thread.UncaughtExcept
 			message = message.replace("@", "");
 			message = message.replace("\"", "");
 			ChatMessage chatMessage = new ChatMessage(playerChatEvent.getMessage());
-			PlayerData playerData = ServerDatabase.getPlayerDataWithoutNull(chatMessage.sender);
 			try {
 				switch(chatMessage.receiverType) {
 					case SYSTEM:

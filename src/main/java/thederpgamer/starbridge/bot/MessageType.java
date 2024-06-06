@@ -88,7 +88,9 @@ public enum MessageType {
 			case SERVER_RESTARTING:
 			case LOG_INFO:
 			case LOG_WARNING:
-				target.sendMessage(bot, builder.getContent());
+				if(args != null && args.length == 1 && args[0] instanceof String) {
+					target.sendMessage(bot, builder.getContent() + " " + args[0]);
+				}
 				break;
 			case SERVER_STOPPING_TIMED:
 			case SERVER_RESTARTING_TIMED:

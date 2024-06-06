@@ -1,7 +1,6 @@
 package thederpgamer.starbridge.bot;
 
 import net.dv8tion.jda.api.JDA;
-import thederpgamer.starbridge.StarBridge;
 import thederpgamer.starbridge.manager.ConfigManager;
 
 /**
@@ -20,14 +19,14 @@ public enum ChannelTarget {
 				try {
 					bot.getTextChannelById(ConfigManager.getMainConfig().getLong("chat-channel-id")).sendMessage(message).queue();
 				} catch(Exception exception) {
-					StarBridge.getInstance().logException("An exception occurred while sending Discord message", exception);
+					exception.printStackTrace();
 				}
 				break;
 			case LOG:
 				try {
 					bot.getTextChannelById(ConfigManager.getMainConfig().getLong("log-channel-id")).sendMessage(message).queue();
 				} catch(Exception exception) {
-					StarBridge.getInstance().logException("An exception occurred while sending Discord message", exception);
+					exception.printStackTrace();
 				}
 				break;
 			case BOTH:
@@ -35,7 +34,7 @@ public enum ChannelTarget {
 					bot.getTextChannelById(ConfigManager.getMainConfig().getLong("chat-channel-id")).sendMessage(message).queue();
 					bot.getTextChannelById(ConfigManager.getMainConfig().getLong("log-channel-id")).sendMessage(message).queue();
 				} catch(Exception exception) {
-					StarBridge.getInstance().logException("An exception occurred while sending Discord message", exception);
+					exception.printStackTrace();
 				}
 				break;
 		}
