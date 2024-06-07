@@ -118,6 +118,7 @@ public enum MessageType {
 							embed.setDescription(exception.getMessage());
 							embed.addField("Exception", StringTools.limit(Arrays.toString(exception.getStackTrace()), 1023), false);
 							MessageCreateBuilder messageBuilder = new MessageCreateBuilder();
+							messageBuilder.setContent("Server Encountered an Exception");
 							messageBuilder.setEmbeds(embed.build());
 							target.sendMessage(bot, messageBuilder.build().getContent());
 						} else {
@@ -125,6 +126,7 @@ public enum MessageType {
 							embed.setTitle((String) args[0]);
 							embed.setDescription(args[1].toString());
 							MessageCreateBuilder messageBuilder = new MessageCreateBuilder();
+							messageBuilder.setContent("Server Encountered an Exception");
 							messageBuilder.setEmbeds(embed.build());
 							target.sendMessage(bot, messageBuilder.build().getContent());
 						}

@@ -9,16 +9,16 @@ import api.mod.config.FileConfiguration;
 import api.utils.game.PlayerUtils;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
-import net.dv8tion.jda.api.entities.Guild;
-import net.dv8tion.jda.api.entities.Member;
-import net.dv8tion.jda.api.entities.Role;
+import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import net.dv8tion.jda.api.interactions.commands.build.CommandData;
+import net.dv8tion.jda.api.requests.GatewayIntent;
 import net.dv8tion.jda.api.utils.messages.MessageCreateBuilder;
 import net.dv8tion.jda.api.utils.messages.MessageCreateData;
+import net.dv8tion.jda.internal.entities.SelfUserImpl;
 import org.schema.game.common.controller.SegmentController;
 import org.schema.game.common.data.player.PlayerState;
 import org.schema.game.common.data.player.faction.FactionRelation;
@@ -34,6 +34,8 @@ import thederpgamer.starbridge.server.ServerDatabase;
 import thederpgamer.starbridge.ui.DiscordUI;
 import thederpgamer.starbridge.utils.LogWatcher;
 
+import java.io.InputStream;
+import java.net.URL;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -66,6 +68,7 @@ public class DiscordBot extends ListenerAdapter implements Thread.UncaughtExcept
 				assert bot != null;
 				bot.awaitReady();
 				registerCommands();
+				setBotAvatar("https://" + ConfigManager.getMainConfig().getString("bot-avatar"));
 				MessageType.SERVER_STARTING.sendMessage();
 			} catch(InterruptedException exception) {
 				StarBridge.getInstance().logException("Failed to register commands", exception);
@@ -84,7 +87,7 @@ public class DiscordBot extends ListenerAdapter implements Thread.UncaughtExcept
 
 	private JDA createBot(FileConfiguration config) {
 		try {
-			JDABuilder builder = JDABuilder.createDefault(config.getString("bot-token"));
+			JDABuilder builder = JDABuilder.createDefault(config.getString("bot-token"), Arrays.asList(GatewayIntent.values()));
 			builder.addEventListeners(this);
 			return builder.build();
 		} catch(Exception exception) {
@@ -189,7 +192,7 @@ public class DiscordBot extends ListenerAdapter implements Thread.UncaughtExcept
 		if(content.length() > 0) {
 			if(!event.getAuthor().isBot() && !event.isWebhookMessage()) {
 				if(event.getChannel().getIdLong() == ConfigManager.getMainConfig().getLong("chat-channel-id")) {
-					if(content.charAt(0) != '/') sendServerMessage(event.getAuthor().getName(), content.trim());
+					if(content.charAt(0) != '/') sendServerMessage(event.getAuthor().getEffectiveName(), content.trim());
 					else event.getMessage().delete().queue();
 				}
 			}
@@ -247,6 +250,8 @@ public class DiscordBot extends ListenerAdapter implements Thread.UncaughtExcept
 			message = message.replace("@", "");
 			message = message.replace("\"", "");
 			ChatMessage chatMessage = new ChatMessage(playerChatEvent.getMessage());
+			PlayerData playerData = ServerDatabase.getPlayerData(playerChatEvent.getMessage().sender);
+			long discordID = (playerData == null) ? -1 : playerData.getDiscordId();
 			try {
 				switch(chatMessage.receiverType) {
 					case SYSTEM:
@@ -270,7 +275,16 @@ public class DiscordBot extends ListenerAdapter implements Thread.UncaughtExcept
 										break;
 									case PUBLIC:
 										messageToSend = chatMessage.sender + " -> Public: " + message;
+										/*
+										if(discordID > 0) {
+											User user = bot.getUserById(discordID);
+											if(user != null) setBotAvatar(user.getAvatarUrl());
+										}
+										 */
+//										bot.getSelfUser().getManager().setName(chatMessage.sender).queue();
 										sendDiscordMessage(new MessageCreateBuilder().addContent("[" + chatMessage.sender + "]: " + message).build());
+//										setBotAvatar("https://" + ConfigManager.getMainConfig().getString("bot-avatar"));
+//										bot.getSelfUser().getManager().setName(ConfigManager.getMainConfig().getString("bot-name")).queue();
 										break;
 									case PARTY:
 										messageToSend = chatMessage.sender + " -> Party: " + message;
@@ -292,8 +306,17 @@ public class DiscordBot extends ListenerAdapter implements Thread.UncaughtExcept
 								StarBridge.getInstance().logInfo(chatMessage.sender + " -> [Unknown Faction]: " + message);
 							}
 						} else if("all".equalsIgnoreCase(chatMessage.receiver)) {
+							/*
+							if(discordID > 0) {
+								User user = bot.getUserById(discordID);
+								if(user != null) setBotAvatar(user.getAvatarUrl());
+							}
+							bot.getSelfUser().getManager().setName(chatMessage.sender).queue();
+							 */
 							sendDiscordMessage(new MessageCreateBuilder().addContent("[" + chatMessage.sender + "]: " + message).build());
 							StarBridge.getInstance().logInfo(chatMessage.sender + " -> Public: " + message);
+//							setBotAvatar("https://" + ConfigManager.getMainConfig().getString("bot-avatar"));
+//							bot.getSelfUser().getManager().setName(ConfigManager.getMainConfig().getString("bot-name")).queue();
 						}
 						break;
 				}
@@ -374,6 +397,17 @@ public class DiscordBot extends ListenerAdapter implements Thread.UncaughtExcept
 					}
 					break;
 			}
+		}
+	}
+
+	private void setBotAvatar(String avatarUrl) {
+		try {
+			InputStream stream = new URL(avatarUrl).openStream();
+			Icon icon = Icon.from(stream);
+			bot.getSelfUser().getManager().setAvatar(icon).queue();
+			stream.close();
+		} catch(Exception exception) {
+			instance.logException("An exception occurred while setting bot avatar", exception);
 		}
 	}
 
