@@ -41,6 +41,7 @@ public class ServerDatabase {
     public static PlayerData addNewPlayerData(String playerName) {
         PlayerData playerData = new PlayerData(playerName);
         PersistentObjectUtil.addObject(instance, playerData);
+        PersistentObjectUtil.save(instance);
         return playerData;
     }
 
@@ -53,6 +54,7 @@ public class ServerDatabase {
         }
         for(PlayerData remove : toRemove) PersistentObjectUtil.removeObject(instance, remove);
         PersistentObjectUtil.addObject(instance, playerData);
+        PersistentObjectUtil.save(instance);
     }
 
     public static Faction getFaction(String factionName) {

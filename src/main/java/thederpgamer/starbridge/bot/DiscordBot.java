@@ -9,7 +9,10 @@ import api.mod.config.FileConfiguration;
 import api.utils.game.PlayerUtils;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
-import net.dv8tion.jda.api.entities.*;
+import net.dv8tion.jda.api.entities.Guild;
+import net.dv8tion.jda.api.entities.Icon;
+import net.dv8tion.jda.api.entities.Member;
+import net.dv8tion.jda.api.entities.Role;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
@@ -18,7 +21,6 @@ import net.dv8tion.jda.api.interactions.commands.build.CommandData;
 import net.dv8tion.jda.api.requests.GatewayIntent;
 import net.dv8tion.jda.api.utils.messages.MessageCreateBuilder;
 import net.dv8tion.jda.api.utils.messages.MessageCreateData;
-import net.dv8tion.jda.internal.entities.SelfUserImpl;
 import org.schema.game.common.controller.SegmentController;
 import org.schema.game.common.data.player.PlayerState;
 import org.schema.game.common.data.player.faction.FactionRelation;
@@ -26,6 +28,7 @@ import org.schema.game.network.objects.ChatMessage;
 import org.schema.game.server.data.GameServerState;
 import org.schema.game.server.data.ServerConfig;
 import org.schema.schine.network.RegisteredClientOnServer;
+import org.schema.schine.network.server.ServerState;
 import thederpgamer.starbridge.StarBridge;
 import thederpgamer.starbridge.commands.*;
 import thederpgamer.starbridge.data.player.PlayerData;
@@ -45,17 +48,22 @@ import java.util.concurrent.ConcurrentHashMap;
  * @author Garret Reichenbach
  */
 public class DiscordBot extends ListenerAdapter implements Thread.UncaughtExceptionHandler {
+	private Throwable lastException;
 	private final StarBridge instance;
 	private final JDA bot;
-	private final long startTime;
+	private long startTime;
 	private final HashMap<String, DiscordUI> uiMap = new HashMap<>();
 	private final HashMap<CommandData, DiscordCommand> commandMap = new HashMap<>();
 	private final ConcurrentHashMap<Integer, PlayerData> linkRequestMap = new ConcurrentHashMap<>();
 
 	private DiscordBot(StarBridge instance) {
 		this.instance = instance;
-		bot = createBot(ConfigManager.getMainConfig());
 		Thread.setDefaultUncaughtExceptionHandler(this);
+		Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+			if(!ServerState.isShutdown() || lastException != null) MessageType.LOG_FATAL.sendMessage("Fatal Error", lastException);
+			else MessageType.SERVER_STOPPING.sendMessage();
+		}));
+		bot = createBot(ConfigManager.getMainConfig());
 		initLogWatcher();
 		(new Timer("channel_updater")).scheduleAtFixedRate(new TimerTask() {
 			@Override
@@ -69,12 +77,46 @@ public class DiscordBot extends ListenerAdapter implements Thread.UncaughtExcept
 				bot.awaitReady();
 				registerCommands();
 				setBotAvatar("https://" + ConfigManager.getMainConfig().getString("bot-avatar"));
+				startTime = System.currentTimeMillis();
 				MessageType.SERVER_STARTING.sendMessage();
+				initRestartTimer();
 			} catch(InterruptedException exception) {
 				StarBridge.getInstance().logException("Failed to register commands", exception);
 			}
 		})).start();
-		startTime = System.currentTimeMillis();
+	}
+
+	private void initRestartTimer() {
+		long restartTimer = ConfigManager.getMainConfig().getLong("restart-timer");
+		long shutdownTimer = ConfigManager.getMainConfig().getLong("default-shutdown-timer");
+		assert restartTimer > shutdownTimer : "Restart timer must be greater than shutdown timer";
+		if(restartTimer > 0) {
+			if(shutdownTimer > 600000) {
+				long minuteWarning10 = restartTimer - 600000; //10 minute warning
+				long minuteWarning5 = restartTimer - 300000; //5 minute warning
+				long minuteWarning1 = restartTimer - 60000; //1 minute warning
+				Timer restart = new Timer("restart-timer");
+				restart.schedule(new TimerTask() {
+					@Override
+					public void run() {
+						MessageType.SERVER_RESTARTING_TIMED.sendMessage(600);
+					}
+				}, minuteWarning10);
+				restart.schedule(new TimerTask() {
+					@Override
+					public void run() {
+						MessageType.SERVER_RESTARTING_TIMED.sendMessage(300);
+						GameServer.getServerState().addTimedShutdown(300);
+					}
+				}, minuteWarning5);
+				restart.schedule(new TimerTask() {
+					@Override
+					public void run() {
+						MessageType.SERVER_RESTARTING_TIMED.sendMessage(60);
+					}
+				}, minuteWarning1);
+			}
+		}
 	}
 
 	/**
@@ -251,7 +293,6 @@ public class DiscordBot extends ListenerAdapter implements Thread.UncaughtExcept
 			message = message.replace("\"", "");
 			ChatMessage chatMessage = new ChatMessage(playerChatEvent.getMessage());
 			PlayerData playerData = ServerDatabase.getPlayerData(playerChatEvent.getMessage().sender);
-			long discordID = (playerData == null) ? -1 : playerData.getDiscordId();
 			try {
 				switch(chatMessage.receiverType) {
 					case SYSTEM:
@@ -360,6 +401,7 @@ public class DiscordBot extends ListenerAdapter implements Thread.UncaughtExcept
 				MessageType.PLAYER_DEATH_EVENT.sendMessage(playerDeathEvent.getPlayer().getName(), playerFactionName);
 			}
 		} else if(event instanceof FactionRelationChangeEvent) {
+			if(((FactionRelationChangeEvent) event).getFrom().getIdFaction() <= 0 || ((FactionRelationChangeEvent) event).getTo().getIdFaction() <= 0) return;
 			FactionRelationChangeEvent factionRelationChangeEvent = (FactionRelationChangeEvent) event;
 			FactionRelation.RType oldRelation = factionRelationChangeEvent.getOldRelation();
 			FactionRelation.RType newRelation = factionRelationChangeEvent.getNewRelation();
@@ -424,13 +466,6 @@ public class DiscordBot extends ListenerAdapter implements Thread.UncaughtExcept
 		}
 	}
 
-	@Override
-	public void uncaughtException(Thread thread, Throwable thrown) {
-		if(!isFiltered(thrown)) {
-			MessageType.LOG_EXCEPTION.sendMessage("An error has occurred in thread " + thread.getName(), thrown);
-		}
-	}
-
 	public static boolean isFiltered(Throwable exception) {
 		List<String> filter = getLoggingConfig().getList("ignored-exceptions");
 		for(String exceptionClass : filter) {
@@ -449,5 +484,10 @@ public class DiscordBot extends ListenerAdapter implements Thread.UncaughtExcept
 
 	public PlayerData getLinkRequest(int linkCode) {
 		return linkRequestMap.get(linkCode);
+	}
+
+	@Override
+	public void uncaughtException(Thread thread, Throwable exception) {
+		lastException = exception;
 	}
 }

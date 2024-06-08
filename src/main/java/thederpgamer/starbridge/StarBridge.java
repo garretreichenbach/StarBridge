@@ -6,6 +6,7 @@ import api.mod.StarLoader;
 import api.mod.StarMod;
 import api.utils.game.chat.CommandInterface;
 import api.utils.other.HashList;
+import org.schema.schine.network.server.ServerState;
 import thederpgamer.starbridge.bot.DiscordBot;
 import thederpgamer.starbridge.bot.MessageType;
 import thederpgamer.starbridge.commands.*;
@@ -32,11 +33,25 @@ public class StarBridge extends StarMod {
 	@Override
 	public void onEnable() {
 		instance = this;
+		addShutdownHook();
 		ConfigManager.initialize();
 		doOverwrites();
 		bot = DiscordBot.initialize(this);
 		EventManager.initialize(this);
 		registerCommands();
+	}
+
+	private void addShutdownHook() {
+		Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+			try {
+				if(!ServerState.isShutdown()) {
+
+					MessageType.LOG_FATAL.sendMessage("Server has shutdown unexpectedly due to a fatal error!", null);
+				}
+			} catch(Exception exception) {
+				exception.printStackTrace();
+			}
+		}));
 	}
 
 	@Override
