@@ -9,7 +9,6 @@ import org.schema.common.util.linAlg.Vector3i;
 import org.schema.game.common.data.player.PlayerState;
 import org.schema.game.common.data.world.StellarSystem;
 import thederpgamer.starbridge.StarBridge;
-import thederpgamer.starbridge.bot.StarBot;
 import thederpgamer.starbridge.data.player.PlayerData;
 import thederpgamer.starbridge.manager.ConfigManager;
 import thederpgamer.starbridge.utils.PlayerUtils;
@@ -56,13 +55,13 @@ public class RenameSystemCommand implements CommandInterface {
 			} else {
 				try {
 					StellarSystem stellarSystem = GameServer.getServerState().getUniverse().getStellarSystemFromStellarPos(playerState.getCurrentSystem());
-					User user = StarBot.getInstance().getBotThread().bot.getUserById(playerData.getDiscordId());
+					User user = StarBridge.getBot().getJDA().getUserById(playerData.getDiscordId());
 					Vector3i pos = stellarSystem.getPos();
 					pos.add(-64,-64,-64);
 					String centerOriginPos = pos.toString();
 					assert user != null;
 					if(stellarSystem.getOwnerFaction() == playerState.getFactionId()) {
-						if(StarBot.getInstance().hasRole((Member) user, ConfigManager.getMainConfig().getLong("tier-1-role-id")) || StarBot.getInstance().hasRole((Member) user, ConfigManager.getMainConfig().getLong("tier-2-role-id"))) ConfigManager.getSystemNamesConfig().set(centerOriginPos, args[0]);
+						if(StarBridge.getBot().hasRole((Member) user, ConfigManager.getMainConfig().getLong("tier-1-role-id")) || StarBridge.getBot().hasRole((Member) user, ConfigManager.getMainConfig().getLong("tier-2-role-id"))) ConfigManager.getSystemNamesConfig().set(centerOriginPos, args[0]);
 						else api.utils.game.PlayerUtils.sendMessage(playerState, "You must be a donator to use this command!");
 					} else api.utils.game.PlayerUtils.sendMessage(playerState, "You must own the system to use this command!");
 					return true;
