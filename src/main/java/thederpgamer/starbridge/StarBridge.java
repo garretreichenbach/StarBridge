@@ -14,6 +14,8 @@ import thederpgamer.starbridge.manager.ConfigManager;
 import thederpgamer.starbridge.manager.EventManager;
 
 import java.lang.reflect.Field;
+import java.util.Timer;
+import java.util.TimerTask;
 
 /**
  * Main mod class for StarBridge.
@@ -32,6 +34,7 @@ public class StarBridge extends StarMod {
 
 	@Override
 	public void onEnable() {
+		long start = System.currentTimeMillis();
 		instance = this;
 		addShutdownHook();
 		ConfigManager.initialize();
@@ -39,7 +42,14 @@ public class StarBridge extends StarMod {
 		EventManager.initialize(this);
 		registerCommands();
 		bot = DiscordBot.initialize(this);
-		MessageType.SERVER_STARTING.sendMessage();
+		(new Timer("channel_updater")).scheduleAtFixedRate(new TimerTask() {
+			@Override
+			public void run() {
+				bot.updateChannelInfo();
+			}
+		}, 500, 5000);
+		long took = System.currentTimeMillis() - start;
+		MessageType.SERVER_STARTED.sendMessage(took);
 	}
 
 	private void addShutdownHook() {

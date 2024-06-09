@@ -28,7 +28,6 @@ import org.schema.game.network.objects.ChatMessage;
 import org.schema.game.server.data.GameServerState;
 import org.schema.game.server.data.ServerConfig;
 import org.schema.schine.network.RegisteredClientOnServer;
-import org.schema.schine.network.server.ServerState;
 import thederpgamer.starbridge.StarBridge;
 import thederpgamer.starbridge.commands.*;
 import thederpgamer.starbridge.data.player.PlayerData;
@@ -181,12 +180,6 @@ public class DiscordBot extends ListenerAdapter implements Thread.UncaughtExcept
 		DiscordBot bot = new DiscordBot(instance);
 		bot.registerCommands();
 		bot.initRestartTimer();
-		(new Timer("channel_updater")).scheduleAtFixedRate(new TimerTask() {
-			@Override
-			public void run() {
-				bot.updateChannelInfo();
-			}
-		}, 500, 5000);
 		return bot;
 	}
 
