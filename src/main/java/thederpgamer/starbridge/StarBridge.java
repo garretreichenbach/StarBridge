@@ -36,18 +36,16 @@ public class StarBridge extends StarMod {
 		addShutdownHook();
 		ConfigManager.initialize();
 		doOverwrites();
-		bot = DiscordBot.initialize(this);
 		EventManager.initialize(this);
 		registerCommands();
+		bot = DiscordBot.initialize(this);
+		MessageType.SERVER_STARTING.sendMessage();
 	}
 
 	private void addShutdownHook() {
 		Runtime.getRuntime().addShutdownHook(new Thread(() -> {
 			try {
-				if(!ServerState.isShutdown()) {
-
-					MessageType.LOG_FATAL.sendMessage("Server has shutdown unexpectedly due to a fatal error!", null);
-				}
+				if(!ServerState.isShutdown()) MessageType.LOG_FATAL.sendMessage("Server has shutdown unexpectedly due to a fatal error!", null);
 			} catch(Exception exception) {
 				exception.printStackTrace();
 			}

@@ -8,11 +8,11 @@ apply plugin: 'java'
 sourceCompatibility = 1.8
 targetCompatibility = 1.8
 
-def starmadeDirectory = 'C:/Program Files (x86)/Steam/steamapps/common/StarMade/StarMade/' //Change this to your StarMade directory
+def starmadeDirectory = 'G:/SteamLibrary/steamapps/common/StarMade/StarMade/' //Change this to your StarMade directory
 def jarName = 'StarBridge'
 mainClassName = 'thederpgamer.starbridge.StarBridge'
 group 'thederpgamer.starbridge'
-version '2.0.15'
+version '2.0.16'
 
 repositories {
     mavenCentral()

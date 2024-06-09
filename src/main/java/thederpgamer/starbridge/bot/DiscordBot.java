@@ -48,7 +48,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * @author Garret Reichenbach
  */
 public class DiscordBot extends ListenerAdapter implements Thread.UncaughtExceptionHandler {
-	private Throwable lastException;
+
 	private final StarBridge instance;
 	private final JDA bot;
 	private long startTime;
@@ -58,32 +58,15 @@ public class DiscordBot extends ListenerAdapter implements Thread.UncaughtExcept
 
 	private DiscordBot(StarBridge instance) {
 		this.instance = instance;
-		Thread.setDefaultUncaughtExceptionHandler(this);
-		Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-			if(!ServerState.isShutdown() || lastException != null) MessageType.LOG_FATAL.sendMessage("Fatal Error", lastException);
-			else MessageType.SERVER_STOPPING.sendMessage();
-		}));
 		bot = createBot(ConfigManager.getMainConfig());
 		initLogWatcher();
-		(new Timer("channel_updater")).scheduleAtFixedRate(new TimerTask() {
-			@Override
-			public void run() {
-				updateChannelInfo();
-			}
-		}, 500, 5000);
-		(new Thread(() -> {
-			try {
-				assert bot != null;
-				bot.awaitReady();
-				registerCommands();
-				setBotAvatar("https://" + ConfigManager.getMainConfig().getString("bot-avatar"));
-				startTime = System.currentTimeMillis();
-				MessageType.SERVER_STARTING.sendMessage();
-				initRestartTimer();
-			} catch(InterruptedException exception) {
-				StarBridge.getInstance().logException("Failed to register commands", exception);
-			}
-		})).start();
+		try {
+			assert bot != null;
+			bot.awaitReady();
+			startTime = System.currentTimeMillis();
+		} catch(Exception exception) {
+			exception.printStackTrace();
+		}
 	}
 
 	private void initRestartTimer() {
@@ -165,7 +148,6 @@ public class DiscordBot extends ListenerAdapter implements Thread.UncaughtExcept
 				commandMap.put(command.getCommandData(), command);
 				getGuild().upsertCommand(command.getCommandData()).queue();
 			}
-			MessageType.LOG_INFO.sendMessage("Commands loaded");
 		} catch(Exception exception) {
 			instance.logException("Failed to register commands", exception);
 			exception.printStackTrace();
@@ -196,7 +178,16 @@ public class DiscordBot extends ListenerAdapter implements Thread.UncaughtExcept
 	}
 
 	public static DiscordBot initialize(StarBridge instance) {
-		return new DiscordBot(instance);
+		DiscordBot bot = new DiscordBot(instance);
+		bot.registerCommands();
+		bot.initRestartTimer();
+		(new Timer("channel_updater")).scheduleAtFixedRate(new TimerTask() {
+			@Override
+			public void run() {
+				bot.updateChannelInfo();
+			}
+		}, 500, 5000);
+		return bot;
 	}
 
 	public boolean hasRole(Member member, long roleId) {
@@ -234,7 +225,8 @@ public class DiscordBot extends ListenerAdapter implements Thread.UncaughtExcept
 		if(content.length() > 0) {
 			if(!event.getAuthor().isBot() && !event.isWebhookMessage()) {
 				if(event.getChannel().getIdLong() == ConfigManager.getMainConfig().getLong("chat-channel-id")) {
-					if(content.charAt(0) != '/') sendServerMessage(event.getAuthor().getEffectiveName(), content.trim());
+					if(content.charAt(0) != '/')
+						sendServerMessage(event.getAuthor().getEffectiveName(), content.trim());
 					else event.getMessage().delete().queue();
 				}
 			}
@@ -284,7 +276,8 @@ public class DiscordBot extends ListenerAdapter implements Thread.UncaughtExcept
 		if(!event.isServer()) return;
 		if(event instanceof PlayerCustomCommandEvent) {
 			PlayerCustomCommandEvent playerCustomCommandEvent = (PlayerCustomCommandEvent) event;
-			if(playerCustomCommandEvent.getCommand().isAdminOnly() && !playerCustomCommandEvent.getSender().isAdmin()) return;
+			if(playerCustomCommandEvent.getCommand().isAdminOnly() && !playerCustomCommandEvent.getSender().isAdmin())
+				return;
 			StarBridge.getInstance().logInfo(playerCustomCommandEvent.getSender().getName() + " executed command: " + playerCustomCommandEvent.getCommand().getCommand());
 		} else if(event instanceof PlayerChatEvent) {
 			PlayerChatEvent playerChatEvent = (PlayerChatEvent) event;
@@ -394,14 +387,17 @@ public class DiscordBot extends ListenerAdapter implements Thread.UncaughtExcept
 				PlayerState killerState = (PlayerState) playerDeathEvent.getDamager();
 				String killerFactionName = (killerState.getFactionId() != 0) ? killerState.getFactionName() : "No Faction";
 				String killedFactionName = (playerDeathEvent.getPlayer().getFactionId() != 0) ? playerDeathEvent.getPlayer().getFactionName() : "No Faction";
-				if(killerState.equals(playerDeathEvent.getPlayer())) MessageType.PLAYER_SUICIDE_EVENT.sendMessage(playerDeathEvent.getPlayer().getName(), killedFactionName);
-				else MessageType.PLAYER_KILL_EVENT.sendMessage(playerDeathEvent.getPlayer().getName(), killedFactionName, killerState.getName(), killerFactionName);
+				if(killerState.equals(playerDeathEvent.getPlayer()))
+					MessageType.PLAYER_SUICIDE_EVENT.sendMessage(playerDeathEvent.getPlayer().getName(), killedFactionName);
+				else
+					MessageType.PLAYER_KILL_EVENT.sendMessage(playerDeathEvent.getPlayer().getName(), killedFactionName, killerState.getName(), killerFactionName);
 			} else {
 				String playerFactionName = (playerDeathEvent.getPlayer().getFactionId() != 0) ? playerDeathEvent.getPlayer().getFactionName() : "No Faction";
 				MessageType.PLAYER_DEATH_EVENT.sendMessage(playerDeathEvent.getPlayer().getName(), playerFactionName);
 			}
 		} else if(event instanceof FactionRelationChangeEvent) {
-			if(((FactionRelationChangeEvent) event).getFrom().getIdFaction() <= 0 || ((FactionRelationChangeEvent) event).getTo().getIdFaction() <= 0) return;
+			if(((FactionRelationChangeEvent) event).getFrom().getIdFaction() <= 0 || ((FactionRelationChangeEvent) event).getTo().getIdFaction() <= 0)
+				return;
 			FactionRelationChangeEvent factionRelationChangeEvent = (FactionRelationChangeEvent) event;
 			FactionRelation.RType oldRelation = factionRelationChangeEvent.getOldRelation();
 			FactionRelation.RType newRelation = factionRelationChangeEvent.getNewRelation();
@@ -488,6 +484,6 @@ public class DiscordBot extends ListenerAdapter implements Thread.UncaughtExcept
 
 	@Override
 	public void uncaughtException(Thread thread, Throwable exception) {
-		lastException = exception;
+		MessageType.LOG_FATAL.sendMessage("Fatal Error", exception);
 	}
 }
