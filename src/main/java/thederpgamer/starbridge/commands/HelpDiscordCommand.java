@@ -26,10 +26,10 @@ public class HelpDiscordCommand extends HelpCommand implements DiscordCommand {
         CommandInterface commandInterface = StarLoader.getCommand(command);
         if(commandInterface != null) {
             if(commandInterface.isAdminOnly()) {
-                if(isAdmin(event.getMember())) event.reply(command + ":\n" + commandInterface.getDescription().replace("%COMMAND%", command)).queue();
-                else event.reply("You don't have permission to view command " + command).queue();
-            } else event.reply(command + ":\n" + commandInterface.getDescription().replace("%COMMAND%", command)).queue();
-        } else event.reply(command + " is not a valid command.").queue();
+                if(isAdmin(event.getMember())) event.reply(command + ":\n" + commandInterface.getDescription().replace("%COMMAND%", command)).complete();
+                else event.reply("You don't have permission to view command " + command).complete();
+            } else event.reply(command + ":\n" + commandInterface.getDescription().replace("%COMMAND%", command)).complete();
+        } else event.reply(command + " is not a valid command.").complete();
     }
 
     @Override

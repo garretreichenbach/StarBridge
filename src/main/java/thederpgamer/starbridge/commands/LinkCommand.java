@@ -68,7 +68,7 @@ public class LinkCommand implements CommandInterface, DiscordCommand {
     @Override
     public void execute(SlashCommandInteractionEvent event) {
         try {
-            int linkCode = Integer.parseInt(Objects.requireNonNull(event.getOption("link_code")).getAsString());
+            int linkCode = Objects.requireNonNull(event.getOption("link_code")).getAsInt();
             PlayerData playerData = StarBridge.getBot().getLinkRequest(linkCode);
             if(playerData != null) {
                 playerData.setDiscordId(event.getUser().getIdLong());
@@ -76,15 +76,13 @@ public class LinkCommand implements CommandInterface, DiscordCommand {
                 PersistentObjectUtil.save(StarBridge.getInstance().getSkeleton());
                 String logMessage = "Successfully linked user " + event.getUser().getName() + " to " + playerData.getPlayerName();
                 StarBridge.getBot().removeLinkRequest(playerData);
-                event.reply(logMessage).queue();
+                event.reply(logMessage).complete();
                 StarBridge.getInstance().logInfo(logMessage);
-                event.getHook().deleteOriginal().queue();
-                return;
+                event.getHook().deleteOriginal().complete();
             }
         } catch(Exception exception) {
             StarBridge.getInstance().logException("Failed to link user " + event.getUser().getName() + " to an in-game account.", exception);
         }
-        event.reply("Sorry, but that link code is invalid").queue();
     }
 
     @Override

@@ -101,7 +101,7 @@ public class ListCommand implements CommandInterface, DiscordCommand {
                 builder = new StringBuilder();
                 builder.append("There are no players currently online.");
             }
-            event.reply(builder.toString().trim()).queue();
+            event.reply(builder.toString().trim()).complete();
         } else if(type.equalsIgnoreCase("staff") || type.equalsIgnoreCase("s")) {
             try {
                 builder.append("Current Online Staff:\n");
@@ -113,8 +113,8 @@ public class ListCommand implements CommandInterface, DiscordCommand {
                 builder = new StringBuilder();
                 builder.append("There are no staff currently online.");
             }
-            event.reply(builder.toString().trim()).queue();
-        } else event.reply("Incorrect usage \"/" + message + "\". Use /help list for proper usages.").queue();
+            event.reply(builder.toString().trim()).complete();
+        } else event.reply("Incorrect usage \"/" + message + "\". Use /help list for proper usages.").complete();
     }
 
     @Override

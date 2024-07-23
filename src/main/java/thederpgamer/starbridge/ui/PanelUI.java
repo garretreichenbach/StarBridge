@@ -31,19 +31,19 @@ public class PanelUI extends DiscordUI {
 		Button restartNowButton = new ButtonImpl("restart_now_button", "Restart Server (immediate)", ButtonStyle.PRIMARY, !PermissionUtil.checkPermission(member, Permission.ADMINISTRATOR), Emoji.fromUnicode(EmojiParser.parseToUnicode(":arrows_counterclockwise:")));
 
 		addComponent(restartButton, interaction -> {
-			if(!PermissionUtil.checkPermission(member, Permission.ADMINISTRATOR)) interaction.reply("You do not have permission to access this menu.").setEphemeral(true).queue();
+			if(!PermissionUtil.checkPermission(member, Permission.ADMINISTRATOR)) interaction.reply("You do not have permission to access this menu.").setEphemeral(true).complete();
 			else {
 				GameServer.getServerState().addTimedShutdown(300);
 				MessageType.SERVER_RESTARTING_TIMED.sendMessage(300);
-				interaction.reply("Server will restart in 5 minutes.").queue();
+				interaction.reply("Server will restart in 5 minutes.").complete();
 			}
 		});
 		addComponent(restartNowButton, interaction -> {
-			if(!PermissionUtil.checkPermission(member, Permission.ADMINISTRATOR)) interaction.reply("You do not have permission to access this menu.").setEphemeral(true).queue();
+			if(!PermissionUtil.checkPermission(member, Permission.ADMINISTRATOR)) interaction.reply("You do not have permission to access this menu.").setEphemeral(true).complete();
 			else {
 				GameServer.getServerState().addTimedShutdown(10);
 				MessageType.SERVER_RESTARTING.sendMessage();
-				interaction.reply("Server will restart in 10 seconds.").queue();
+				interaction.reply("Server will restart in 10 seconds.").complete();
 			}
 		});
 	}

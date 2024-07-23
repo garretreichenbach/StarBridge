@@ -22,7 +22,7 @@ public class ServerDatabase {
         return null;
     }
 
-    public static PlayerData getPlayerDataWithoutNull(String playerName) {
+    public static PlayerData getPlayerDataOrCreateIfNull(String playerName) {
         ArrayList<Object> dataObjectList = PersistentObjectUtil.getObjects(instance, PlayerData.class);
         for(Object dataObject : dataObjectList) {
             PlayerData playerData = (PlayerData) dataObject;

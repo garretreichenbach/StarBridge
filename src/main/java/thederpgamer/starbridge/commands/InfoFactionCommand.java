@@ -75,8 +75,8 @@ public class InfoFactionCommand implements CommandInterface, DiscordCommand {
     public void execute(SlashCommandInteractionEvent event) {
         String factionName = event.getOption("faction_name").getAsString();
         Faction faction = ServerDatabase.getFaction(factionName.replace("\"", ""));
-        if(faction != null) event.reply(formatFactionData(faction)).queue();
-        else event.reply("Faction " + factionName + "doesn't exist!").queue();
+        if(faction != null) event.reply(formatFactionData(faction)).complete();
+        else event.reply("Faction " + factionName + "doesn't exist!").complete();
     }
 
     @Override

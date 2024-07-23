@@ -14,32 +14,41 @@ import java.util.Locale;
  */
 public class LogWatcher extends PrintStream {
 	private final String[] watchList = {
-		"error",
-		"exception",
-		"warning",
-		"severe",
-		"fatal",
-		"critical",
-		"failed",
-		"invalid",
-		"illegal",
-		"throw",
-		"fail",
-		"runtime"
+			"error",
+			"exception",
+			"warning",
+			"severe",
+			"fatal",
+			"critical",
+			"failed",
+			"invalid",
+			"illegal",
+			"throw",
+			"fail",
+			"runtime"
 	};
 	private final String[] filteredMessages = {
-		"not an error",
-		"server shutdown: false",
-		"server shutdown: true",
-		"server created: true",
-		"sockettimeoutexception",
-		"connection reset",
-		"no content",
-		"invalid blueprint",
-		"trading.tag",
-		"d_info",
-		"fae",
-		"npcspawnexception"
+			"not an error",
+			"server shutdown: false",
+			"server shutdown: true",
+			"server created: true",
+			"sockettimeoutexception",
+			"connection reset",
+			"no content",
+			"invalid blueprint",
+			"trading.tag",
+			"d_info",
+			"fae",
+			"npcspawnexception",
+			"warning: blueprint",
+			"warning: object local update",
+			"mesh calculation",
+			"warning struct deserialization",
+			"handlequeuedsynchronizedobjects",
+			"universe update",
+			"found unknown",
+			"took",
+			"failed to acquire device"
 	};
 
 	public LogWatcher(@NotNull OutputStream out) {

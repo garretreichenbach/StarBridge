@@ -7,6 +7,7 @@ import net.dv8tion.jda.api.utils.messages.MessageCreateBuilder;
 import net.dv8tion.jda.api.utils.messages.MessageCreateData;
 import org.schema.common.util.StringTools;
 import thederpgamer.starbridge.StarBridge;
+import thederpgamer.starbridge.manager.ConfigManager;
 import thederpgamer.starbridge.utils.DiscordUtils;
 
 import java.util.Arrays;
@@ -37,10 +38,12 @@ public enum MessageType {
 	SERVER_STOPPING_TIMED(new MessageCreateBuilder().addContent(":stop_sign: Server will stop in %s").build(), ChannelTarget.BOTH),
 	SERVER_RESTARTING_TIMED(new MessageCreateBuilder().addContent(":arrows_counterclockwise: Server will restart in %s").build(), ChannelTarget.BOTH),
 	SERVER_RESTARTING(new MessageCreateBuilder().addContent(":arrows_counterclockwise: Server is restarting...").build(), ChannelTarget.BOTH),
-	LOG_INFO(new MessageCreateBuilder().addContent(":information_source [INFO]:").build(), ChannelTarget.LOG),
-	LOG_WARNING(new MessageCreateBuilder().addContent(":warning: [WARNING]:").build(), ChannelTarget.LOG),
-	LOG_EXCEPTION(new MessageCreateBuilder().addContent(":exclamation: [EXCEPTION]:").build(), ChannelTarget.LOG),
-	LOG_FATAL(new MessageCreateBuilder().addContent(":bangbang: [FATAL]:").build(), ChannelTarget.LOG);
+	DEBUG_MODE_STARTED(new MessageCreateBuilder().addContent(":question: [DEBUG] Server started in debug mode").build(), ChannelTarget.BOTH),
+	LOG_DEBUG(new MessageCreateBuilder().addContent(":question: [DEBUG]").build(), ChannelTarget.LOG),
+	LOG_INFO(new MessageCreateBuilder().addContent(":information_source: [INFO]").build(), ChannelTarget.LOG),
+	LOG_WARNING(new MessageCreateBuilder().addContent(":warning: [WARNING]").build(), ChannelTarget.LOG),
+	LOG_EXCEPTION(new MessageCreateBuilder().addContent(":exclamation: [EXCEPTION]").build(), ChannelTarget.LOG),
+	LOG_FATAL(new MessageCreateBuilder().addContent(":bangbang: [FATAL]").build(), ChannelTarget.LOG);
 
 	private final MessageCreateData builder;
 	private final ChannelTarget target;
@@ -58,6 +61,7 @@ public enum MessageType {
 					String messageRaw = builder.getContent();
 					String message = String.format(messageRaw, args[0], args[1], args[2], args[3]);
 					target.sendMessage(bot, message);
+					StarBridge.getBot().sendServerMessage("Server", message);
 				}
 				break;
 			case FACTION_CREATE:
@@ -73,6 +77,7 @@ public enum MessageType {
 					String messageRaw = builder.getContent();
 					String message = String.format(messageRaw, args[0], args[1]);
 					target.sendMessage(bot, message);
+					StarBridge.getBot().sendServerMessage("Server", message);
 				}
 				break;
 			case NEW_PLAYER_JOIN:
@@ -82,6 +87,7 @@ public enum MessageType {
 					String messageRaw = builder.getContent();
 					String message = String.format(messageRaw, args[0]);
 					target.sendMessage(bot, message);
+					StarBridge.getBot().sendServerMessage("Server", message);
 				}
 				break;
 			case SERVER_STARTING:
@@ -90,6 +96,11 @@ public enum MessageType {
 			case LOG_INFO:
 			case LOG_WARNING:
 				if(args != null && args.length == 1 && args[0] instanceof String) {
+					target.sendMessage(bot, builder.getContent() + " " + args[0]);
+				}
+				break;
+			case LOG_DEBUG:
+				if(ConfigManager.getMainConfig().getBoolean("debug-mode") && args != null && args.length == 1 && args[0] instanceof String) {
 					target.sendMessage(bot, builder.getContent() + " " + args[0]);
 				}
 				break;
@@ -104,10 +115,12 @@ public enum MessageType {
 						String messageRaw = builder.getContent();
 						String message = String.format(messageRaw, minutes + " minutes");
 						target.sendMessage(bot, message);
+						StarBridge.getBot().sendServerMessage("Server", message);
 					} else {
 						String messageRaw = builder.getContent();
 						String message = String.format(messageRaw, seconds + " seconds");
 						target.sendMessage(bot, message);
+						StarBridge.getBot().sendServerMessage("Server", message);
 					}
 				}
 				break;
@@ -128,7 +141,6 @@ public enum MessageType {
 							embed.setDescription(exception.getClass().getSimpleName());
 							embed.addField("Stack Trace", StringTools.limit(Arrays.toString(exception.getStackTrace()), 1023), false);
 							MessageCreateBuilder messageBuilder = new MessageCreateBuilder();
-							messageBuilder.setContent("Server encountered an exception\n:" + exception.getMessage());
 							messageBuilder.setEmbeds(embed.build());
 							target.sendMessage(bot, messageBuilder.build().getContent());
 						} else {
@@ -136,7 +148,6 @@ public enum MessageType {
 							embed.setTitle((String) args[0]);
 							embed.setDescription(args[1].getClass().getSimpleName());
 							MessageCreateBuilder messageBuilder = new MessageCreateBuilder();
-							messageBuilder.setContent("Server encountered an exception\n:" + args[1].toString());
 							messageBuilder.setEmbeds(embed.build());
 							target.sendMessage(bot, messageBuilder.build().getContent());
 						}

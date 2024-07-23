@@ -20,8 +20,8 @@ import java.util.Objects;
 public class SettingsCommand implements DiscordCommand {
 	@Override
 	public void execute(SlashCommandInteractionEvent event) {
-		if(PermissionUtil.checkPermission(Objects.requireNonNull(event.getMember()), Permission.ADMINISTRATOR)) event.reply(openUI(event.getMember(), event.getChannel()).build()).setEphemeral(true).queue();
-		else event.reply("You do not have permission to use this command!").setEphemeral(true).queue();
+		if(PermissionUtil.checkPermission(Objects.requireNonNull(event.getMember()), Permission.ADMINISTRATOR)) event.reply(openUI(event.getMember(), event.getChannel()).build()).setEphemeral(true).complete();
+		else event.reply("You do not have permission to use this command!").setEphemeral(true).complete();
 	}
 
 	@Override

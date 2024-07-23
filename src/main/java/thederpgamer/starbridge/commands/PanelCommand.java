@@ -20,8 +20,8 @@ import java.util.Objects;
 public class PanelCommand implements DiscordCommand {
 	@Override
 	public void execute(SlashCommandInteractionEvent event) {
-		if(PermissionUtil.checkPermission(Objects.requireNonNull(event.getMember()), Permission.ADMINISTRATOR)) event.reply(openUI(event.getMember(), event.getChannel()).build()).setEphemeral(true).queue();
-		else event.reply("You do not have permission to use this command!").setEphemeral(true).queue();
+		if(PermissionUtil.checkPermission(Objects.requireNonNull(event.getMember()), Permission.ADMINISTRATOR)) event.reply(openUI(event.getMember(), event.getChannel()).build()).setEphemeral(true).complete();
+		else event.reply("You do not have permission to use this command!").setEphemeral(true).complete();
 //			int seconds = Objects.requireNonNull(event.getOption("seconds")).getAsInt();
 //			StarBot.getInstance().sendDiscordMessage(":warning: Server will restart in " + seconds + " seconds!");
 //			GameServer.getServerState().addTimedShutdown(seconds);

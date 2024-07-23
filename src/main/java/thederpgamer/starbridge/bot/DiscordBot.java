@@ -9,16 +9,16 @@ import api.mod.config.FileConfiguration;
 import api.utils.game.PlayerUtils;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
-import net.dv8tion.jda.api.entities.Guild;
-import net.dv8tion.jda.api.entities.Icon;
-import net.dv8tion.jda.api.entities.Member;
-import net.dv8tion.jda.api.entities.Role;
+import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
+import net.dv8tion.jda.api.exceptions.RateLimitedException;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import net.dv8tion.jda.api.interactions.commands.build.CommandData;
+import net.dv8tion.jda.api.managers.AccountManager;
 import net.dv8tion.jda.api.requests.GatewayIntent;
+import net.dv8tion.jda.api.requests.RestAction;
 import net.dv8tion.jda.api.utils.messages.MessageCreateBuilder;
 import net.dv8tion.jda.api.utils.messages.MessageCreateData;
 import org.schema.game.common.controller.SegmentController;
@@ -38,6 +38,7 @@ import thederpgamer.starbridge.utils.LogWatcher;
 
 import java.io.InputStream;
 import java.net.URL;
+import java.net.URLConnection;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -50,10 +51,12 @@ public class DiscordBot extends ListenerAdapter implements Thread.UncaughtExcept
 
 	private final StarBridge instance;
 	private final JDA bot;
-	private long startTime;
 	private final HashMap<String, DiscordUI> uiMap = new HashMap<>();
 	private final HashMap<CommandData, DiscordCommand> commandMap = new HashMap<>();
 	private final ConcurrentHashMap<Integer, PlayerData> linkRequestMap = new ConcurrentHashMap<>();
+	private long startTime;
+	private boolean needsReset = true;
+	private final ArrayList<RestAction<?>> actionQueue = new ArrayList<>();
 
 	private DiscordBot(StarBridge instance) {
 		this.instance = instance;
@@ -63,9 +66,61 @@ public class DiscordBot extends ListenerAdapter implements Thread.UncaughtExcept
 			assert bot != null;
 			bot.awaitReady();
 			startTime = System.currentTimeMillis();
+			//Waits for each action to complete successfully
+			//If we are being rate limited, this will wait until the rate limit is lifted
+			new Thread(() -> {
+				while(true) {
+					try {
+						//Waits for each action to complete successfully
+						//If we are being rate limited, this will wait until the rate limit is lifted
+						if(!actionQueue.isEmpty()) {
+							Thread actionThread = new Thread(() -> {
+								while(true) {
+									try {
+										RestAction<?> action = actionQueue.get(0);
+										action.complete(true);
+										actionQueue.remove(action);
+										break;
+									} catch(RateLimitedException exception) {
+										exception.printStackTrace();
+										try {
+											Thread.sleep(exception.getRetryAfter());
+										} catch(InterruptedException e) {
+											throw new RuntimeException(e);
+										}
+									}
+								}
+							});
+							actionThread.start();
+//							actionThread.join();
+						}
+					} catch(Exception exception) {
+ 						exception.printStackTrace();
+					}
+				}
+			}).start();
+
+			new Thread(() -> {
+				while(true) {
+					try {
+						Thread.sleep(60000);
+						updateChannelInfo();
+					} catch(Exception exception) {
+						exception.printStackTrace();
+					}
+				}
+			}).start();
+			resetBot();
 		} catch(Exception exception) {
 			exception.printStackTrace();
 		}
+	}
+
+	public static DiscordBot initialize(StarBridge instance) {
+		DiscordBot bot = new DiscordBot(instance);
+		bot.registerCommands();
+		bot.initRestartTimer();
+		return bot;
 	}
 
 	private void initRestartTimer() {
@@ -88,13 +143,13 @@ public class DiscordBot extends ListenerAdapter implements Thread.UncaughtExcept
 					@Override
 					public void run() {
 						MessageType.SERVER_RESTARTING_TIMED.sendMessage(300);
-						GameServer.getServerState().addTimedShutdown(300);
 					}
 				}, minuteWarning5);
 				restart.schedule(new TimerTask() {
 					@Override
 					public void run() {
 						MessageType.SERVER_RESTARTING_TIMED.sendMessage(60);
+						GameServer.getServerState().addTimedShutdown(60);
 					}
 				}, minuteWarning1);
 			}
@@ -115,7 +170,8 @@ public class DiscordBot extends ListenerAdapter implements Thread.UncaughtExcept
 			builder.addEventListeners(this);
 			return builder.build();
 		} catch(Exception exception) {
-			instance.logException("An exception occurred while creating Discord bot (most likely due to invalid config)", exception);
+			exception.printStackTrace();
+			System.err.println("An exception occurred while creating Discord bot (most likely due to invalid config)");
 			return null;
 		}
 	}
@@ -125,11 +181,11 @@ public class DiscordBot extends ListenerAdapter implements Thread.UncaughtExcept
 			int playerCount = GameServer.getServerState().getPlayerStatesByName().size();
 			int playerMax = (int) ServerConfig.MAX_CLIENTS.getCurrentState();
 			String chatChannelStats = ("Players: " + playerCount + " / " + playerMax);
-			Objects.requireNonNull(bot.getTextChannelById(ConfigManager.getMainConfig().getLong("chat-channel-id"))).getManager().setTopic(chatChannelStats).queue();
+			queueAction(Objects.requireNonNull(bot.getTextChannelById(ConfigManager.getMainConfig().getLong("chat-channel-id"))).getManager().setTopic(chatChannelStats));
 			String logChannelStats = ("Clients: " + playerCount + " / " + playerMax + " \nCurrent Uptime: " + (System.currentTimeMillis() - startTime));
-			Objects.requireNonNull(bot.getTextChannelById(ConfigManager.getMainConfig().getLong("log-channel-id"))).getManager().setTopic(logChannelStats).queue();
+			queueAction(Objects.requireNonNull(bot.getTextChannelById(ConfigManager.getMainConfig().getLong("log-channel-id"))).getManager().setTopic(logChannelStats));
 		} catch(Exception exception) {
-			//LogManager.logException("Failed to update channel info", exception);
+			StarBridge.getInstance().logException("Failed to update channel info", exception);
 		}
 	}
 
@@ -145,42 +201,15 @@ public class DiscordBot extends ListenerAdapter implements Thread.UncaughtExcept
 			commandList.add(new ListCommand());
 			for(DiscordCommand command : commandList) {
 				commandMap.put(command.getCommandData(), command);
-				getGuild().upsertCommand(command.getCommandData()).queue();
+				getGuild().upsertCommand(command.getCommandData()).complete();
 			}
 		} catch(Exception exception) {
 			instance.logException("Failed to register commands", exception);
-			exception.printStackTrace();
 		}
 	}
 
 	public Guild getGuild() {
 		return bot.getGuildById(ConfigManager.getMainConfig().getLong("server-id"));
-	}
-
-	public static void addToFilter(String exceptionClass) {
-		removeFromFilter(exceptionClass);
-		List<String> filter = getLoggingConfig().getList("ignored-exceptions");
-		filter.add(exceptionClass);
-		getLoggingConfig().set("ignored-exceptions", filter);
-		getLoggingConfig().saveConfig();
-	}
-
-	public static void removeFromFilter(String exceptionClass) {
-		List<String> filter = getLoggingConfig().getList("ignored-exceptions");
-		filter.remove(exceptionClass);
-		getLoggingConfig().set("ignored-exceptions", filter);
-		getLoggingConfig().saveConfig();
-	}
-
-	private static FileConfiguration getLoggingConfig() {
-		return ConfigManager.getLoggingConfig();
-	}
-
-	public static DiscordBot initialize(StarBridge instance) {
-		DiscordBot bot = new DiscordBot(instance);
-		bot.registerCommands();
-		bot.initRestartTimer();
-		return bot;
 	}
 
 	public boolean hasRole(Member member, long roleId) {
@@ -215,12 +244,11 @@ public class DiscordBot extends ListenerAdapter implements Thread.UncaughtExcept
 	@Override
 	public void onMessageReceived(MessageReceivedEvent event) {
 		String content = event.getMessage().getContentDisplay().trim();
-		if(content.length() > 0) {
+		if(!content.isEmpty()) {
 			if(!event.getAuthor().isBot() && !event.isWebhookMessage()) {
 				if(event.getChannel().getIdLong() == ConfigManager.getMainConfig().getLong("chat-channel-id")) {
-					if(content.charAt(0) != '/')
-						sendServerMessage(event.getAuthor().getEffectiveName(), content.trim());
-					else event.getMessage().delete().queue();
+					if(content.charAt(0) != '/') sendServerMessage(event.getAuthor().getEffectiveName(), content.trim());
+					else event.getMessage().delete().complete();
 				}
 			}
 		}
@@ -243,7 +271,7 @@ public class DiscordBot extends ListenerAdapter implements Thread.UncaughtExcept
 	}
 
 	public void addLinkRequest(PlayerState playerState) {
-		PlayerData playerData = ServerDatabase.getPlayerDataWithoutNull(playerState.getName());
+		PlayerData playerData = ServerDatabase.getPlayerDataOrCreateIfNull(playerState.getName());
 		removeLinkRequest(playerData);
 		int num = (new Random()).nextInt(9999 - 1000) + 1000;
 		linkRequestMap.put(num, playerData);
@@ -278,7 +306,7 @@ public class DiscordBot extends ListenerAdapter implements Thread.UncaughtExcept
 			message = message.replace("@", "");
 			message = message.replace("\"", "");
 			ChatMessage chatMessage = new ChatMessage(playerChatEvent.getMessage());
-			PlayerData playerData = ServerDatabase.getPlayerData(playerChatEvent.getMessage().sender);
+			PlayerData playerData = ServerDatabase.getPlayerDataOrCreateIfNull(playerChatEvent.getMessage().sender);
 			try {
 				switch(chatMessage.receiverType) {
 					case SYSTEM:
@@ -302,16 +330,15 @@ public class DiscordBot extends ListenerAdapter implements Thread.UncaughtExcept
 										break;
 									case PUBLIC:
 										messageToSend = chatMessage.sender + " -> Public: " + message;
-										/*
-										if(discordID > 0) {
-											User user = bot.getUserById(discordID);
-											if(user != null) setBotAvatar(user.getAvatarUrl());
+										long discordID = playerData.getDiscordId();
+										try {
+											if(discordID > 0) setBotToUser(Objects.requireNonNull(bot.getUserById(discordID)));
+											else queueAction(bot.getSelfUser().getManager().setName(chatMessage.sender));
+											sendDiscordMessage(new MessageCreateBuilder().addContent("[" + chatMessage.sender + "]: " + message).build());
+											resetBot();
+										} catch(Exception exception) {
+											instance.logException("An exception occurred while trying to handle a chat event", exception);
 										}
-										 */
-//										bot.getSelfUser().getManager().setName(chatMessage.sender).queue();
-										sendDiscordMessage(new MessageCreateBuilder().addContent("[" + chatMessage.sender + "]: " + message).build());
-//										setBotAvatar("https://" + ConfigManager.getMainConfig().getString("bot-avatar"));
-//										bot.getSelfUser().getManager().setName(ConfigManager.getMainConfig().getString("bot-name")).queue();
 										break;
 									case PARTY:
 										messageToSend = chatMessage.sender + " -> Party: " + message;
@@ -333,17 +360,11 @@ public class DiscordBot extends ListenerAdapter implements Thread.UncaughtExcept
 								StarBridge.getInstance().logInfo(chatMessage.sender + " -> [Unknown Faction]: " + message);
 							}
 						} else if("all".equalsIgnoreCase(chatMessage.receiver)) {
-							/*
-							if(discordID > 0) {
-								User user = bot.getUserById(discordID);
-								if(user != null) setBotAvatar(user.getAvatarUrl());
-							}
-							bot.getSelfUser().getManager().setName(chatMessage.sender).queue();
-							 */
+							long discordID = playerData.getDiscordId();
+							if(discordID > 0) setBotToUser(Objects.requireNonNull(bot.getUserById(discordID)));
+							else queueAction(bot.getSelfUser().getManager().setName(chatMessage.sender));
 							sendDiscordMessage(new MessageCreateBuilder().addContent("[" + chatMessage.sender + "]: " + message).build());
-							StarBridge.getInstance().logInfo(chatMessage.sender + " -> Public: " + message);
-//							setBotAvatar("https://" + ConfigManager.getMainConfig().getString("bot-avatar"));
-//							bot.getSelfUser().getManager().setName(ConfigManager.getMainConfig().getString("bot-name")).queue();
+							resetBot();
 						}
 						break;
 				}
@@ -431,14 +452,51 @@ public class DiscordBot extends ListenerAdapter implements Thread.UncaughtExcept
 		}
 	}
 
-	private void setBotAvatar(String avatarUrl) {
+	public void setBotToUser(User user) {
 		try {
-			InputStream stream = new URL(avatarUrl).openStream();
-			Icon icon = Icon.from(stream);
-			bot.getSelfUser().getManager().setAvatar(icon).queue();
-			stream.close();
+			AccountManager manager = bot.getSelfUser().getManager();
+			Icon icon = getAvatar(user.getEffectiveAvatarUrl());
+			if(icon != null) {
+				queueAction(manager.setName(user.getEffectiveName()));
+				queueAction(manager.setAvatar(icon));
+				needsReset = true;
+			}
+		} catch(Exception exception) {
+			instance.logException("An exception occurred while setting bot to user", exception);
+		}
+	}
+
+	private void queueAction(RestAction<?> action) {
+		actionQueue.add(action);
+	}
+
+	public void resetBot() {
+		try {
+			AccountManager manager = bot.getSelfUser().getManager();
+			queueAction(manager.setName(ConfigManager.getMainConfig().getString("bot-name")));
+			queueAction(manager.setAvatar(getAvatar(ConfigManager.getMainConfig().getString("bot-avatar"))));
+			needsReset = false;
+		} catch(Exception exception) {
+			instance.logException("An exception occurred while resetting bot", exception);
+		}
+	}
+
+	public String getURL(String string) {
+		if(string.startsWith("\"") && string.endsWith("\"")) string = string.substring(1, string.length() - 1);
+		if(!string.startsWith("https://")) string = "https://" + string;
+		return string;
+	}
+
+	private Icon getAvatar(String avatarUrl) {
+		try {
+			avatarUrl = getURL(avatarUrl);
+			URLConnection connection = new URL(avatarUrl).openConnection();
+			connection.setRequestProperty("User-Agent", "Mozilla/5.0");
+			InputStream inputStream = connection.getInputStream();
+			return Icon.from(inputStream);
 		} catch(Exception exception) {
 			instance.logException("An exception occurred while setting bot avatar", exception);
+			return null;
 		}
 	}
 
@@ -449,18 +507,10 @@ public class DiscordBot extends ListenerAdapter implements Thread.UncaughtExcept
 	 */
 	public void sendDiscordMessage(MessageCreateData message) {
 		try {
-			Objects.requireNonNull(bot.getTextChannelById(ConfigManager.getMainConfig().getLong("chat-channel-id"))).sendMessage(message).queue();
+			queueAction(Objects.requireNonNull(bot.getTextChannelById(ConfigManager.getMainConfig().getLong("chat-channel-id"))).sendMessage(message));
 		} catch(Exception exception) {
 			instance.logException("An exception occurred while sending Discord message", exception);
 		}
-	}
-
-	public static boolean isFiltered(Throwable exception) {
-		List<String> filter = getLoggingConfig().getList("ignored-exceptions");
-		for(String exceptionClass : filter) {
-			if(exception.getClass().getName().equals(exceptionClass)) return true;
-		}
-		return false;
 	}
 
 	public JDA getJDA() {
@@ -478,5 +528,9 @@ public class DiscordBot extends ListenerAdapter implements Thread.UncaughtExcept
 	@Override
 	public void uncaughtException(Thread thread, Throwable exception) {
 		MessageType.LOG_FATAL.sendMessage("Fatal Error", exception);
+	}
+
+	public void checkReset() {
+		if(needsReset) resetBot();
 	}
 }
