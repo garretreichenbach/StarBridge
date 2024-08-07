@@ -13,43 +13,9 @@ import java.util.Locale;
  * @author Garret Reichenbach
  */
 public class LogWatcher extends PrintStream {
-	private final String[] watchList = {
-			"error",
-			"exception",
-			"warning",
-			"severe",
-			"fatal",
-			"critical",
-			"failed",
-			"invalid",
-			"illegal",
-			"throw",
-			"fail",
-			"runtime"
-	};
-	private final String[] filteredMessages = {
-			"not an error",
-			"server shutdown: false",
-			"server shutdown: true",
-			"server created: true",
-			"sockettimeoutexception",
-			"connection reset",
-			"no content",
-			"invalid blueprint",
-			"trading.tag",
-			"d_info",
-			"fae",
-			"npcspawnexception",
-			"warning: blueprint",
-			"warning: object local update",
-			"mesh calculation",
-			"warning struct deserialization",
-			"handlequeuedsynchronizedobjects",
-			"universe update",
-			"found unknown",
-			"took",
-			"failed to acquire device"
-	};
+
+	private boolean printing;
+	private StringBuilder builder;
 
 	public LogWatcher(@NotNull OutputStream out) {
 		super(out);
@@ -58,28 +24,15 @@ public class LogWatcher extends PrintStream {
 	@Override
 	public void print(String str) {
 		super.print(str);
-		for(String filteredMessage : filteredMessages) if(str.toLowerCase(Locale.ENGLISH).contains(filteredMessage)) return;
-		for(String watch : watchList) {
-			if(str.toLowerCase(Locale.ENGLISH).contains(watch.toLowerCase(Locale.ENGLISH))) {
-				switch(watch) {
-					case "error":
-					case "exception":
-					case "throw":
-					case "fail":
-						MessageType.LOG_EXCEPTION.sendMessage(str);
-						return;
-					case "fatal":
-					case "critical":
-					case "severe":
-					case "runtime":
-						MessageType.LOG_FATAL.sendMessage(str);
-						return;
-					case "warning":
-						MessageType.LOG_WARNING.sendMessage(str);
-						return;
-				}
+		if(printing) {
+			builder.append(str);
+			if(!str.contains("\t")) {
+				MessageType.LOG_EXCEPTION.sendMessage(builder.toString());
+				printing = false;
 			}
+		} else if(str.toLowerCase(Locale.ENGLISH).contains("exception")) {
+			builder = new StringBuilder(str);
+			printing = true;
 		}
-//		MessageType.LOG_INFO.sendMessage(str);
 	}
 }

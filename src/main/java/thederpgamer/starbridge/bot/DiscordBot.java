@@ -330,12 +330,12 @@ public class DiscordBot extends ListenerAdapter implements Thread.UncaughtExcept
 										break;
 									case PUBLIC:
 										messageToSend = chatMessage.sender + " -> Public: " + message;
-										long discordID = playerData.getDiscordId();
+//										long discordID = playerData.getDiscordId();
 										try {
-											if(discordID > 0) setBotToUser(Objects.requireNonNull(bot.getUserById(discordID)));
-											else queueAction(bot.getSelfUser().getManager().setName(chatMessage.sender));
+//											if(discordID > 0) setBotToUser(Objects.requireNonNull(bot.getUserById(discordID)));
+//											else queueAction(bot.getSelfUser().getManager().setName(chatMessage.sender));
 											sendDiscordMessage(new MessageCreateBuilder().addContent("[" + chatMessage.sender + "]: " + message).build());
-											resetBot();
+//											resetBot();
 										} catch(Exception exception) {
 											instance.logException("An exception occurred while trying to handle a chat event", exception);
 										}
@@ -360,11 +360,11 @@ public class DiscordBot extends ListenerAdapter implements Thread.UncaughtExcept
 								StarBridge.getInstance().logInfo(chatMessage.sender + " -> [Unknown Faction]: " + message);
 							}
 						} else if("all".equalsIgnoreCase(chatMessage.receiver)) {
-							long discordID = playerData.getDiscordId();
-							if(discordID > 0) setBotToUser(Objects.requireNonNull(bot.getUserById(discordID)));
-							else queueAction(bot.getSelfUser().getManager().setName(chatMessage.sender));
+//							long discordID = playerData.getDiscordId();
+//							if(discordID > 0) setBotToUser(Objects.requireNonNull(bot.getUserById(discordID)));
+//							queueAction(bot.getSelfUser().getManager().setName(chatMessage.sender));
 							sendDiscordMessage(new MessageCreateBuilder().addContent("[" + chatMessage.sender + "]: " + message).build());
-							resetBot();
+//							resetBot();
 						}
 						break;
 				}
@@ -455,12 +455,12 @@ public class DiscordBot extends ListenerAdapter implements Thread.UncaughtExcept
 	public void setBotToUser(User user) {
 		try {
 			AccountManager manager = bot.getSelfUser().getManager();
-			Icon icon = getAvatar(user.getEffectiveAvatarUrl());
-			if(icon != null) {
+//			Icon icon = getAvatar(user.getEffectiveAvatarUrl());
+//			if(icon != null) {
 				queueAction(manager.setName(user.getEffectiveName()));
-				queueAction(manager.setAvatar(icon));
+//				queueAction(manager.setAvatar(icon));
 				needsReset = true;
-			}
+//			}
 		} catch(Exception exception) {
 			instance.logException("An exception occurred while setting bot to user", exception);
 		}
@@ -474,7 +474,7 @@ public class DiscordBot extends ListenerAdapter implements Thread.UncaughtExcept
 		try {
 			AccountManager manager = bot.getSelfUser().getManager();
 			queueAction(manager.setName(ConfigManager.getMainConfig().getString("bot-name")));
-			queueAction(manager.setAvatar(getAvatar(ConfigManager.getMainConfig().getString("bot-avatar"))));
+//			queueAction(manager.setAvatar(getAvatar(ConfigManager.getMainConfig().getString("bot-avatar"))));
 			needsReset = false;
 		} catch(Exception exception) {
 			instance.logException("An exception occurred while resetting bot", exception);
