@@ -76,9 +76,9 @@ public class LinkCommand implements CommandInterface, DiscordCommand {
                 PersistentObjectUtil.save(StarBridge.getInstance().getSkeleton());
                 String logMessage = "Successfully linked user " + event.getUser().getName() + " to " + playerData.getPlayerName();
                 StarBridge.getBot().removeLinkRequest(playerData);
-                event.reply(logMessage).complete();
+                event.reply(logMessage).queue();
                 StarBridge.getInstance().logInfo(logMessage);
-                event.getHook().deleteOriginal().complete();
+                event.getHook().deleteOriginal().queue();
             }
         } catch(Exception exception) {
             StarBridge.getInstance().logException("Failed to link user " + event.getUser().getName() + " to an in-game account.", exception);

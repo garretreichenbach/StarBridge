@@ -13,7 +13,6 @@ import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
-import net.dv8tion.jda.api.exceptions.RateLimitedException;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import net.dv8tion.jda.api.interactions.commands.build.CommandData;
 import net.dv8tion.jda.api.managers.AccountManager;
@@ -56,7 +55,6 @@ public class DiscordBot extends ListenerAdapter implements Thread.UncaughtExcept
 	private final ConcurrentHashMap<Integer, PlayerData> linkRequestMap = new ConcurrentHashMap<>();
 	private long startTime;
 	private boolean needsReset = true;
-	private final ArrayList<RestAction<?>> actionQueue = new ArrayList<>();
 
 	private DiscordBot(StarBridge instance) {
 		this.instance = instance;
@@ -66,39 +64,6 @@ public class DiscordBot extends ListenerAdapter implements Thread.UncaughtExcept
 			assert bot != null;
 			bot.awaitReady();
 			startTime = System.currentTimeMillis();
-			//Waits for each action to complete successfully
-			//If we are being rate limited, this will wait until the rate limit is lifted
-			new Thread(() -> {
-				while(true) {
-					try {
-						//Waits for each action to complete successfully
-						//If we are being rate limited, this will wait until the rate limit is lifted
-						if(!actionQueue.isEmpty()) {
-							Thread actionThread = new Thread(() -> {
-								while(true) {
-									try {
-										RestAction<?> action = actionQueue.get(0);
-										action.complete(true);
-										actionQueue.remove(action);
-										break;
-									} catch(RateLimitedException exception) {
-										exception.printStackTrace();
-										try {
-											Thread.sleep(exception.getRetryAfter());
-										} catch(InterruptedException e) {
-											throw new RuntimeException(e);
-										}
-									}
-								}
-							});
-							actionThread.start();
-//							actionThread.join();
-						}
-					} catch(Exception exception) {
- 						exception.printStackTrace();
-					}
-				}
-			}).start();
 
 			new Thread(() -> {
 				while(true) {
@@ -110,7 +75,6 @@ public class DiscordBot extends ListenerAdapter implements Thread.UncaughtExcept
 					}
 				}
 			}).start();
-			resetBot();
 		} catch(Exception exception) {
 			exception.printStackTrace();
 		}
@@ -201,7 +165,7 @@ public class DiscordBot extends ListenerAdapter implements Thread.UncaughtExcept
 			commandList.add(new ListCommand());
 			for(DiscordCommand command : commandList) {
 				commandMap.put(command.getCommandData(), command);
-				getGuild().upsertCommand(command.getCommandData()).complete();
+				getGuild().upsertCommand(command.getCommandData()).queue();
 			}
 		} catch(Exception exception) {
 			instance.logException("Failed to register commands", exception);
@@ -248,7 +212,7 @@ public class DiscordBot extends ListenerAdapter implements Thread.UncaughtExcept
 			if(!event.getAuthor().isBot() && !event.isWebhookMessage()) {
 				if(event.getChannel().getIdLong() == ConfigManager.getMainConfig().getLong("chat-channel-id")) {
 					if(content.charAt(0) != '/') sendServerMessage(event.getAuthor().getEffectiveName(), content.trim());
-					else event.getMessage().delete().complete();
+					else event.getMessage().delete().queue();
 				}
 			}
 		}
@@ -457,7 +421,7 @@ public class DiscordBot extends ListenerAdapter implements Thread.UncaughtExcept
 			AccountManager manager = bot.getSelfUser().getManager();
 //			Icon icon = getAvatar(user.getEffectiveAvatarUrl());
 //			if(icon != null) {
-				queueAction(manager.setName(user.getEffectiveName()));
+//				queueAction(manager.setName(user.getEffectiveName()));
 //				queueAction(manager.setAvatar(icon));
 				needsReset = true;
 //			}
@@ -467,13 +431,13 @@ public class DiscordBot extends ListenerAdapter implements Thread.UncaughtExcept
 	}
 
 	private void queueAction(RestAction<?> action) {
-		actionQueue.add(action);
+		action.queue();
 	}
 
 	public void resetBot() {
 		try {
 			AccountManager manager = bot.getSelfUser().getManager();
-			queueAction(manager.setName(ConfigManager.getMainConfig().getString("bot-name")));
+//			queueAction(manager.setName(ConfigManager.getMainConfig().getString("bot-name")));
 //			queueAction(manager.setAvatar(getAvatar(ConfigManager.getMainConfig().getString("bot-avatar"))));
 			needsReset = false;
 		} catch(Exception exception) {

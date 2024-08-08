@@ -75,7 +75,7 @@ public class InfoPlayerCommand implements CommandInterface, DiscordCommand {
     public void execute(SlashCommandInteractionEvent event) {
         String playerName = event.getOption("player_name").getAsString();
         PlayerData playerData = ServerDatabase.getPlayerDataOrCreateIfNull(playerName);
-        event.reply(formatPlayerData(playerData)).complete();
+        event.reply(formatPlayerData(playerData)).queue();
     }
 
     @Override
