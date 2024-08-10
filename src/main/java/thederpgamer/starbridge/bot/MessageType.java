@@ -139,22 +139,22 @@ public enum MessageType {
 							EmbedBuilder embed = new EmbedBuilder();
 							embed.setTitle((String) args[0]);
 							embed.setDescription(exception.getClass().getSimpleName());
-							embed.addField("Stack Trace", StringTools.limit(Arrays.toString(exception.getStackTrace()), 1023), false);
+							embed.addField("Stack Trace", StringTools.limit(Arrays.toString(exception.getStackTrace()), 1024), false);
 							MessageCreateBuilder messageBuilder = new MessageCreateBuilder();
 							messageBuilder.setEmbeds(embed.build());
-							target.sendMessage(bot, messageBuilder.build().getContent());
+							target.sendMessage(bot, StringTools.limit(messageBuilder.build().getContent(), 2000));
 						} else {
 							EmbedBuilder embed = new EmbedBuilder();
 							embed.setTitle((String) args[0]);
 							embed.setDescription(args[1].getClass().getSimpleName());
 							MessageCreateBuilder messageBuilder = new MessageCreateBuilder();
 							messageBuilder.setEmbeds(embed.build());
-							target.sendMessage(bot, messageBuilder.build().getContent());
+							target.sendMessage(bot, StringTools.limit(messageBuilder.build().getContent(), 2000));
 						}
 					} else {
 						MessageCreateBuilder messageBuilder = new MessageCreateBuilder();
-						messageBuilder.setContent("Server encountered an exception\n:" + args[0]);
-						target.sendMessage(bot, messageBuilder.build().getContent());
+						messageBuilder.setContent(StringTools.limit("Server encountered an exception\n:" + args[0], 2000));
+						target.sendMessage(bot, StringTools.limit(messageBuilder.build().getContent(), 2000));
 					}
 				}
 				break;
