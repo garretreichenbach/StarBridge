@@ -350,10 +350,10 @@ public class DiscordBot extends ListenerAdapter implements Thread.UncaughtExcept
 			MessageType.FACTION_CREATE.sendMessage(factionCreateEvent.getFaction().getName(), factionCreateEvent.getPlayer().getName());
 		} else if(event instanceof PlayerJoinFactionEvent) {
 			PlayerJoinFactionEvent playerJoinFactionEvent = (PlayerJoinFactionEvent) event;
-			MessageType.PLAYER_JOIN_FACTION.sendMessage(playerJoinFactionEvent.getPlayer().getName(), playerJoinFactionEvent.getFaction().getName());
+			MessageType.PLAYER_JOIN_FACTION.sendMessage(playerJoinFactionEvent.getPlayer(), playerJoinFactionEvent.getFaction().getName());
 		} else if(event instanceof PlayerLeaveFactionEvent) {
 			PlayerLeaveFactionEvent playerLeaveFactionEvent = (PlayerLeaveFactionEvent) event;
-			MessageType.PLAYER_LEAVE_FACTION.sendMessage(playerLeaveFactionEvent.getPlayer().getName(), playerLeaveFactionEvent.getFaction().getName());
+			MessageType.PLAYER_LEAVE_FACTION.sendMessage(playerLeaveFactionEvent.getPlayer(), playerLeaveFactionEvent.getFaction().getName());
 		} else if(event instanceof PlayerDeathEvent) {
 			PlayerDeathEvent playerDeathEvent = (PlayerDeathEvent) event;
 			if(playerDeathEvent.getDamager().isSegmentController()) {
