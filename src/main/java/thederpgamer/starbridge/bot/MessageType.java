@@ -134,8 +134,8 @@ public enum MessageType {
 			case LOG_EXCEPTION:
 				if(args != null && args[0] instanceof String) {
 					if(args.length == 2) {
-						if(args[1] instanceof Throwable) {
-							Throwable exception = (Throwable) args[1];
+						if(args[1] instanceof Exception) {
+							Exception exception = (Exception) args[1];
 							EmbedBuilder embed = new EmbedBuilder();
 							embed.setTitle((String) args[0]);
 							embed.setDescription(exception.getClass().getSimpleName());
@@ -161,8 +161,8 @@ public enum MessageType {
 			case LOG_FATAL:
 				if(args != null && args[0] instanceof String) {
 					if(args.length == 2) {
-						if(args[1] instanceof Throwable) {
-							Throwable exception = (Throwable) args[1];
+						if(args[1] instanceof Exception) {
+							Exception exception = (Exception) args[1];
 							EmbedBuilder embed = new EmbedBuilder();
 							embed.setTitle((String) args[0]);
 							embed.setDescription(exception.getClass().getSimpleName());

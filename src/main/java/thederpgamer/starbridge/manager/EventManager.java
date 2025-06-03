@@ -1,6 +1,5 @@
 package thederpgamer.starbridge.manager;
 
-import api.listener.EventPriority;
 import api.listener.Listener;
 import api.listener.events.faction.FactionCreateEvent;
 import api.listener.events.faction.FactionRelationChangeEvent;
@@ -11,21 +10,19 @@ import org.schema.common.util.linAlg.Vector3i;
 import thederpgamer.starbridge.StarBridge;
 
 /**
- * [Description]
- *
- * @author Garret Reichenbach
+ * Manager class for handling events.
  */
 public class EventManager {
 
 	public static void initialize(StarBridge instance) {
-		StarLoader.registerListener(SystemNameGetEvent.class, new Listener<SystemNameGetEvent>(EventPriority.LOW) {
+		StarLoader.registerListener(SystemNameGetEvent.class, new Listener<SystemNameGetEvent>() {
 			@Override
-			public void onEvent(SystemNameGetEvent s) {
-				Vector3i pos = s.getPosition();
-				pos.add(-64,-64,-64);
+			public void onEvent(SystemNameGetEvent event) {
+				Vector3i pos = event.getPosition();
+				pos.add(-64, -64, -64);
 				String centerOriginPos = pos.toString();
 				String name = ConfigManager.getSystemNamesConfig().getString(centerOriginPos);
-				if(name != null) s.setName(name);
+				if(name != null) event.setName(name);
 			}
 		}, instance);
 

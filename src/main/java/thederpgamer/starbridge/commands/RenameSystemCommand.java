@@ -3,25 +3,24 @@ package thederpgamer.starbridge.commands;
 import api.common.GameServer;
 import api.mod.StarMod;
 import api.utils.game.chat.CommandInterface;
-import net.dv8tion.jda.api.entities.Member;
-import net.dv8tion.jda.api.entities.User;
 import org.schema.common.util.linAlg.Vector3i;
 import org.schema.game.common.data.player.PlayerState;
 import org.schema.game.common.data.world.StellarSystem;
 import thederpgamer.starbridge.StarBridge;
+import thederpgamer.starbridge.data.permissions.IPermissibleAction;
+import thederpgamer.starbridge.data.permissions.PermissionGroup;
 import thederpgamer.starbridge.data.player.PlayerData;
 import thederpgamer.starbridge.manager.ConfigManager;
+import thederpgamer.starbridge.manager.DataManager;
 import thederpgamer.starbridge.utils.PlayerUtils;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
 
 /**
- * [Description]
- *
- * @author TheDerpGamer (TheDerpGamer#0027)
+ * Renames an owned system.
  */
-public class RenameSystemCommand implements CommandInterface {
+public class RenameSystemCommand implements CommandInterface, IPermissibleAction {
 	@Override
 	public String getCommand() {
 		return "rename_system";
@@ -29,15 +28,12 @@ public class RenameSystemCommand implements CommandInterface {
 
 	@Override
 	public String[] getAliases() {
-		return new String[] {
-				"rename_system"
-		};
+		return new String[] {"rename_system"};
 	}
 
 	@Override
 	public String getDescription() {
-		return "Renames an owned system. Donators only!\n" +
-				"- /%COMMAND% <new name>";
+		return "Renames an owned system." + "- /%COMMAND% <new name>";
 	}
 
 	@Override
@@ -48,26 +44,33 @@ public class RenameSystemCommand implements CommandInterface {
 	@Override
 	public boolean onCommand(PlayerState playerState, String[] args) {
 		if(args.length == 1) {
-			PlayerData playerData = PlayerUtils.getPlayerData(playerState);
-			if(playerData.getDiscordId() == 0) {
-				api.utils.game.PlayerUtils.sendMessage(playerState, "You must be linked to Discord to use this command!");
-				return true;
-			} else {
-				try {
-					StellarSystem stellarSystem = GameServer.getServerState().getUniverse().getStellarSystemFromStellarPos(playerState.getCurrentSystem());
-					User user = StarBridge.getBot().getJDA().getUserById(playerData.getDiscordId());
-					Vector3i pos = stellarSystem.getPos();
-					pos.add(-64,-64,-64);
-					String centerOriginPos = pos.toString();
-					assert user != null;
-					if(stellarSystem.getOwnerFaction() == playerState.getFactionId()) {
-						if(StarBridge.getBot().hasRole((Member) user, ConfigManager.getMainConfig().getLong("tier-1-role-id")) || StarBridge.getBot().hasRole((Member) user, ConfigManager.getMainConfig().getLong("tier-2-role-id"))) ConfigManager.getSystemNamesConfig().set(centerOriginPos, args[0]);
-						else api.utils.game.PlayerUtils.sendMessage(playerState, "You must be a donator to use this command!");
-					} else api.utils.game.PlayerUtils.sendMessage(playerState, "You must own the system to use this command!");
-					return true;
-				} catch(IOException exception) {
-					exception.printStackTrace();
+			try {
+				StellarSystem stellarSystem = GameServer.getServerState().getUniverse().getStellarSystemFromStellarPos(playerState.getCurrentSystem());
+				Vector3i pos = stellarSystem.getPos();
+				pos.add(-64, -64, -64);
+				String centerOriginPos = pos.toString();
+				PlayerData playerData = PlayerData.getFromName(playerState.getName());
+				if(playerData != null) {
+					boolean hasPermission = (boolean) playerData.getPermission("rename_system");
+					if(stellarSystem.getOwnerFaction() != playerState.getFactionId() && !playerState.isAdmin()) {
+						api.utils.game.PlayerUtils.sendMessage(playerState, "You do not have permission to rename this system!");
+						return false;
+					}
+					if(!hasPermission && !ConfigManager.getMainConfig().getBoolean("debug-mode")) {
+						api.utils.game.PlayerUtils.sendMessage(playerState, "You do not have permission to rename systems!");
+						return false;
+					}
+					if(args[0].length() > 32) {
+						api.utils.game.PlayerUtils.sendMessage(playerState, "System name cannot be longer than 32 characters!");
+						return false;
+					}
+
+					ConfigManager.getSystemNamesConfig().set(centerOriginPos, args[0]);
+					api.utils.game.PlayerUtils.sendMessage(playerState, "System name has been changed to: " + args[0] + ", will take effect on next server restart.");
 				}
+				return true;
+			} catch(IOException exception) {
+				StarBridge.getInstance().logException("Failed to rename system", exception);
 			}
 		}
 		return false;
@@ -81,5 +84,10 @@ public class RenameSystemCommand implements CommandInterface {
 	@Override
 	public StarMod getMod() {
 		return StarBridge.getInstance();
+	}
+
+	@Override
+	public PermissionGroup getRequiredGroup() {
+		return PermissionGroup.getFromName();
 	}
 }

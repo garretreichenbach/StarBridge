@@ -11,6 +11,7 @@ import net.dv8tion.jda.api.interactions.commands.build.CommandData;
  * @since 04/08/2021
  */
 public interface DiscordCommand {
-    void execute(SlashCommandInteractionEvent event);
-    CommandData getCommandData();
+	void execute(SlashCommandInteractionEvent event);
+
+	CommandData getCommandData();
 }

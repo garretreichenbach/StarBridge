@@ -1,18 +1,16 @@
 plugins {
     id 'java'
     id 'application'
-    id 'com.github.johnrengelman.shadow' version '5.2.0'
 }
 
-apply plugin: 'java'
 sourceCompatibility = 1.8
 targetCompatibility = 1.8
 
-def starmadeDirectory = 'C:/Program Files (x86)/Steam/steamapps/common/StarMade/StarMade/' //Change this to your StarMade directory
+def starmadeDirectory = '/home/garret/Documents/Game Files/StarMade Files/StarMade/' //Change this to your StarMade directory
 def jarName = 'StarBridge'
 mainClassName = 'thederpgamer.starbridge.StarBridge'
 group 'thederpgamer.starbridge'
-version '2.1.7'
+version '2.2.3'
 
 repositories {
     mavenCentral()
@@ -20,10 +18,9 @@ repositories {
 }
 
 dependencies {
-    implementation("net.dv8tion:JDA:5.3.0")
+    implementation("net.dv8tion:JDA:5.5.1")
     implementation(files(starmadeDirectory + "StarMade.jar"))
     implementation(fileTree(dir: (starmadeDirectory + "lib"), include: "*.jar"))
-    implementation(fileTree(dir: ("lib"), include: "*.jar"))
     implementation 'com.vdurmont:emoji-java:5.1.1'
 }
 
@@ -32,7 +29,7 @@ compileJava.options.encoding = 'UTF-8'
 jar {
     duplicatesStrategy(DuplicatesStrategy.EXCLUDE)
     destinationDirectory.set(file(starmadeDirectory + "mods"))
-    archiveFileName = jarName + 'v' + getVersion() +  '.jar'
+    archiveFileName = jarName + 'v' + version +  '.jar'
     manifest.attributes('Main-Class': mainClassName)
     from {
         configurations.runtimeClasspath.collect {

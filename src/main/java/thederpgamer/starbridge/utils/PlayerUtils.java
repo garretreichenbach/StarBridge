@@ -22,19 +22,11 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * <Description>
- *
- * @author TheDerpGamer
- * @version 1.0 - [01/30/2022]
+ * Utility class for managing player-related operations, including fetching player states and database entries.
  */
 public class PlayerUtils {
-	public static PlayerData getPlayerData(PlayerState playerState) {
-		return getPlayerDataMap().get(playerState);
-	}
 
-	public static HashMap<PlayerState, PlayerData> getPlayerDataMap() {
-		assert GameCommon.isOnSinglePlayer() || GameCommon.isDedicatedServer();
-		HashMap<PlayerState, PlayerData> playerDataMap = new HashMap<>();
+	public static PlayerState getPlayerState() {
 		try {
 			HashMap<String, Tag> entries = getEntriesOfType(EntryType.PLAYER_STATE);
 			for(Map.Entry<String, Tag> entry : entries.entrySet()) {
@@ -53,20 +45,20 @@ public class PlayerUtils {
 							playerState.offlinePermssion[1] = Long.parseLong(fields[4].trim());
 						}
 					} catch(Exception exception) {
-                        StarBridge.getInstance().logException("Encountered an exception while trying to fetch a player from database", exception);
+						StarBridge.getInstance().logException("Encountered an exception while trying to fetch a player from database", exception);
 					}
-					playerDataMap.put(playerState, ServerDatabase.getPlayerData(playerState.getName()));
+					return playerState;
 				} catch(Exception exception) {
-                    StarBridge.getInstance().logException("Encountered an exception while trying to fetch a player from database", exception);
+					StarBridge.getInstance().logException("Encountered an exception while trying to fetch a player from database", exception);
 				}
 			}
 		} catch(Exception exception) {
-            StarBridge.getInstance().logException("Encountered an exception while trying to fetch a player from database", exception);
+			StarBridge.getInstance().logException("Encountered an exception while trying to fetch a player from database", exception);
 		}
-		return playerDataMap;
+		return null;
 	}
 
-	public static HashMap<String, Tag> getEntriesOfType(final EntryType entryType) {
+	public static HashMap<String, Tag> getEntriesOfType(EntryType entryType) {
 		assert GameCommon.isOnSinglePlayer() || GameCommon.isDedicatedServer();
 		File databaseFolder = new FileExt(GameServerState.ENTITY_DATABASE_PATH);
 		if(databaseFolder.exists()) {
@@ -80,7 +72,7 @@ public class PlayerUtils {
 				if(listFiles != null) {
 					HashMap<String, Tag> entryMap = new HashMap<>();
 					for(File listFile : listFiles) {
-						String name = listFile.getName().substring(entryType.databasePrefix.length(), listFile.getName().lastIndexOf("."));
+						String name = listFile.getName().substring(entryType.databasePrefix.length(), listFile.getName().lastIndexOf('.'));
 						Tag tag = Tag.readFrom(new BufferedInputStream(Files.newInputStream(listFile.toPath())), true, false);
 						entryMap.put(name, tag);
 					}
@@ -104,43 +96,13 @@ public class PlayerUtils {
 			while(q.next()) {
 				String name = q.getString(1);
 				if(name.equals(playerName)) {
-					fields = new String[] {
-						String.valueOf(q.getLong(0)),
-						name,
-						q.getString(2),
-						String.valueOf(q.getInt(3)),
-						String.valueOf(q.getLong(4))
-					};
+					fields = new String[] {String.valueOf(q.getLong(0)), name, q.getString(2), String.valueOf(q.getInt(3)), String.valueOf(q.getLong(4))};
 				}
 			}
 		} catch(SQLException exception) {
 			exception.printStackTrace();
 		}
 		return fields;
-	}
-
-	public static PlayerData getPlayerData(String playerName) {
-		HashMap<PlayerState, PlayerData> playerDataMap = getPlayerDataMap();
-		for(Map.Entry<PlayerState, PlayerData> entry : playerDataMap.entrySet()) {
-			if(entry.getKey().getName().equals(playerName)) return entry.getValue();
-		}
-		return null;
-	}
-
-	public static PlayerState getPlayerState(String playerName) {
-		HashMap<PlayerState, PlayerData> playerDataMap = getPlayerDataMap();
-		for(Map.Entry<PlayerState, PlayerData> entry : playerDataMap.entrySet()) {
-			if(entry.getKey().getName().equals(playerName)) return entry.getKey();
-		}
-		return null;
-	}
-
-	public static PlayerData getPlayerDataFromDiscordID(long id) {
-		HashMap<PlayerState, PlayerData> playerDataMap = getPlayerDataMap();
-		for(Map.Entry<PlayerState, PlayerData> entry : playerDataMap.entrySet()) {
-			if(entry.getValue().getDiscordId() == id) return entry.getValue();
-		}
-		return null;
 	}
 
 	public enum EntryType {
