@@ -16,6 +16,7 @@ public class MessageData {
 	public String text;
 	public String channel;
 	public MessageType messageType;
+
 	public MessageData(PlayerChatEvent event) {
 		ChatMessage message = event.getMessage();
 		sender = message.sender;
@@ -24,8 +25,11 @@ public class MessageData {
 		} else if(message.receiverType == ChatMessage.ChatMessageType.CHANNEL) {
 			if(message.getChannel().getType() == ChannelRouter.ChannelType.PUBLIC) {
 				messageType = MessageType.PUBLIC_CHANNEL;
-				if(message.getChannel() != null && message.getChannel().getUniqueChannelName() != null) channel = message.getChannel().getUniqueChannelName();
-				else channel = "GENERAL"; //Todo: Figure out channel name of global chat
+				if(message.getChannel() != null && message.getChannel().getUniqueChannelName() != null) {
+					channel = message.getChannel().getUniqueChannelName();
+				} else {
+					channel = "GENERAL"; //Todo: Figure out channel name of global chat
+				}
 			}
 		}
 	}

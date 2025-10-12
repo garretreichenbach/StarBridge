@@ -13,10 +13,7 @@ import thederpgamer.starbridge.data.permissions.PermissionGroup;
 import thederpgamer.starbridge.manager.DataManager;
 import thederpgamer.starbridge.utils.PlayerUtils;
 
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 
 /**
  * Represents a player's data in StarBridge, including their name, playtime, permissions, and group membership.
@@ -215,8 +212,11 @@ public class PlayerData extends JsonSerializable implements IGroupMember {
 
 	@Override
 	public void setGroup(String groupUid) {
-		if(groupUid == null || groupUid.isEmpty()) this.groupUid = "NONE";
-		else this.groupUid = groupUid;
+		if(groupUid == null || groupUid.isEmpty()) {
+			this.groupUid = "NONE";
+		} else {
+			this.groupUid = groupUid;
+		}
 	}
 
 	@Override
@@ -224,9 +224,22 @@ public class PlayerData extends JsonSerializable implements IGroupMember {
 		Set<Pair<String, Object>> groupPermissions = new HashSet<>();
 		if(inAnyGroup()) {
 			PermissionGroup group = (PermissionGroup) DataManager.getDataByUID(DataManager.DataType.GROUP, groupUid);
-			if(group != null) groupPermissions.addAll(group.getPermissions());
+			if(group != null) {
+				groupPermissions.addAll(group.getPermissions());
+			}
 		}
 		return Collections.unmodifiableSet(groupPermissions);
+	}
+
+	public Set<PermissionGroup> getGroups() {
+		Set<PermissionGroup> groups = new HashSet<>();
+		if(inAnyGroup()) {
+			PermissionGroup group = (PermissionGroup) DataManager.getDataByUID(DataManager.DataType.GROUP, groupUid);
+			if(group != null) {
+				groups.add(group);
+			}
+		}
+		return Collections.unmodifiableSet(groups);
 	}
 
 	public String formatToNiceString() {

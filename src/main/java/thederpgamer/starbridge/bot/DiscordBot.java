@@ -1,6 +1,5 @@
 package thederpgamer.starbridge.bot;
 
-import api.common.GameCommon;
 import api.common.GameServer;
 import api.listener.events.Event;
 import api.listener.events.faction.FactionCreateEvent;
@@ -22,7 +21,6 @@ import net.dv8tion.jda.api.utils.messages.MessageCreateBuilder;
 import net.dv8tion.jda.api.utils.messages.MessageCreateData;
 import org.schema.game.common.controller.SegmentController;
 import org.schema.game.common.data.player.PlayerState;
-import org.schema.game.common.data.player.faction.Faction;
 import org.schema.game.common.data.player.faction.FactionRelation;
 import org.schema.game.network.objects.ChatMessage;
 import org.schema.game.server.data.GameServerState;
@@ -30,6 +28,7 @@ import org.schema.game.server.data.ServerConfig;
 import org.schema.schine.network.RegisteredClientOnServer;
 import thederpgamer.starbridge.StarBridge;
 import thederpgamer.starbridge.commands.CommandTypes;
+import thederpgamer.starbridge.data.permissions.PermissionGroup;
 import thederpgamer.starbridge.data.player.PlayerData;
 import thederpgamer.starbridge.manager.ConfigManager;
 import thederpgamer.starbridge.server.ServerDatabase;
@@ -42,11 +41,6 @@ import java.net.URLConnection;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
-/**
- * [Description]
- *
- * @author Garret Reichenbach
- */
 public class DiscordBot extends ListenerAdapter implements Thread.UncaughtExceptionHandler {
 
 	private final StarBridge instance;
@@ -157,7 +151,11 @@ public class DiscordBot extends ListenerAdapter implements Thread.UncaughtExcept
 	}
 
 	public boolean hasRole(Member member, long roleId) {
-		for(Role role : member.getRoles()) if(role.getIdLong() == roleId) return true;
+		for(Role role : member.getRoles()) {
+			if(role.getIdLong() == roleId) {
+				return true;
+			}
+		}
 		return false;
 	}
 
@@ -175,11 +173,43 @@ public class DiscordBot extends ListenerAdapter implements Thread.UncaughtExcept
 
 	@Override
 	public void onSlashCommandInteraction(SlashCommandInteractionEvent event) {
+		boolean canUse = true;
+		CommandTypes command = CommandTypes.getFromName(event.getName());
 		if(event.getGuild() != null) {
-			CommandTypes command = CommandTypes.getFromName(event.getName());
 			if(command != null) {
-				//Todo: Handle permissions check
+				if(command.permission.isAdminOnly()) {
+					if(!hasRole(Objects.requireNonNull(event.getMember()), ConfigManager.getMainConfig().getLong("admin-role-id"))) {
+						canUse = false;
+					}
+				} else {
+					PlayerData playerData = ServerDatabase.getPlayerDataOrCreateIfNull(event.getUser().getName());
+					Object permission = playerData.getPermission(command.getPermission().left);
+					if(permission != null) {
+						if(!permission.equals(command.getPermission().right)) {
+							canUse = false;
+						}
+					} else if(playerData.inAnyGroup()) {
+						for(PermissionGroup group : playerData.getGroups()) {
+							permission = group.getPermission(command.getPermission().left);
+							if(permission != null) {
+								if(!permission.equals(command.getPermission().right)) {
+									canUse = false;
+									break;
+								}
+							} else {
+								canUse = false;
+							}
+						}
+					}
+				}
 			}
+		}
+		if(!canUse) {
+			event.reply("You do not have permission to use this command.").setEphemeral(true).queue();
+		} else if(command != null) {
+			event.deferReply().queue();
+		} else {
+			event.reply("An error occurred while trying to execute this command.").setEphemeral(true).queue();
 		}
 	}
 
@@ -189,8 +219,11 @@ public class DiscordBot extends ListenerAdapter implements Thread.UncaughtExcept
 		if(!content.isEmpty()) {
 			if(!event.getAuthor().isBot() && !event.isWebhookMessage()) {
 				if(event.getChannel().getIdLong() == ConfigManager.getMainConfig().getLong("chat-channel-id")) {
-					if(content.charAt(0) != '/') sendServerMessage(event.getAuthor().getEffectiveName(), content.trim());
-					else event.getMessage().delete().queue();
+					if(content.charAt(0) != '/') {
+						sendServerMessage(event.getAuthor().getEffectiveName(), content.trim());
+					} else {
+						event.getMessage().delete().queue();
+					}
 				}
 			}
 		}
@@ -204,8 +237,11 @@ public class DiscordBot extends ListenerAdapter implements Thread.UncaughtExcept
 	public void sendServerMessage(String sender, String message) {
 		try {
 			for(RegisteredClientOnServer client : GameServerState.instance.getClients().values()) {
-				if(sender != null) client.serverMessage("[" + sender + "] " + message);
-				else client.serverMessage(message);
+				if(sender != null) {
+					client.serverMessage("[" + sender + "] " + message);
+				} else {
+					client.serverMessage(message);
+				}
 			}
 		} catch(Exception exception) {
 			instance.logException("An exception occurred while sending server message", exception);
@@ -239,7 +275,9 @@ public class DiscordBot extends ListenerAdapter implements Thread.UncaughtExcept
 		if(!event.isServer()) return;
 		if(event instanceof PlayerCustomCommandEvent) {
 			PlayerCustomCommandEvent playerCustomCommandEvent = (PlayerCustomCommandEvent) event;
-			if(playerCustomCommandEvent.getCommand().isAdminOnly() && !playerCustomCommandEvent.getSender().isAdmin()) return;
+			if(playerCustomCommandEvent.getCommand().isAdminOnly() && !playerCustomCommandEvent.getSender().isAdmin()) {
+				return;
+			}
 			StarBridge.getInstance().logInfo(playerCustomCommandEvent.getSender().getName() + " executed command: " + playerCustomCommandEvent.getCommand().getCommand());
 		} else if(event instanceof PlayerChatEvent) {
 			PlayerChatEvent playerChatEvent = (PlayerChatEvent) event;
@@ -342,15 +380,18 @@ public class DiscordBot extends ListenerAdapter implements Thread.UncaughtExcept
 				PlayerState killerState = (PlayerState) playerDeathEvent.getDamager();
 				String killerFactionName = (killerState.getFactionId() != 0) ? killerState.getFactionName() : "No Faction";
 				String killedFactionName = (playerDeathEvent.getPlayer().getFactionId() != 0) ? playerDeathEvent.getPlayer().getFactionName() : "No Faction";
-				if(killerState.equals(playerDeathEvent.getPlayer())) MessageType.PLAYER_SUICIDE_EVENT.sendMessage(playerDeathEvent.getPlayer().getName(), killedFactionName);
-				else MessageType.PLAYER_KILL_EVENT.sendMessage(playerDeathEvent.getPlayer().getName(), killedFactionName, killerState.getName(), killerFactionName);
+				if(killerState.equals(playerDeathEvent.getPlayer()))
+					MessageType.PLAYER_SUICIDE_EVENT.sendMessage(playerDeathEvent.getPlayer().getName(), killedFactionName);
+				else
+					MessageType.PLAYER_KILL_EVENT.sendMessage(playerDeathEvent.getPlayer().getName(), killedFactionName, killerState.getName(), killerFactionName);
 			} else {
 				String playerFactionName = (playerDeathEvent.getPlayer().getFactionId() != 0) ? playerDeathEvent.getPlayer().getFactionName() : "No Faction";
 				MessageType.PLAYER_DEATH_EVENT.sendMessage(playerDeathEvent.getPlayer().getName(), playerFactionName);
 			}
 		} else if(event instanceof FactionRelationChangeEvent) {
 			FactionRelationChangeEvent factionRelationChangeEvent = (FactionRelationChangeEvent) event;
-			if(((FactionRelationChangeEvent) event).getFrom().getIdFaction() <= 0 || ((FactionRelationChangeEvent) event).getTo().getIdFaction() <= 0) return;
+			if(((FactionRelationChangeEvent) event).getFrom().getIdFaction() <= 0 || ((FactionRelationChangeEvent) event).getTo().getIdFaction() <= 0)
+				return;
 			FactionRelation.RType oldRelation = factionRelationChangeEvent.getOldRelation();
 			FactionRelation.RType newRelation = factionRelationChangeEvent.getNewRelation();
 			switch(oldRelation) {

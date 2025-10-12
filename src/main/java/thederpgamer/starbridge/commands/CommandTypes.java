@@ -188,8 +188,9 @@ public enum CommandTypes {
 				try {
 					builder.append("Current Online Staff:\n");
 					for(PlayerState playerState : GameServer.getServerState().getPlayerStatesByName().values()) {
-						if(playerState.isAdmin())
+						if(playerState.isAdmin()) {
 							builder.append(playerState.getName()).append(" [").append(playerState.getFactionName()).append("]\n");
+						}
 					}
 				} catch(NullPointerException exception) {
 					StarBridge.getInstance().logWarning("Encountered a NullPointerException while trying to fetch list of online staff! This is most likely due to there being no staff currently online.");
@@ -258,7 +259,7 @@ public enum CommandTypes {
 	private final String[] aliases;
 	private final String description;
 	private final String[] usages;
-	private final IPermissibleAction permission;
+	public final IPermissibleAction permission;
 	private final ICommandExecutor executor;
 	private final CommandInterface commandInterface;
 
