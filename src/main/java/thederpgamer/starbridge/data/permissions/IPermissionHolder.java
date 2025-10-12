@@ -1,6 +1,6 @@
 package thederpgamer.starbridge.data.permissions;
 
-import javafx.util.Pair;
+import thederpgamer.starbridge.data.other.Pair;
 
 import java.util.Set;
 

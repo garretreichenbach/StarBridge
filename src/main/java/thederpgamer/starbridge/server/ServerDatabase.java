@@ -8,6 +8,7 @@ import thederpgamer.starbridge.StarBridge;
 import thederpgamer.starbridge.data.player.PlayerData;
 
 import java.util.ArrayList;
+import java.util.Objects;
 
 public class ServerDatabase {
 
@@ -58,7 +59,7 @@ public class ServerDatabase {
 	}
 
 	public static Faction getFaction(String factionName) {
-		for(Faction faction : GameCommon.getGameState().getFactionManager().getFactionCollection()) {
+		for(Faction faction : Objects.requireNonNull(GameCommon.getGameState()).getFactionManager().getFactionCollection()) {
 			if(faction.getName().equals(factionName)) return faction;
 		}
 		return null;

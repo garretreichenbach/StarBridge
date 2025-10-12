@@ -1,5 +1,6 @@
 package thederpgamer.starbridge.bot;
 
+import api.common.GameCommon;
 import api.common.GameServer;
 import api.listener.events.Event;
 import api.listener.events.faction.FactionCreateEvent;
@@ -14,7 +15,6 @@ import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEve
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
-import net.dv8tion.jda.api.interactions.commands.build.CommandData;
 import net.dv8tion.jda.api.managers.AccountManager;
 import net.dv8tion.jda.api.requests.GatewayIntent;
 import net.dv8tion.jda.api.requests.RestAction;
@@ -22,13 +22,14 @@ import net.dv8tion.jda.api.utils.messages.MessageCreateBuilder;
 import net.dv8tion.jda.api.utils.messages.MessageCreateData;
 import org.schema.game.common.controller.SegmentController;
 import org.schema.game.common.data.player.PlayerState;
+import org.schema.game.common.data.player.faction.Faction;
 import org.schema.game.common.data.player.faction.FactionRelation;
 import org.schema.game.network.objects.ChatMessage;
 import org.schema.game.server.data.GameServerState;
 import org.schema.game.server.data.ServerConfig;
 import org.schema.schine.network.RegisteredClientOnServer;
 import thederpgamer.starbridge.StarBridge;
-import thederpgamer.starbridge.commands.*;
+import thederpgamer.starbridge.commands.CommandTypes;
 import thederpgamer.starbridge.data.player.PlayerData;
 import thederpgamer.starbridge.manager.ConfigManager;
 import thederpgamer.starbridge.server.ServerDatabase;
@@ -51,7 +52,6 @@ public class DiscordBot extends ListenerAdapter implements Thread.UncaughtExcept
 	private final StarBridge instance;
 	private final JDA bot;
 	private final HashMap<String, DiscordUI> uiMap = new HashMap<>();
-	private final HashMap<CommandData, DiscordCommand> commandMap = new HashMap<>();
 	private final ConcurrentHashMap<Integer, PlayerData> linkRequestMap = new ConcurrentHashMap<>();
 	private long startTime;
 	private boolean needsReset = true;
@@ -82,7 +82,7 @@ public class DiscordBot extends ListenerAdapter implements Thread.UncaughtExcept
 
 	public static DiscordBot initialize(StarBridge instance) {
 		DiscordBot bot = new DiscordBot(instance);
-		bot.registerCommands();
+		CommandTypes.registerDiscordCommands(bot);
 		bot.initRestartTimer();
 		return bot;
 	}
@@ -134,8 +134,7 @@ public class DiscordBot extends ListenerAdapter implements Thread.UncaughtExcept
 			builder.addEventListeners(this);
 			return builder.build();
 		} catch(Exception exception) {
-			exception.printStackTrace();
-			System.err.println("An exception occurred while creating Discord bot (most likely due to invalid config)");
+			instance.logException("An exception occurred while creating Discord bot", exception);
 			return null;
 		}
 	}
@@ -150,24 +149,6 @@ public class DiscordBot extends ListenerAdapter implements Thread.UncaughtExcept
 			queueAction(Objects.requireNonNull(bot.getTextChannelById(ConfigManager.getMainConfig().getLong("log-channel-id"))).getManager().setTopic(logChannelStats));
 		} catch(Exception exception) {
 			StarBridge.getInstance().logException("Failed to update channel info", exception);
-		}
-	}
-
-	private void registerCommands() {
-		try {
-			List<DiscordCommand> commandList = new ArrayList<>();
-			commandList.add(new SettingsCommand());
-			commandList.add(new PanelCommand());
-			commandList.add(new InfoFactionCommand());
-			commandList.add(new InfoPlayerCommand());
-			commandList.add(new LinkCommand());
-			commandList.add(new ListCommand());
-			for(DiscordCommand command : commandList) {
-				commandMap.put(command.getCommandData(), command);
-				getGuild().upsertCommand(command.getCommandData()).queue();
-			}
-		} catch(Exception exception) {
-			instance.logException("Failed to register commands", exception);
 		}
 	}
 
@@ -195,11 +176,9 @@ public class DiscordBot extends ListenerAdapter implements Thread.UncaughtExcept
 	@Override
 	public void onSlashCommandInteraction(SlashCommandInteractionEvent event) {
 		if(event.getGuild() != null) {
-			for(CommandData commandData : commandMap.keySet()) {
-				if(commandData.getName().equals(event.getName())) {
-					commandMap.get(commandData).execute(event);
-					return;
-				}
+			CommandTypes command = CommandTypes.getFromName(event.getName());
+			if(command != null) {
+				//Todo: Handle permissions check
 			}
 		}
 	}
@@ -348,7 +327,7 @@ public class DiscordBot extends ListenerAdapter implements Thread.UncaughtExcept
 			MessageType.FACTION_CREATE.sendMessage(factionCreateEvent.getFaction().getName(), factionCreateEvent.getPlayer().getName());
 		} else if(event instanceof PlayerJoinFactionEvent) {
 			PlayerJoinFactionEvent playerJoinFactionEvent = (PlayerJoinFactionEvent) event;
-			MessageType.PLAYER_JOIN_FACTION.sendMessage(playerJoinFactionEvent.getPlayer(), playerJoinFactionEvent.getFaction().getName());
+			MessageType.PLAYER_JOIN_FACTION.sendMessage(playerJoinFactionEvent.getPlayer(), playerJoinFactionEvent.getPlayer().getFactionName());
 		} else if(event instanceof PlayerLeaveFactionEvent) {
 			PlayerLeaveFactionEvent playerLeaveFactionEvent = (PlayerLeaveFactionEvent) event;
 			MessageType.PLAYER_LEAVE_FACTION.sendMessage(playerLeaveFactionEvent.getPlayer(), playerLeaveFactionEvent.getFaction().getName());

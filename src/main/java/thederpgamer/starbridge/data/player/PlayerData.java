@@ -1,19 +1,22 @@
 package thederpgamer.starbridge.data.player;
 
 import api.common.GameCommon;
-import api.mod.config.PersistentObjectUtil;
-import javafx.util.Pair;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.schema.game.common.data.player.PlayerState;
 import org.schema.game.common.data.player.faction.Faction;
+import thederpgamer.starbridge.StarBridge;
 import thederpgamer.starbridge.data.JsonSerializable;
+import thederpgamer.starbridge.data.other.Pair;
 import thederpgamer.starbridge.data.permissions.IGroupMember;
 import thederpgamer.starbridge.data.permissions.PermissionGroup;
 import thederpgamer.starbridge.manager.DataManager;
 import thederpgamer.starbridge.utils.PlayerUtils;
 
-import java.util.*;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.UUID;
 
 /**
  * Represents a player's data in StarBridge, including their name, playtime, permissions, and group membership.
@@ -25,13 +28,13 @@ import java.util.*;
 public class PlayerData extends JsonSerializable implements IGroupMember {
 
 	private static final byte VERSION = 0;
+	private final Set<Pair<String, Object>> permissions = new HashSet<>();
 	private String uid;
 	private String playerName;
 	private long playTime;
 	private long discordId;
 	private String lastIp;
 	private String starmadeName;
-	private Set<Pair<String, Object>> permissions = new HashSet<>();
 	private String groupUid;
 
 	public PlayerData(String playerName) {
@@ -50,7 +53,7 @@ public class PlayerData extends JsonSerializable implements IGroupMember {
 		if(name == null || name.isEmpty()) return null;
 		Set<JsonSerializable> dataSet = DataManager.getAllData(DataManager.DataType.PLAYER);
 		for(JsonSerializable data : dataSet) {
-			if(data instanceof PlayerData && ((PlayerData) data).getPlayerName().equalsIgnoreCase(name)) {
+			if(data instanceof PlayerData && ((PlayerData) data).playerName.equalsIgnoreCase(name)) {
 				return (PlayerData) data;
 			}
 		}
@@ -133,8 +136,8 @@ public class PlayerData extends JsonSerializable implements IGroupMember {
 		JSONArray permissionsArray = new JSONArray();
 		for(Pair<String, Object> permission : permissions) {
 			JSONObject permissionObject = new JSONObject();
-			permissionObject.put("node", permission.getKey());
-			permissionObject.put("value", permission.getValue());
+			permissionObject.put("node", permission.left);
+			permissionObject.put("value", permission.right);
 			permissionsArray.put(permissionObject);
 		}
 		jsonObject.put("permissions", permissionsArray);
@@ -167,8 +170,8 @@ public class PlayerData extends JsonSerializable implements IGroupMember {
 	@Override
 	public Object getPermission(String node) {
 		for(Pair<String, Object> permission : permissions) {
-			if(permission.getKey().equals(node)) {
-				return permission.getValue();
+			if(permission.left.equals(node)) {
+				return permission.right;
 			}
 		}
 		return null;
@@ -177,7 +180,7 @@ public class PlayerData extends JsonSerializable implements IGroupMember {
 	@Override
 	public void givePermission(String node, Object value) {
 		for(Pair<String, Object> permission : permissions) {
-			if(permission.getKey().equals(node)) {
+			if(permission.left.equals(node)) {
 				permissions.remove(permission);
 				break;
 			}
@@ -187,7 +190,7 @@ public class PlayerData extends JsonSerializable implements IGroupMember {
 
 	@Override
 	public void revokePermission(String node) {
-		permissions.removeIf(permission -> permission.getKey().equals(node));
+		permissions.removeIf(permission -> permission.left.equals(node));
 	}
 
 	@Override
@@ -197,7 +200,7 @@ public class PlayerData extends JsonSerializable implements IGroupMember {
 
 	@Override
 	public boolean inAnyGroup() {
-		return !groupUid.equals("NONE");
+		return !"NONE".equals(groupUid);
 	}
 
 	@Override
@@ -224,5 +227,24 @@ public class PlayerData extends JsonSerializable implements IGroupMember {
 			if(group != null) groupPermissions.addAll(group.getPermissions());
 		}
 		return Collections.unmodifiableSet(groupPermissions);
+	}
+
+	public String formatToNiceString() {
+		StringBuilder builder = new StringBuilder();
+		builder.append(playerName).append(":\n");
+		builder.append("\tFaction: ").append(getFactionName()).append("\n");
+		builder.append("\tTime played: ").append(String.format("%,.2f", (getHoursPlayed()))).append(" hours\n");
+		if(discordId != -1) {
+			try {
+				String tag = StarBridge.getBot().getJDA().retrieveUserById(discordId).complete().getAsTag();
+				builder.append("\tDiscord: ").append(tag).append("\n");
+			} catch(Exception exception) {
+				StarBridge.getInstance().logException("Error retrieving Discord tag for player: " + playerName, exception);
+			}
+		}
+		builder.append("\tStatus: ");
+		if(GameCommon.getPlayerFromName(playerName) != null) builder.append("ONLINE");
+		else builder.append("OFFLINE");
+		return builder.toString().trim();
 	}
 }

@@ -6,11 +6,11 @@ plugins {
 sourceCompatibility = 1.8
 targetCompatibility = 1.8
 
-def starmadeDirectory = '/home/garret/Documents/Game Files/StarMade Files/StarMade/' //Change this to your StarMade directory
-def jarName = 'StarBridge'
-mainClassName = 'thederpgamer.starbridge.StarBridge'
-group 'thederpgamer.starbridge'
-version '2.2.3'
+def starmadeDirectory = project.property("starmade_root")
+def modName = project.property("mod_name")
+group = project.property('mod_org_id')
+version = project.property('mod_version')
+mainClassName = group + modName
 
 repositories {
     mavenCentral()
@@ -26,14 +26,26 @@ dependencies {
 
 compileJava.options.encoding = 'UTF-8'
 
+compileJava.options.encoding = 'UTF-8'
+
+tasks.register("updateVersion") {
+    doLast {
+        def modJson = file('src/main/resources/mod.json')
+        def modJsonContent = modJson.getText()
+        modJsonContent = modJsonContent.replaceAll(/"version":\s*".*"/, "\"version\": \"" + version + "\"")
+        modJson.write(modJsonContent)
+    }
+}
+
 jar {
+    dependsOn("updateVersion")
     duplicatesStrategy(DuplicatesStrategy.EXCLUDE)
     destinationDirectory.set(file(starmadeDirectory + "mods"))
-    archiveFileName = jarName + 'v' + version +  '.jar'
+    archiveFileName = modName + 'v' + getVersion() + '.jar'
     manifest.attributes('Main-Class': mainClassName)
     from {
         configurations.runtimeClasspath.collect {
-            if(!it.getPath().contains("StarMade") && it.getName().endsWith(".jar")) it.isDirectory() ? it : zipTree(it)
+            if (!it.getPath().contains("StarMade") && it.getName().endsWith(".jar")) it.isDirectory() ? it : zipTree(it)
             else return null;
         }
     }

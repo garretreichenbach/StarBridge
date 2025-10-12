@@ -1,11 +1,10 @@
 package thederpgamer.starbridge.data.permissions;
 
-import com.google.gson.JsonObject;
-import javafx.util.Pair;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import thederpgamer.starbridge.StarBridge;
 import thederpgamer.starbridge.data.JsonSerializable;
+import thederpgamer.starbridge.data.other.Pair;
 import thederpgamer.starbridge.data.player.PlayerData;
 import thederpgamer.starbridge.manager.DataManager;
 
@@ -60,8 +59,8 @@ public class PermissionGroup extends JsonSerializable implements IPermissionHold
 		JSONArray permissionsArray = new JSONArray();
 		for(Pair<String, Object> permission : permissions) {
 			JSONObject permissionObject = new JSONObject();
-			permissionObject.put("node", permission.getKey());
-			permissionObject.put("value", permission.getValue());
+			permissionObject.put("node", permission.left);
+			permissionObject.put("value", permission.right);
 			permissionsArray.put(permissionObject);
 		}
 		jsonObject.put("permissions", permissionsArray);
@@ -86,7 +85,7 @@ public class PermissionGroup extends JsonSerializable implements IPermissionHold
 	@Override
 	public Object getPermission(String node) {
 		for(Pair<String, Object> permission : permissions) {
-			if(permission.getKey().equals(node)) return permission.getValue();
+			if(permission.left.equals(node)) return permission.right;
 		}
 		return null;
 	}
@@ -99,7 +98,7 @@ public class PermissionGroup extends JsonSerializable implements IPermissionHold
 
 	@Override
 	public void revokePermission(String node) {
-		permissions.removeIf(permission -> permission.getKey().equals(node));
+		permissions.removeIf(permission -> permission.left.equals(node));
 		DataManager.saveData(this);
 	}
 
