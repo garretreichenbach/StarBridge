@@ -18,10 +18,12 @@ repositories {
 }
 
 dependencies {
-    implementation("net.dv8tion:JDA:5.5.1")
+    implementation("net.dv8tion:JDA:6.1.0")
     implementation(files(starmadeDirectory + "StarMade.jar"))
     implementation(fileTree(dir: (starmadeDirectory + "lib"), include: "*.jar"))
     implementation 'com.vdurmont:emoji-java:5.1.1'
+    implementation 'org.slf4j:slf4j-api:2.0.17'
+    runtimeOnly 'org.slf4j:slf4j-simple:2.0.17'
 }
 
 compileJava.options.encoding = 'UTF-8'

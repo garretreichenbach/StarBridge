@@ -32,7 +32,6 @@ import thederpgamer.starbridge.data.permissions.PermissionGroup;
 import thederpgamer.starbridge.data.player.PlayerData;
 import thederpgamer.starbridge.manager.ConfigManager;
 import thederpgamer.starbridge.server.ServerDatabase;
-import thederpgamer.starbridge.ui.DiscordUI;
 import thederpgamer.starbridge.utils.LogWatcher;
 
 import java.io.InputStream;
@@ -45,7 +44,6 @@ public class DiscordBot extends ListenerAdapter implements Thread.UncaughtExcept
 
 	private final StarBridge instance;
 	private final JDA bot;
-	private final HashMap<String, DiscordUI> uiMap = new HashMap<>();
 	private final ConcurrentHashMap<Integer, PlayerData> linkRequestMap = new ConcurrentHashMap<>();
 	private long startTime;
 	private boolean needsReset = true;
@@ -162,12 +160,7 @@ public class DiscordBot extends ListenerAdapter implements Thread.UncaughtExcept
 	@Override
 	public void onButtonInteraction(ButtonInteractionEvent event) {
 		if(event.getGuild() != null) {
-			for(DiscordUI ui : uiMap.values()) {
-				if(ui.hasComponent(event.getComponentId())) {
-					ui.handleInteraction(event.getComponentId(), event);
-					return;
-				}
-			}
+
 		}
 	}
 
@@ -494,10 +487,6 @@ public class DiscordBot extends ListenerAdapter implements Thread.UncaughtExcept
 
 	public JDA getJDA() {
 		return bot;
-	}
-
-	public void registerUI(DiscordUI ui) {
-		uiMap.put(ui.getClass().getSimpleName(), ui);
 	}
 
 	public PlayerData getLinkRequest(int linkCode) {
