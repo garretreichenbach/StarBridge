@@ -14,6 +14,15 @@ public class ServerDatabase {
 
 	private static final ModSkeleton instance = StarBridge.getInstance().getSkeleton();
 
+	public static PlayerData getFromDiscordID(long discordID) {
+		ArrayList<Object> dataObjectList = PersistentObjectUtil.getObjects(instance, PlayerData.class);
+		for(Object dataObject : dataObjectList) {
+			PlayerData playerData = (PlayerData) dataObject;
+			if(playerData.getDiscordId() == discordID) return playerData;
+		}
+		return null;
+	}
+
 	public static PlayerData getPlayerData(String playerName) {
 		ArrayList<Object> dataObjectList = PersistentObjectUtil.getObjects(instance, PlayerData.class);
 		for(Object dataObject : dataObjectList) {

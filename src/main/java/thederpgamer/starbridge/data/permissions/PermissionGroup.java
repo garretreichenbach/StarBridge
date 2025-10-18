@@ -21,9 +21,10 @@ import java.util.UUID;
 public class PermissionGroup extends JsonSerializable implements IPermissionHolder {
 
 	private static final byte VERSION = 0;
+	private final Set<Pair<String, Object>> permissions = new HashSet<>();
+	private final Set<String> inheritFrom = new HashSet<>();
 	private String groupUid;
 	private String groupName;
-	private final Set<Pair<String, Object>> permissions = new HashSet<>();
 
 	public PermissionGroup(String groupName) {
 		this.groupName = groupName;
@@ -38,7 +39,7 @@ public class PermissionGroup extends JsonSerializable implements IPermissionHold
 		if(groupName == null || groupName.isEmpty()) return null;
 		Set<JsonSerializable> dataSet = DataManager.getAllData(DataManager.DataType.GROUP);
 		for(JsonSerializable data : dataSet) {
-			if(data instanceof PermissionGroup && ((PermissionGroup) data).getGroupName().equalsIgnoreCase(groupName)) {
+			if(data instanceof PermissionGroup && ((PermissionGroup) data).groupName.equalsIgnoreCase(groupName)) {
 				return (PermissionGroup) data;
 			}
 		}
@@ -64,7 +65,10 @@ public class PermissionGroup extends JsonSerializable implements IPermissionHold
 			permissionsArray.put(permissionObject);
 		}
 		jsonObject.put("permissions", permissionsArray);
-		JSONArray membersArray = new JSONArray();
+		JSONArray inheritFromArray = new JSONArray();
+		for(String inheritFrom : inheritFrom) {
+			inheritFromArray.put(inheritFrom);
+		}
 		return jsonObject;
 	}
 
@@ -80,12 +84,24 @@ public class PermissionGroup extends JsonSerializable implements IPermissionHold
 			Object value = permissionObject.opt("value");
 			permissions.add(new Pair<>(node, value));
 		}
+		JSONArray inheritFromArray = jsonObject.getJSONArray("inheritFrom");
+		for(int i = 0; i < inheritFromArray.length(); i++) {
+			String inheritFrom = inheritFromArray.getString(i);
+			addInheritFrom(inheritFrom);
+		}
 	}
 
 	@Override
 	public Object getPermission(String node) {
 		for(Pair<String, Object> permission : permissions) {
 			if(permission.left.equals(node)) return permission.right;
+		}
+		for(String inheritFrom : inheritFrom) {
+			PermissionGroup group = (PermissionGroup) DataManager.getDataByUID(DataManager.DataType.GROUP, inheritFrom);
+			if(group != null) {
+				Object value = group.getPermission(node);
+				if(value != null) return value;
+			}
 		}
 		return null;
 	}
@@ -152,5 +168,18 @@ public class PermissionGroup extends JsonSerializable implements IPermissionHold
 
 	public void removeMember(PlayerData playerData) {
 		if(playerData != null) removeMember(playerData.getUid());
+	}
+
+	public void addInheritFrom(String inheritFrom) {
+		this.inheritFrom.add(inheritFrom);
+		DataManager.saveData(this);
+	}
+
+	public void removeInheritFrom(String inheritFrom) {
+		this.inheritFrom.remove(inheritFrom);
+	}
+
+	public Set<String> getInheritFrom() {
+		return Collections.unmodifiableSet(inheritFrom);
 	}
 }

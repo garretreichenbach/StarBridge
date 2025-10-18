@@ -23,6 +23,7 @@ import thederpgamer.starbridge.data.permissions.IPermissibleAction;
 import thederpgamer.starbridge.data.player.PlayerData;
 import thederpgamer.starbridge.manager.ConfigManager;
 import thederpgamer.starbridge.server.ServerDatabase;
+import thederpgamer.starbridge.ui.SettingsUI;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -253,13 +254,29 @@ public enum CommandTypes {
 		public CommandData getDiscordCommandData() {
 			return null;
 		}
+	}),
+	SETTINGS_COMMAND("settings", "Opens the settings menu", new String[]{"/settings"}, () -> new Pair<>("starbridge.admin.settings", true), new ICommandExecutor() {
+		@Override
+		public boolean executeGame(PlayerState sender, String[] args) {
+			return false;
+		}
+
+		@Override
+		public void executeDiscord(SlashCommandInteractionEvent event) {
+			event.reply(new SettingsUI(event.getMember(), event.getChannel()).toMessage().build()).setEphemeral(true).queue();
+		}
+
+		@Override
+		public CommandData getDiscordCommandData() {
+			return new CommandDataImpl("settings", "Opens the settings menu");
+		}
 	});
 
+	public final IPermissibleAction permission;
 	private final String command;
 	private final String[] aliases;
 	private final String description;
 	private final String[] usages;
-	public final IPermissibleAction permission;
 	private final ICommandExecutor executor;
 	private final CommandInterface commandInterface;
 

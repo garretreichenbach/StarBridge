@@ -9,12 +9,6 @@ import net.dv8tion.jda.api.utils.messages.MessageCreateBuilder;
 import net.dv8tion.jda.internal.interactions.component.ButtonImpl;
 import net.dv8tion.jda.internal.utils.PermissionUtil;
 
-
-/**
- * [Description]
- *
- * @author Garret Reichenbach
- */
 public class BotSettingsUI extends DiscordUI {
 
 	protected BotSettingsUI(Member member, Channel channel) {
@@ -26,12 +20,18 @@ public class BotSettingsUI extends DiscordUI {
 		Button exceptionLoggingSettingsButton = new ButtonImpl("exception_logging_settings", "Exception Logging Settings", ButtonStyle.PRIMARY, !PermissionUtil.checkPermission(member, Permission.ADMINISTRATOR), null);
 		Button configSettingsButton = new ButtonImpl("config_settings", "Config Settings", ButtonStyle.PRIMARY, !PermissionUtil.checkPermission(member, Permission.ADMINISTRATOR), null);
 		addComponent(exceptionLoggingSettingsButton, interaction -> {
-			if(!PermissionUtil.checkPermission(member, Permission.ADMINISTRATOR)) interaction.reply("You do not have permission to access this menu.").setEphemeral(true).queue();
-			else interaction.reply((new ExceptionSettingsUI(member, channel)).toMessage().build()).setEphemeral(true).queue();
+			if(!PermissionUtil.checkPermission(member, Permission.ADMINISTRATOR)) {
+				interaction.reply("You do not have permission to access this menu.").setEphemeral(true).queue();
+			} else {
+				interaction.reply((new ExceptionSettingsUI(member, channel)).toMessage().build()).setEphemeral(true).queue();
+			}
 		});
 		addComponent(configSettingsButton, interaction -> {
-			if(!PermissionUtil.checkPermission(member, Permission.ADMINISTRATOR)) interaction.reply("You do not have permission to access this menu.").setEphemeral(true).queue();
-			else interaction.reply((new ConfigSettingsUI(member, channel)).toMessage().build()).setEphemeral(true).queue();
+			if(!PermissionUtil.checkPermission(member, Permission.ADMINISTRATOR)) {
+				interaction.reply("You do not have permission to access this menu.").setEphemeral(true).queue();
+			} else {
+				interaction.reply((new ConfigSettingsUI(member, channel)).toMessage().build()).setEphemeral(true).queue();
+			}
 		});
 	}
 

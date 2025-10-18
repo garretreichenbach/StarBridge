@@ -4,12 +4,8 @@ import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.channel.Channel;
 import net.dv8tion.jda.api.utils.messages.MessageCreateBuilder;
 
-/**
- * [Description]
- *
- * @author Garret Reichenbach
- */
 public class ExceptionSettingsUI extends DiscordUI {
+
 	protected ExceptionSettingsUI(Member member, Channel channel) {
 		super(member, channel);
 	}

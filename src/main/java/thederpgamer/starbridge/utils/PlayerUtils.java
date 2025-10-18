@@ -10,8 +10,6 @@ import org.schema.game.server.data.ServerConfig;
 import org.schema.schine.resource.FileExt;
 import org.schema.schine.resource.tag.Tag;
 import thederpgamer.starbridge.StarBridge;
-import thederpgamer.starbridge.data.player.PlayerData;
-import thederpgamer.starbridge.server.ServerDatabase;
 
 import java.io.BufferedInputStream;
 import java.io.File;

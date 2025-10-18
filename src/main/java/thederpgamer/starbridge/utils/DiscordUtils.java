@@ -7,11 +7,7 @@ import thederpgamer.starbridge.manager.ConfigManager;
 
 import java.util.List;
 
-/**
- * [Description]
- *
- * @author Garret Reichenbach
- */
+
 public class DiscordUtils {
 
 	private static JDA getJDA() {

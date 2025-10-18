@@ -13,12 +13,8 @@ import thederpgamer.starbridge.StarBridge;
 import java.util.HashMap;
 import java.util.Objects;
 
-/**
- * [Description]
- *
- * @author Garret Reichenbach
- */
 public abstract class DiscordUI {
+
 	protected final ActionRow row;
 	private final HashMap<ItemComponent, InteractionCallback> components = new HashMap<>();
 
@@ -28,7 +24,7 @@ public abstract class DiscordUI {
 		StarBridge.getBot().registerUI(this);
 	}
 
-	public abstract void createUI(Member member, Channel channel);
+	protected abstract void createUI(Member member, Channel channel);
 
 	public abstract MessageCreateBuilder toMessage();
 
@@ -47,9 +43,13 @@ public abstract class DiscordUI {
 	public ItemComponent getComponent(String componentId) {
 		for(ItemComponent component : components.keySet()) {
 			if(component instanceof Button) {
-				if(Objects.equals(((Button) component).getId(), componentId)) return component;
+				if(Objects.equals(((Button) component).getId(), componentId)) {
+					return component;
+				}
 			} else if(component instanceof SelectMenu) {
-				if(Objects.equals(((SelectMenu) component).getId(), componentId)) return component;
+				if(Objects.equals(((SelectMenu) component).getId(), componentId)) {
+					return component;
+				}
 			}
 		}
 		return null;

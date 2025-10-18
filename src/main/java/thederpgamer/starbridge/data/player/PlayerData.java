@@ -13,7 +13,10 @@ import thederpgamer.starbridge.data.permissions.PermissionGroup;
 import thederpgamer.starbridge.manager.DataManager;
 import thederpgamer.starbridge.utils.PlayerUtils;
 
-import java.util.*;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.UUID;
 
 /**
  * Represents a player's data in StarBridge, including their name, playtime, permissions, and group membership.
@@ -73,7 +76,9 @@ public class PlayerData extends JsonSerializable implements IGroupMember {
 		PlayerState playerState = PlayerUtils.getPlayerState();
 		if(playerState != null) {
 			int factionId = playerState.getFactionId();
-			if(factionId > 0) return GameCommon.getGameState().getFactionManager().getFaction(factionId);
+			if(factionId > 0) {
+				return GameCommon.getGameState().getFactionManager().getFaction(factionId);
+			}
 		}
 		return null;
 	}
@@ -107,7 +112,7 @@ public class PlayerData extends JsonSerializable implements IGroupMember {
 		lastIp = ip;
 	}
 
-	public String getStarmadeName() {
+	public String getStarMadeName() {
 		return starmadeName;
 	}
 
@@ -256,8 +261,11 @@ public class PlayerData extends JsonSerializable implements IGroupMember {
 			}
 		}
 		builder.append("\tStatus: ");
-		if(GameCommon.getPlayerFromName(playerName) != null) builder.append("ONLINE");
-		else builder.append("OFFLINE");
+		if(GameCommon.getPlayerFromName(playerName) != null) {
+			builder.append("ONLINE");
+		} else {
+			builder.append("OFFLINE");
+		}
 		return builder.toString().trim();
 	}
 }

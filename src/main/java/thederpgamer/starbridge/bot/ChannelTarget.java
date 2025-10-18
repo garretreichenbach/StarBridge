@@ -7,11 +7,7 @@ import thederpgamer.starbridge.manager.ConfigManager;
 
 import java.util.concurrent.TimeUnit;
 
-/**
- * [Description]
- *
- * @author Garret Reichenbach
- */
+
 public enum ChannelTarget {
 	CHAT,
 	LOG,

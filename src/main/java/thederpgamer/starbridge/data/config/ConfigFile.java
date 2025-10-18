@@ -24,7 +24,7 @@ public class ConfigFile {
 	public void loadConfig() {
 		try {
 			if(!file.exists()) file.createNewFile();
-			Scanner scan = new Scanner(file, StandardCharsets.UTF_8);
+			Scanner scan = new Scanner(file);
 			while(scan.hasNext()) {
 				String line = scan.nextLine();
 				if(line.contains("#")) line = line.substring(0, line.indexOf('#'));
@@ -40,7 +40,7 @@ public class ConfigFile {
 	public void saveConfig() {
 		try {
 			if(!file.exists()) file.createNewFile();
-			FileWriter writer = new FileWriter(file, StandardCharsets.UTF_8);
+			FileWriter writer = new FileWriter(file);
 			for(Map.Entry<String, String> entry : configValues.entrySet()) {
 				writer.write(entry.getKey() + " = " + entry.getValue() + "\n");
 			}
