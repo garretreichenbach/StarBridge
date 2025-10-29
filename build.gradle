@@ -3,9 +3,6 @@ plugins {
     id 'application'
 }
 
-sourceCompatibility = 1.8
-targetCompatibility = 1.8
-
 def starmadeDirectory = project.property("starmade_root")
 def modName = project.property("mod_name")
 group = project.property('mod_org_id')
@@ -21,14 +18,12 @@ dependencies {
     implementation("net.dv8tion:JDA:6.1.0")
     implementation(files(starmadeDirectory + "StarMade.jar"))
     implementation(fileTree(dir: (starmadeDirectory + "lib"), include: "*.jar"))
-    implementation 'com.vdurmont:emoji-java:5.1.1'
-    implementation 'org.slf4j:slf4j-api:2.0.17'
-    runtimeOnly 'org.slf4j:slf4j-simple:2.0.17'
+    implementation("ch.qos.logback:logback-classic:1.5.19")
 }
 
 compileJava.options.encoding = 'UTF-8'
-
-compileJava.options.encoding = 'UTF-8'
+sourceCompatibility = "1.8"
+targetCompatibility = "1.8"
 
 tasks.register("updateVersion") {
     doLast {
@@ -47,8 +42,11 @@ jar {
     manifest.attributes('Main-Class': mainClassName)
     from {
         configurations.runtimeClasspath.collect {
-            if (!it.getPath().contains("StarMade") && it.getName().endsWith(".jar")) it.isDirectory() ? it : zipTree(it)
-            else return null;
+            if(!it.getPath().contains("StarMade") && it.getName().endsWith(".jar") && !it.getPath().contains("slf4j")) {
+                it.isDirectory() ? it : zipTree(it)
+            } else {
+                return null
+            }
         }
     }
 }

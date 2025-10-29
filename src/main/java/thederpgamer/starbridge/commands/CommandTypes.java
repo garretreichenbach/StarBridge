@@ -336,7 +336,6 @@ public enum CommandTypes {
 			CommandData commandData = commandType.executor.getDiscordCommandData();
 			if(commandData != null) {
 				bot.getGuild().upsertCommand(commandType.executor.getDiscordCommandData()).queue();
-				StarBridge.getInstance().logInfo("Registered Discord command: " + commandType.command);
 			}
 		}
 	}
