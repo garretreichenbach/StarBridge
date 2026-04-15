@@ -1,0 +1,90 @@
+package videogoose.starbridge;
+
+import api.listener.events.Event;
+import api.mod.StarMod;
+import org.schema.schine.network.server.ServerState;
+import videogoose.starbridge.bot.DiscordBot;
+import videogoose.starbridge.bot.MessageType;
+import videogoose.starbridge.commands.CommandTypes;
+import videogoose.starbridge.manager.ConfigManager;
+import videogoose.starbridge.manager.EventManager;
+
+public class StarBridge extends StarMod {
+	private static StarBridge instance;
+	private static DiscordBot bot;
+
+	public StarBridge() {
+		instance = this;
+	}
+
+	//Instance
+	public static void main(String[] args) {
+	}
+
+	public static StarBridge getInstance() {
+		return instance;
+	}
+
+	public static DiscordBot getBot() {
+		return bot;
+	}
+
+	@Override
+	public void onEnable() {
+		long start = System.currentTimeMillis();
+		instance = this;
+		addShutdownHook();
+		ConfigManager.initialize();
+		EventManager.initialize(this);
+		bot = DiscordBot.initialize(this);
+		long took = System.currentTimeMillis() - start;
+		CommandTypes.registerGameCommands();
+		MessageType.SERVER_STARTED.sendMessage(took);
+		if(ConfigManager.getMainConfig().getBoolean("debug-mode")) {
+			MessageType.DEBUG_MODE_STARTED.sendMessage();
+		}
+	}
+
+	private void addShutdownHook() {
+		Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+			try {
+				if(!ServerState.isShutdown()) {
+					MessageType.LOG_FATAL.sendMessage("Server has shutdown unexpectedly due to a fatal error!", null);
+				} else {
+					onDisable();
+				}
+			} catch(Exception exception) {
+				exception.printStackTrace();
+			}
+		}));
+	}
+
+	@Override
+	public void onDisable() {
+		super.logInfo("Server Stopping...");
+		MessageType.SERVER_STOPPING.sendMessage();
+	}
+
+	@Override
+	public void logInfo(String message) {
+		super.logInfo(message);
+		MessageType.LOG_INFO.sendMessage(message);
+	}
+
+	@Override
+	public void logWarning(String message) {
+		super.logWarning(message);
+		MessageType.LOG_WARNING.sendMessage(message);
+	}
+
+	@Override
+	public void logException(String message, Exception exception) {
+		super.logException(message, exception);
+		exception.printStackTrace();
+		MessageType.LOG_EXCEPTION.sendMessage(message, exception);
+	}
+
+	public void handleEvent(Event event) {
+		bot.handleEvent(event);
+	}
+}
