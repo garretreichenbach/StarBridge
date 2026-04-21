@@ -8,7 +8,7 @@ def modName = project.property("mod_name")
 group = project.property('mod_org_id')
 version = project.property('mod_version')
 mainClassName = group + modName
-
+    
 repositories {
     mavenCentral()
     maven { url 'https://jitpack.io' }
