@@ -2,7 +2,7 @@
   "name": "StarBridge",
   "author": "VideoGoososee",
   "description": "Discord to StarMade chat and link functionality.",
-  "version": "2.2.3",
+  "version": "2.2.4",
   "starmade_version": "0.205.4",
   "client_mod": false,
   "server_mod": true,

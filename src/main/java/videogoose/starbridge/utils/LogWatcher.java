@@ -15,6 +15,7 @@ import java.util.Locale;
 public class LogWatcher extends PrintStream {
 
 	private boolean printing;
+	private boolean sending;
 	private StringBuilder builder;
 
 	public LogWatcher(@NotNull OutputStream out) {
@@ -24,10 +25,16 @@ public class LogWatcher extends PrintStream {
 	@Override
 	public void print(String str) {
 		super.print(str);
+		if(sending) return;
 		if(printing) {
 			builder.append(str);
 			if(!str.contains("\t")) {
-				MessageType.LOG_EXCEPTION.sendMessage(builder.toString());
+				sending = true;
+				try {
+					MessageType.LOG_EXCEPTION.sendMessage(builder.toString());
+				} finally {
+					sending = false;
+				}
 				printing = false;
 			}
 		} else if(str.toLowerCase(Locale.ENGLISH).contains("exception")) {
