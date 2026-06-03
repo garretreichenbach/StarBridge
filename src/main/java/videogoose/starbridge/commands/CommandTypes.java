@@ -10,6 +10,7 @@ import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEve
 import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.commands.build.CommandData;
 import net.dv8tion.jda.api.interactions.commands.build.OptionData;
+import net.dv8tion.jda.api.interactions.commands.build.SubcommandData;
 import net.dv8tion.jda.internal.interactions.CommandDataImpl;
 import org.jetbrains.annotations.Nullable;
 import org.schema.common.util.linAlg.Vector3i;
@@ -21,6 +22,7 @@ import videogoose.starbridge.bot.DiscordBot;
 import videogoose.starbridge.data.other.Pair;
 import videogoose.starbridge.data.permissions.IPermissibleAction;
 import videogoose.starbridge.data.player.PlayerData;
+import videogoose.starbridge.error.ErrorManager;
 import videogoose.starbridge.manager.ConfigManager;
 import videogoose.starbridge.server.ServerDatabase;
 
@@ -253,6 +255,71 @@ public enum CommandTypes {
 		public CommandData getDiscordCommandData() {
 			return null;
 		}
+	}),
+	ERRORS("errors", "Manage reported server errors (staff only).", new String[]{"/errors list", "/errors mute <fingerprint>"}, new IPermissibleAction() {
+		@Override
+		public Pair<String, Object> getRequiredPermission() {
+			return new Pair<>("starbridge.errors", true);
+		}
+
+		@Override
+		public boolean isAdminOnly() {
+			return true;
+		}
+	}, new ICommandExecutor() {
+		@Override
+		public boolean executeGame(PlayerState sender, String[] args) {
+			return false; // Discord-only command.
+		}
+
+		@Override
+		public void executeDiscord(SlashCommandInteractionEvent event) {
+			String sub = event.getSubcommandName();
+			if(sub == null) sub = "list";
+			switch(sub) {
+				case "mute" -> {
+					String fp = Objects.requireNonNull(event.getOption("fingerprint")).getAsString().trim();
+					boolean added = ErrorManager.muteFingerprint(fp);
+					event.reply(added ? "Muted error `" + fp + "`." : "Error `" + fp + "` was already muted.").setEphemeral(true).queue();
+				}
+				case "pattern" -> {
+					String regex = Objects.requireNonNull(event.getOption("regex")).getAsString();
+					boolean added = ErrorManager.mutePattern(regex);
+					event.reply(added ? "Muted errors matching `" + regex + "`." : "That pattern is already muted or invalid.").setEphemeral(true).queue();
+				}
+				case "unmute" -> {
+					String value = Objects.requireNonNull(event.getOption("value")).getAsString().trim();
+					boolean changed = ErrorManager.unmute(value);
+					event.reply(changed ? "Unmuted `" + value + "`." : "No muted fingerprint or pattern matched `" + value + "`.").setEphemeral(true).queue();
+				}
+				case "threshold" -> {
+					String regex = Objects.requireNonNull(event.getOption("regex")).getAsString();
+					int count = Objects.requireNonNull(event.getOption("count")).getAsInt();
+					boolean ok = ErrorManager.setThreshold(regex, count);
+					event.reply(ok ? "Errors matching `" + regex + "` will only alert after " + count + " occurrence(s)." : "Invalid pattern.").setEphemeral(true).queue();
+				}
+				case "stats" -> event.reply(ErrorManager.statsSummary()).setEphemeral(true).queue();
+				default -> event.replyEmbeds(ErrorManager.buildListEmbed()).setEphemeral(true).queue();
+			}
+		}
+
+		@Override
+		public CommandData getDiscordCommandData() {
+			CommandDataImpl commandData = new CommandDataImpl("errors", "Manage reported server errors (staff only).");
+			commandData.addSubcommands(
+					new SubcommandData("list", "List tracked error patterns and mute rules."),
+					new SubcommandData("stats", "Show a summary of tracked errors."),
+					new SubcommandData("mute", "Mute a specific error by fingerprint.")
+							.addOption(OptionType.STRING, "fingerprint", "The error fingerprint to mute", true),
+					new SubcommandData("pattern", "Mute all errors matching a regex pattern.")
+							.addOption(OptionType.STRING, "regex", "Regex matched against the error class/message/stack", true),
+					new SubcommandData("unmute", "Remove a muted fingerprint or pattern.")
+							.addOption(OptionType.STRING, "value", "The fingerprint or pattern to unmute", true),
+					new SubcommandData("threshold", "Only alert for a pattern after N occurrences.")
+							.addOption(OptionType.STRING, "regex", "Regex matched against the error", true)
+							.addOption(OptionType.INTEGER, "count", "Occurrence threshold before alerting", true));
+			return commandData;
+		}
 	});
 
 	public final IPermissibleAction permission;
@@ -362,6 +429,10 @@ public enum CommandTypes {
 
 	public void execute(PlayerState sender, String[] args) {
 		executor.executeGame(sender, args);
+	}
+
+	public void execute(SlashCommandInteractionEvent event) {
+		executor.executeDiscord(event);
 	}
 
 	public CommandInterface getGameCommand() {

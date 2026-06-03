@@ -10,6 +10,7 @@ import api.mod.StarLoader;
 import org.schema.common.util.linAlg.Vector3i;
 import videogoose.starbridge.StarBridge;
 import videogoose.starbridge.bot.MessageType;
+import videogoose.starbridge.error.ErrorManager;
 
 /**
  * Manager class for handling events.
@@ -24,8 +25,7 @@ public class EventManager {
 				String context = event.getContext();
 				String crashReportPath = event.getCrashReportPath();
 				MessageType.SERVER_CRASHED.sendMessage(throwable.getClass().getSimpleName());
-				MessageType.LOG_FATAL.sendMessage("@<" + ConfigManager.getMainConfig().getString("admin-role-id") + "> A fatal error has occurred and the server has crashed! Crash report saved at: " + crashReportPath + "\nContext: " + context + "\nError: " + throwable.getMessage());
-				throwable.printStackTrace();
+				ErrorManager.reportFatal("The server has crashed! Crash report saved at: " + crashReportPath + "\nContext: " + context, throwable);
 			}
 		}, instance);
 

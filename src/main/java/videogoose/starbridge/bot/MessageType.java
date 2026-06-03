@@ -193,7 +193,6 @@ public enum MessageType {
 						target.sendMessage(bot, messageBuilder.build().getContent());
 					}
 				}
-				System.exit(1);
 				break;
 		}
 	}

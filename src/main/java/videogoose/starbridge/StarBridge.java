@@ -2,16 +2,19 @@ package videogoose.starbridge;
 
 import api.listener.events.Event;
 import api.mod.StarMod;
-import org.schema.schine.network.server.ServerState;
 import videogoose.starbridge.bot.DiscordBot;
 import videogoose.starbridge.bot.MessageType;
 import videogoose.starbridge.commands.CommandTypes;
+import videogoose.starbridge.error.ErrorManager;
 import videogoose.starbridge.manager.ConfigManager;
 import videogoose.starbridge.manager.EventManager;
+
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class StarBridge extends StarMod {
 	private static StarBridge instance;
 	private static DiscordBot bot;
+	private final AtomicBoolean disabled = new AtomicBoolean(false);
 
 	public StarBridge() {
 		instance = this;
@@ -35,6 +38,7 @@ public class StarBridge extends StarMod {
 		instance = this;
 		addShutdownHook();
 		ConfigManager.initialize();
+		ErrorManager.initialize();
 		EventManager.initialize(this);
 		bot = DiscordBot.initialize(this);
 		long took = System.currentTimeMillis() - start;
@@ -48,11 +52,7 @@ public class StarBridge extends StarMod {
 	private void addShutdownHook() {
 		Runtime.getRuntime().addShutdownHook(new Thread(() -> {
 			try {
-				if(!ServerState.isShutdown()) {
-					MessageType.LOG_FATAL.sendMessage("Server has shutdown unexpectedly due to a fatal error!", null);
-				} else {
-					onDisable();
-				}
+				onDisable();
 			} catch(Exception exception) {
 				exception.printStackTrace();
 			}
@@ -61,8 +61,13 @@ public class StarBridge extends StarMod {
 
 	@Override
 	public void onDisable() {
+		// Runs at most once, whether triggered by the mod lifecycle or the JVM shutdown hook.
+		// Crashes are reported via ServerCrashEvent and the exception stream watcher, so this
+		// no longer guesses "unexpected shutdown" (which false-alarmed on clean exits).
+		if(!disabled.compareAndSet(false, true)) return;
 		super.logInfo("Server Stopping...");
 		MessageType.SERVER_STOPPING.sendMessage();
+		if(bot != null) bot.shutdown();
 	}
 
 	@Override
@@ -80,8 +85,8 @@ public class StarBridge extends StarMod {
 	@Override
 	public void logException(String message, Exception exception) {
 		super.logException(message, exception);
-		exception.printStackTrace();
-		MessageType.LOG_EXCEPTION.sendMessage(message, exception);
+		// Route through the registry for dedup/rate-limit/mute instead of posting directly.
+		ErrorManager.report(message, exception);
 	}
 
 	public void handleEvent(Event event) {

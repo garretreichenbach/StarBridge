@@ -23,15 +23,24 @@ public class ConfigManager {
 			"default-shutdown-timer: 900000", //15 minutes
 			"admin-role-id: ADMIN_ROLE_ID"
 	};
+	public static final String[] defaultErrorsConfig = {
+			"enabled: true",
+			"min-post-interval-ms: 300000", //5 minutes between repeat alerts for the same error
+			"fingerprint-frames: 6" //top stack frames used to identify a recurring error
+	};
 	//Main Config
 	private static FileConfiguration mainConfig;
 	// System names
 	private static FileConfiguration systemNamesConfig;
+	// Error-management rules (muted fingerprints/patterns/thresholds)
+	private static FileConfiguration errorsConfig;
 
 	public static void initialize() {
 		mainConfig = StarBridge.getInstance().getConfig("config");
 		mainConfig.saveDefault(defaultMainConfig);
 		systemNamesConfig = StarBridge.getInstance().getConfig("systems");
+		errorsConfig = StarBridge.getInstance().getConfig("errors");
+		errorsConfig.saveDefault(defaultErrorsConfig);
 	}
 
 	public static FileConfiguration getMainConfig() {
@@ -40,5 +49,9 @@ public class ConfigManager {
 
 	public static FileConfiguration getSystemNamesConfig() {
 		return systemNamesConfig;
+	}
+
+	public static FileConfiguration getErrorsConfig() {
+		return errorsConfig;
 	}
 }

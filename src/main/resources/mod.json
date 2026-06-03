@@ -2,16 +2,13 @@
   "name": "StarBridge",
   "author": "VideoGoososee",
   "description": "Discord to StarMade chat and link functionality.",
-  "version": "2.2.4",
-  "starmade_version": "0.205.4",
+  "version": "3.0.0",
+  "starmade_version": "0.303.19",
   "client_mod": false,
   "server_mod": true,
   "main_class": "videogoose.starbridge.StarBridge",
   "smd_resource_id": 8253,
   "dependencies": [
     -1
-  ],
-  "core_mod": false,
-  "requires_class_resize": false,
-  "hard_load_all_classes": false
+  ]
 }

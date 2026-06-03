@@ -1,13 +1,18 @@
 plugins {
     id 'java'
-    id 'application'
 }
 
 def starmadeDirectory = project.property("starmade_root")
 def modName = project.property("mod_name")
 group = project.property('mod_org_id')
 version = project.property('mod_version')
-mainClassName = group + modName
+def mainClassName = group + modName
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
 
 repositories {
     mavenCentral()
@@ -15,15 +20,13 @@ repositories {
 }
 
 dependencies {
-    implementation("net.dv8tion:JDA:6.1.0")
+    implementation("net.dv8tion:JDA:6.4.1")
     implementation(files(starmadeDirectory + "StarMade.jar"))
     implementation(fileTree(dir: (starmadeDirectory + "lib"), include: "*.jar"))
-    implementation("ch.qos.logback:logback-classic:1.5.19")
+    implementation("ch.qos.logback:logback-classic:1.5.34")
 }
 
 compileJava.options.encoding = 'UTF-8'
-sourceCompatibility = "1.8"
-targetCompatibility = "1.8"
 
 tasks.register("updateVersion") {
     doLast {
