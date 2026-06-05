@@ -115,9 +115,3 @@ The build keeps `mod.json`'s version in sync with `mod_version` (see the `update
 3. Start the server once to generate the config files, fill in your Discord `bot-token`, `server-id`, and channel IDs, then restart.
 
 This is a **server mod** (`server_mod: true`, `client_mod: false`) — only the server needs it.
-
----
-
-## Credits
-
-By **VideoGoose** (Garret Reichenbach), with earlier work by VideoGoose. See [StarMadeDock](https://starmadedock.net/content/starbridge.8253/) for releases and support.

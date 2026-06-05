@@ -3,7 +3,7 @@ package videogoose.starbridge.utils;
 /**
  * Exception that is used for debug logging and doesn't actually mean an error occurred.
  *
- * @author Garret Reichenbach
+ * @author VideoGoose
  */
 public class DebugException extends RuntimeException {
 

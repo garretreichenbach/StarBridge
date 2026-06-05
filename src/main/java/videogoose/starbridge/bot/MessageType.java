@@ -14,14 +14,32 @@ import java.util.Arrays;
 
 /**
  * Enum used for defining different types of server messages from the bot.
- * <br/>Should not be used for user messages, just for things like server status updates.
  *
- * @author Garret Reichenbach
+ * <p>Should not be used for user messages, just for things like server status updates.
+ *
+ * <p><b>Echo-guard contract:</b> Every case that calls
+ * {@link DiscordBot#sendBridgeMessage(String)} registers the injected text with
+ * the echo guard so the bridge won't re-relay it when it echoes back from
+ * Discord or appears in a {@link api.listener.events.player.PlayerChatEvent}.
+ *
+ * <p><b>sendServerMessage vs sendBridgeMessage:</b>
+ * <ul>
+ *   <li>Server-event messages (kills, join/leave, faction events) that were
+ *       historically also broadcast in-game via
+ *       {@code sendServerMessage("Server", …)} caused the feedback loop.  Those
+ *       broadcasts ARE intentional — players should see them in chat — so they
+ *       are now routed through {@link DiscordBot#sendBridgeMessage(String)}
+ *       which both injects the text AND registers it in the echo guard.</li>
+ *   <li>Pure-log cases (LOG_*, SERVER_STARTING, SERVER_STOPPING, …) never
+ *       called sendServerMessage in the original code and still do not.</li>
+ * </ul>
+ *
+ * @author VideoGoose
  */
 public enum MessageType {
 	PLAYER_KILL_EVENT(new MessageCreateBuilder().addContent(":skull_crossbones: %s [%s] was killed by %s").build(), ChannelTarget.BOTH),
 	PLAYER_DEATH_EVENT(new MessageCreateBuilder().addContent(":skull: %s [%s] has died").build(), ChannelTarget.BOTH),
-	PLAYER_SUICIDE_EVENT(new MessageCreateBuilder().addContent(":skull: s [%s] has taken their own life").build(), ChannelTarget.BOTH),
+	PLAYER_SUICIDE_EVENT(new MessageCreateBuilder().addContent(":skull: %s [%s] has taken their own life").build(), ChannelTarget.BOTH),
 	FACTION_CREATE(new MessageCreateBuilder().addContent(":shield: %s created a new faction %s").build(), ChannelTarget.BOTH),
 	FACTION_DECLARE_WAR(new MessageCreateBuilder().addContent(":crossed_swords: %s has declared war on %s").build(), ChannelTarget.BOTH),
 	FACTION_PEACE(new MessageCreateBuilder().addContent(":dove: %s has agreed to a peace deal with %s").build(), ChannelTarget.BOTH),
@@ -56,144 +74,156 @@ public enum MessageType {
 
 	public void sendMessage(Object... args) {
 		JDA bot = StarBridge.getBot().getJDA();
-		switch(this) {
-			case PLAYER_KILL_EVENT:
-				if(args != null && args.length == 4 && args[0] instanceof String && args[1] instanceof String && args[2] instanceof String && args[3] instanceof String) {
-					String messageRaw = builder.getContent();
-					String message = String.format(messageRaw, args[0], args[1], args[2], args[3]);
+		switch (this) {
+			case PLAYER_KILL_EVENT -> {
+				// 4-arg variant: killed, killedFaction, killer, killerFaction
+				if (args != null && args.length == 4
+						&& args[0] instanceof String killed
+						&& args[1] instanceof String killedFaction
+						&& args[2] instanceof String killer
+						&& args[3] instanceof String killerFaction) {
+					var message = builder.getContent().formatted(killed, killedFaction, killer, killerFaction);
 					target.sendMessage(bot, message);
-					StarBridge.getBot().sendServerMessage("Server", message);
+					// Intentional in-game announcement; routed through sendBridgeMessage so
+					// the echo guard prevents the relay from bouncing back.
+					StarBridge.getBot().sendBridgeMessage(message);
 				}
-				break;
-			case FACTION_CREATE:
-			case FACTION_DECLARE_WAR:
-			case FACTION_PEACE:
-			case FACTION_ALLY:
-			case FACTION_CANCEL_ALLY:
-			case PLAYER_JOIN_FACTION:
-			case PLAYER_LEAVE_FACTION:
-			case PLAYER_DEATH_EVENT:
-			case PLAYER_SUICIDE_EVENT:
-				if(args != null && args.length == 2 && args[0] instanceof String && args[1] instanceof String) {
-					String messageRaw = builder.getContent();
-					String message = String.format(messageRaw, args[0], args[1]);
+			}
+			case FACTION_CREATE, FACTION_DECLARE_WAR, FACTION_PEACE, FACTION_ALLY,
+					FACTION_CANCEL_ALLY, PLAYER_JOIN_FACTION, PLAYER_LEAVE_FACTION,
+					PLAYER_DEATH_EVENT, PLAYER_SUICIDE_EVENT -> {
+				// 2-arg variant: entity1, entity2
+				if (args != null && args.length == 2
+						&& args[0] instanceof String a0
+						&& args[1] instanceof String a1) {
+					var message = builder.getContent().formatted(a0, a1);
 					target.sendMessage(bot, message);
-					StarBridge.getBot().sendServerMessage("Server", message);
+					// Intentional in-game announcement; registered with echo guard.
+					StarBridge.getBot().sendBridgeMessage(message);
 				}
-				break;
-			case NEW_PLAYER_JOIN:
-			case PLAYER_JOIN:
-			case PLAYER_LEAVE:
-				if(args != null && args.length == 1 && args[0] instanceof String) {
-					String messageRaw = builder.getContent();
-					String message = String.format(messageRaw, args[0]);
+			}
+			case NEW_PLAYER_JOIN, PLAYER_JOIN, PLAYER_LEAVE -> {
+				// 1-arg variant: player name
+				if (args != null && args.length == 1 && args[0] instanceof String a0) {
+					var message = builder.getContent().formatted(a0);
 					target.sendMessage(bot, message);
-					StarBridge.getBot().sendServerMessage("Server", message);
+					// Intentional in-game announcement; registered with echo guard.
+					StarBridge.getBot().sendBridgeMessage(message);
 				}
-				break;
-			case SERVER_STARTING:
-			case SERVER_STOPPING:
-			case SERVER_RESTARTING:
-			case LOG_INFO:
-			case LOG_WARNING:
-				if(args != null && args.length == 1 && args[0] instanceof String) {
-					target.sendMessage(bot, builder.getContent() + " " + args[0]);
+			}
+			case SERVER_STARTING, SERVER_STOPPING, SERVER_RESTARTING, LOG_INFO, LOG_WARNING -> {
+				// 1-arg (or 0-arg for no-placeholder variants)
+				if (args != null && args.length == 1 && args[0] instanceof String a0) {
+					target.sendMessage(bot, builder.getContent() + " " + a0);
+					// Pure log/status — does NOT broadcast in-game (no change from original).
+				} else if ((args == null || args.length == 0) && !builder.getContent().contains("%s")) {
+					target.sendMessage(bot, builder.getContent());
 				}
-				break;
-			case LOG_DEBUG:
-				if(ConfigManager.getMainConfig().getBoolean("debug-mode") && args != null && args.length == 1 && args[0] instanceof String) {
-					target.sendMessage(bot, builder.getContent() + " " + args[0]);
+			}
+			case LOG_DEBUG -> {
+				if (ConfigManager.getMainConfig().getBoolean("debug-mode")
+						&& args != null && args.length == 1 && args[0] instanceof String a0) {
+					target.sendMessage(bot, builder.getContent() + " " + a0);
 				}
-				break;
-			case SERVER_STOPPING_TIMED:
-			case SERVER_RESTARTING_TIMED:
-				if(args != null && args.length == 1) {
-					int seconds = -1;
-					if(args[0] instanceof Long) seconds = (int) ((long) args[0] / 1000);
-					else if(args[0] instanceof Integer) seconds = (int) args[0];
-					if(seconds >= 60) {
-						int minutes = seconds / 60;
-						String messageRaw = builder.getContent();
-						String message = String.format(messageRaw, minutes + " minutes");
+			}
+			case SERVER_STOPPING_TIMED, SERVER_RESTARTING_TIMED -> {
+				if (args != null && args.length == 1) {
+					int seconds = switch (args[0]) {
+						case Long l -> (int) (l / 1000);
+						case Integer i -> i;
+						default -> -1;
+					};
+					if (seconds >= 60) {
+						var message = builder.getContent().formatted(seconds / 60 + " minutes");
 						target.sendMessage(bot, message);
-						StarBridge.getBot().sendServerMessage("Server", message);
-					} else {
-						String messageRaw = builder.getContent();
-						String message = String.format(messageRaw, seconds + " seconds");
+						// Intentional timed-shutdown announcement; registered with echo guard.
+						StarBridge.getBot().sendBridgeMessage(message);
+					} else if (seconds >= 0) {
+						var message = builder.getContent().formatted(seconds + " seconds");
 						target.sendMessage(bot, message);
-						StarBridge.getBot().sendServerMessage("Server", message);
+						StarBridge.getBot().sendBridgeMessage(message);
 					}
 				}
-				break;
-			case SERVER_STARTED:
-				if(args != null && args.length == 1 && args[0] instanceof Long) {
-					String messageRaw = builder.getContent();
-					String message = String.format(messageRaw, args[0]);
+			}
+			case SERVER_STARTED -> {
+				if (args != null && args.length == 1 && args[0] instanceof Long l) {
+					var message = builder.getContent().formatted(l);
+					target.sendMessage(bot, message);
+					// SERVER_STARTED is a one-time boot notification; only sent to Discord/log,
+					// not broadcast in-game (no sendBridgeMessage needed here).
+				}
+			}
+			case DEBUG_MODE_STARTED, SERVER_CRASHED -> {
+				// Zero-arg or 1-arg fallback.
+				// DEBUG_MODE_STARTED has no %s placeholder; SERVER_CRASHED has one.
+				if (args == null || args.length == 0) {
+					target.sendMessage(bot, builder.getContent());
+				} else if (args.length == 1 && args[0] instanceof String a0) {
+					var message = builder.getContent().formatted(a0);
 					target.sendMessage(bot, message);
 				}
-				break;
-			case LOG_EXCEPTION:
-				if(args != null && args[0] instanceof String) {
-					if(args.length == 2) {
-						if(args[1] instanceof Exception) {
-							Exception exception = (Exception) args[1];
-							EmbedBuilder embed = new EmbedBuilder();
-							embed.setTitle((String) args[0]);
-							embed.setDescription(exception.getClass().getSimpleName());
-							embed.addField("Stack Trace", StringTools.limit(Arrays.toString(exception.getStackTrace()), 1024), false);
-							MessageCreateBuilder messageBuilder = new MessageCreateBuilder();
-							messageBuilder.setEmbeds(embed.build());
-							target.sendMessage(bot, StringTools.limit(messageBuilder.build().getContent(), 2000));
-						} else {
-							EmbedBuilder embed = new EmbedBuilder();
-							embed.setTitle((String) args[0]);
-							embed.setDescription(args[1].getClass().getSimpleName());
-							MessageCreateBuilder messageBuilder = new MessageCreateBuilder();
-							messageBuilder.setEmbeds(embed.build());
-							target.sendMessage(bot, StringTools.limit(messageBuilder.build().getContent(), 2000));
-						}
-					} else {
-						MessageCreateBuilder messageBuilder = new MessageCreateBuilder();
-						messageBuilder.setContent(StringTools.limit("Server encountered an exception\n:" + args[0], 2000));
-						target.sendMessage(bot, StringTools.limit(messageBuilder.build().getContent(), 2000));
-					}
+			}
+			case LOG_EXCEPTION -> {
+				if (args != null && args[0] instanceof String title) {
+					target.sendMessage(bot, buildExceptionMessage(title, args.length >= 2 ? args[1] : null));
 				}
-				break;
-			case LOG_FATAL:
-				if(args != null && args[0] instanceof String) {
-					if(args.length == 2) {
-						if(args[1] instanceof Exception) {
-							Exception exception = (Exception) args[1];
-							EmbedBuilder embed = new EmbedBuilder();
-							embed.setTitle((String) args[0]);
-							embed.setDescription(exception.getClass().getSimpleName());
-							embed.addField("Stack Trace", StringTools.limit(Arrays.toString(exception.getStackTrace()), 1023), false);
-							MessageCreateBuilder messageBuilder = new MessageCreateBuilder();
-							Role staffRole = DiscordUtils.getStaffRole();
-							if(staffRole != null) messageBuilder.setContent(staffRole.getAsMention() + " Server crashed due to a severe exception\n:" + exception.getMessage());
-							else messageBuilder.setContent("Server crashed due to a severe exception\n:" + exception.getMessage());
-							messageBuilder.setEmbeds(embed.build());
-							target.sendMessage(bot, messageBuilder.build().getContent());
-						} else {
-							EmbedBuilder embed = new EmbedBuilder();
-							embed.setTitle((String) args[0]);
-							embed.setDescription(args[1].getClass().getSimpleName());
-							MessageCreateBuilder messageBuilder = new MessageCreateBuilder();
-							Role staffRole = DiscordUtils.getStaffRole();
-							if(staffRole != null) messageBuilder.setContent(staffRole.getAsMention() + " Server crashed due to a severe exception\n:" + args[1].toString());
-							else messageBuilder.setContent("Server crashed due to a severe exception\n:" + args[1].toString());
-							messageBuilder.setEmbeds(embed.build());
-							target.sendMessage(bot, messageBuilder.build().getContent());
-						}
-					} else {
-						MessageCreateBuilder messageBuilder = new MessageCreateBuilder();
-						Role staffRole = DiscordUtils.getStaffRole();
-						if(staffRole != null) messageBuilder.setContent(staffRole.getAsMention() + " Server crashed due to a severe exception\n:" + args[0]);
-						else messageBuilder.setContent("Server crashed due to a severe exception\n:" + args[0]);
-						target.sendMessage(bot, messageBuilder.build().getContent());
-					}
+			}
+			case LOG_FATAL -> {
+				if (args != null && args[0] instanceof String title) {
+					target.sendMessage(bot, buildFatalMessage(title, args.length >= 2 ? args[1] : null));
 				}
-				break;
+			}
 		}
+	}
+
+	// -------------------------------------------------------------------------
+	// Private helpers
+	// -------------------------------------------------------------------------
+
+	private static String buildExceptionMessage(String title, Object secondArg) {
+		var messageBuilder = new MessageCreateBuilder();
+		if (secondArg instanceof Exception exception) {
+			var embed = new EmbedBuilder()
+					.setTitle(title)
+					.setDescription(exception.getClass().getSimpleName())
+					.addField("Stack Trace", StringTools.limit(Arrays.toString(exception.getStackTrace()), 1024), false)
+					.build();
+			messageBuilder.setEmbeds(embed);
+		} else if (secondArg != null) {
+			var embed = new EmbedBuilder()
+					.setTitle(title)
+					.setDescription(secondArg.getClass().getSimpleName())
+					.build();
+			messageBuilder.setEmbeds(embed);
+		} else {
+			messageBuilder.setContent(StringTools.limit("Server encountered an exception\n:" + title, 2000));
+		}
+		return StringTools.limit(messageBuilder.build().getContent(), 2000);
+	}
+
+	private static String buildFatalMessage(String title, Object secondArg) {
+		var messageBuilder = new MessageCreateBuilder();
+		Role staffRole = DiscordUtils.getStaffRole();
+		String mention = (staffRole != null) ? staffRole.getAsMention() + " " : "";
+
+		if (secondArg instanceof Exception exception) {
+			var embed = new EmbedBuilder()
+					.setTitle(title)
+					.setDescription(exception.getClass().getSimpleName())
+					.addField("Stack Trace", StringTools.limit(Arrays.toString(exception.getStackTrace()), 1023), false)
+					.build();
+			messageBuilder.setContent(mention + "Server crashed due to a severe exception\n:" + exception.getMessage());
+			messageBuilder.setEmbeds(embed);
+		} else if (secondArg != null) {
+			var embed = new EmbedBuilder()
+					.setTitle(title)
+					.setDescription(secondArg.getClass().getSimpleName())
+					.build();
+			messageBuilder.setContent(mention + "Server crashed due to a severe exception\n:" + secondArg);
+			messageBuilder.setEmbeds(embed);
+		} else {
+			messageBuilder.setContent(mention + "Server crashed due to a severe exception\n:" + title);
+		}
+		return messageBuilder.build().getContent();
 	}
 }

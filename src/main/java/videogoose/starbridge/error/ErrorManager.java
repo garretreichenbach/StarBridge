@@ -39,10 +39,10 @@ import java.util.regex.PatternSyntaxException;
  * <p>
  * Mute rules (exact fingerprints, regex patterns, and per-pattern alert thresholds)
  * are persisted in the {@code errors} config so they survive restarts. Muting only
- * suppresses Discord reporting; it never changes game behaviour, and fatal/crash
+ * suppresses Discord reporting; it never changes game behavior, and fatal/crash
  * reports ({@link #reportFatal}) are never muted.
  *
- * @author Garret Reichenbach
+ * @author VideoGoose
  */
 public final class ErrorManager {
 

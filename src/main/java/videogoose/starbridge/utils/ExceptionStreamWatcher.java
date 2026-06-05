@@ -18,7 +18,7 @@ import java.io.PrintStream;
  * complete block to {@link ErrorManager} when the trace ends. Everything still
  * passes through to the underlying stream unchanged.
  *
- * @author Garret Reichenbach
+ * @author VideoGoose
  */
 public class ExceptionStreamWatcher extends PrintStream {
 

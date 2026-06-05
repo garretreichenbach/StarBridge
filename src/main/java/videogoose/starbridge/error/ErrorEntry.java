@@ -8,7 +8,7 @@ package videogoose.starbridge.error;
  * same recurring error always collapses onto one entry regardless of varying
  * messages (paths, ids, timestamps).
  *
- * @author Garret Reichenbach
+ * @author VideoGoose
  */
 public class ErrorEntry {
 
