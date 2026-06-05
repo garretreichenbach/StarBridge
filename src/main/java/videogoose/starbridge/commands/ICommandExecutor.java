@@ -7,7 +7,7 @@ import org.schema.game.common.data.player.PlayerState;
 /**
  * [Description]
  *
- * @author TheDerpGamer
+ * @author VideoGoose
  */
 public interface ICommandExecutor {
 

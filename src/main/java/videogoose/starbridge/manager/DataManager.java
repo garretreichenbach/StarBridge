@@ -19,7 +19,7 @@ import java.util.Set;
 /**
  * Manages serializable data related to players and groups in StarBridge.
  *
- * @author TheDerpGamer
+ * @author VideoGoose
  */
 public class DataManager {
 

@@ -5,7 +5,7 @@ import videogoose.starbridge.data.other.Pair;
 /**
  * [Description]
  *
- * @author TheDerpGamer
+ * @author VideoGoose
  */
 public interface IPermissibleAction {
 

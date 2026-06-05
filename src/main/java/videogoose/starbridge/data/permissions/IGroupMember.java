@@ -9,7 +9,7 @@ import java.util.Set;
  * This interface extends IPermissionHolder to include group-specific functionality.
  * It allows checking group membership, retrieving the group identifier, and managing group permissions.
  *
- * @author TheDerpGamer
+ * @author VideoGoose
  */
 public interface IGroupMember extends IPermissionHolder {
 

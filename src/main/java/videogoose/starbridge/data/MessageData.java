@@ -7,7 +7,7 @@ import org.schema.game.network.objects.ChatMessage;
 /**
  * <Description>
  *
- * @author TheDerpGamer
+ * @author VideoGoose
  * @version 1.0 - [11/04/2021]
  */
 public class MessageData {

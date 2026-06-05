@@ -23,7 +23,7 @@ import java.util.UUID;
  * Implements IGroupMember to manage group-related functionality.
  * This class is serializable to JSON for persistence.
  *
- * @author TheDerpGamer
+ * @author VideoGoose
  */
 public class PlayerData extends JsonSerializable implements IGroupMember {
 

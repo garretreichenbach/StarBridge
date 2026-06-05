@@ -8,7 +8,7 @@ import java.util.Set;
  * Represents an entity that can hold permissions.
  * This can be a player, faction, an entity, etc.
  *
- * @author TheDerpGamer
+ * @author VideoGoose
  */
 public interface IPermissionHolder {
 

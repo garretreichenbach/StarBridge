@@ -3,7 +3,7 @@ package videogoose.starbridge.data.other;
 /**
  * [Description]
  *
- * @author TheDerpGamer
+ * @author VideoGoose
  */
 public class Pair<L, R> {
 

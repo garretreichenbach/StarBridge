@@ -16,7 +16,7 @@ import java.util.UUID;
 /**
  * Represents a group entity that can give permissions to its members.
  *
- * @author TheDerpGamer
+ * @author VideoGoose
  */
 public class PermissionGroup extends JsonSerializable implements IPermissionHolder {
 

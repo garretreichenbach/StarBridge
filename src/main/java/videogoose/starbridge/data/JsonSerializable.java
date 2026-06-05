@@ -6,7 +6,7 @@ import videogoose.starbridge.manager.DataManager;
 /**
  * [Description]
  *
- * @author TheDerpGamer
+ * @author VideoGoose
  */
 public abstract class JsonSerializable {
 

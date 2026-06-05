@@ -6,7 +6,7 @@ import videogoose.starbridge.StarBridge;
 /**
  * <Description>
  *
- * @author TheDerpGamer
+ * @author VideoGoose
  * @version 1.0 - [08/23/2021]
  */
 public class ConfigManager {

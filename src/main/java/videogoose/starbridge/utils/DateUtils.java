@@ -7,7 +7,7 @@ import java.util.Date;
  * DateUtils.java
  * Utility functions for date objects.
  *
- * @author TheDerpGamer
+ * @author VideoGoose
  * @since 03/20/2021
  */
 public class DateUtils {
