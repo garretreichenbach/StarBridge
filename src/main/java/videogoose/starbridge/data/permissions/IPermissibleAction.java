@@ -3,7 +3,9 @@ package videogoose.starbridge.data.permissions;
 import videogoose.starbridge.data.other.Pair;
 
 /**
- * [Description]
+ * Defines actions that can only be performed if the user has the required permission node.
+ * Each action specifies a permission node and associated value via {@link #getRequiredPermission()},
+ * and can optionally require admin-only access via {@link #isAdminOnly()}.
  *
  * @author VideoGoose
  */

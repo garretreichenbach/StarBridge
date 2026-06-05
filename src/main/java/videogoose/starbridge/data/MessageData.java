@@ -5,10 +5,11 @@ import org.schema.game.common.data.chat.ChannelRouter;
 import org.schema.game.network.objects.ChatMessage;
 
 /**
- * <Description>
+ * Holds relayed chat message data with sender, text, channel, and message type.
+ * Message type determines where the message appears (Discord, game, log) based on
+ * PMs, public channels, private channels, events, or broadcasts.
  *
  * @author VideoGoose
- * @version 1.0 - [11/04/2021]
  */
 public class MessageData {
 

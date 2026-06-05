@@ -4,10 +4,9 @@ import api.mod.config.FileConfiguration;
 import videogoose.starbridge.StarBridge;
 
 /**
- * <Description>
+ * Manages StarBridge's configuration files: main `config` (bot/channel settings), `systems` (custom system names), and `errors` (error-relay rules). Provides static methods to load and access each configuration.
  *
  * @author VideoGoose
- * @version 1.0 - [08/23/2021]
  */
 public class ConfigManager {
 

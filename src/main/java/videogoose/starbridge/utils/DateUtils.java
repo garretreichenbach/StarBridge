@@ -8,7 +8,6 @@ import java.util.Date;
  * Utility functions for date objects.
  *
  * @author VideoGoose
- * @since 03/20/2021
  */
 public class DateUtils {
 

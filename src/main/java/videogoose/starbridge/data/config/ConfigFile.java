@@ -7,7 +7,8 @@ import java.util.*;
 
 /**
  * ConfigFile
- * <Description>
+ * A utility class that manages configuration values stored in a key=value format file.
+ * Provides methods to load, save, and retrieve configuration values of various types.
  */
 public class ConfigFile {
 

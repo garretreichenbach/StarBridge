@@ -5,7 +5,7 @@ import net.dv8tion.jda.api.interactions.commands.build.CommandData;
 import org.schema.game.common.data.player.PlayerState;
 
 /**
- * [Description]
+ * Interface implemented by command handlers to run a StarBridge command from both the in-game chat and a Discord context.
  *
  * @author VideoGoose
  */

@@ -1,7 +1,7 @@
 package videogoose.starbridge.data.other;
 
 /**
- * [Description]
+ * A simple generic container holding two related values (a 2-tuple).
  *
  * @author VideoGoose
  */
