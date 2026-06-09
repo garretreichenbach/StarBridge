@@ -18,6 +18,7 @@ public class ConfigManager {
 			"server-id: SERVER_ID",
 			"chat-channel-id: CHAT_CHANNEL_ID",
 			"log-channel-id: LOG_CHANNEL_ID",
+			"changelog-channel-id: CHANGELOG_CHANNEL_ID",
 			"restart-timer: 3600000", //6 hours
 			"default-shutdown-timer: 900000", //15 minutes
 			"admin-role-id: ADMIN_ROLE_ID"

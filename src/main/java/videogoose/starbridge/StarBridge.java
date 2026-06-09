@@ -8,6 +8,7 @@ import videogoose.starbridge.commands.CommandTypes;
 import videogoose.starbridge.error.ErrorManager;
 import videogoose.starbridge.manager.ConfigManager;
 import videogoose.starbridge.manager.EventManager;
+import videogoose.starbridge.server.ChangelogTracker;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -44,6 +45,7 @@ public class StarBridge extends StarMod {
 		long took = System.currentTimeMillis() - start;
 		CommandTypes.registerGameCommands();
 		MessageType.SERVER_STARTED.sendMessage(took);
+		ChangelogTracker.checkAndPost();
 		if(ConfigManager.getMainConfig().getBoolean("debug-mode")) {
 			MessageType.DEBUG_MODE_STARTED.sendMessage();
 		}

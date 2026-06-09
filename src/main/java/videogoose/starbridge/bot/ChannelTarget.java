@@ -13,7 +13,8 @@ import java.util.concurrent.TimeUnit;
  *
  * <p>CHAT sends to the configured {@code chat-channel-id}.<br>
  * LOG  sends to the configured {@code log-channel-id}.<br>
- * BOTH sends to both channels.
+ * CHANGELOG sends to the configured {@code changelog-channel-id}.<br>
+ * BOTH sends to both the chat and log channels.
  *
  * <p>All channel lookups are null-checked; a missing channel logs a warning
  * and returns cleanly rather than throwing NPE.
@@ -23,6 +24,7 @@ import java.util.concurrent.TimeUnit;
 public enum ChannelTarget {
 	CHAT,
 	LOG,
+	CHANGELOG,
 	BOTH;
 
 	/** Delay between queueing a message and it actually being sent, in ms. */
@@ -34,6 +36,7 @@ public enum ChannelTarget {
 		switch (this) {
 			case CHAT -> sendToChannel(bot, message, "chat-channel-id");
 			case LOG  -> sendToChannel(bot, message, "log-channel-id");
+			case CHANGELOG -> sendToChannel(bot, message, "changelog-channel-id");
 			case BOTH -> {
 				sendToChannel(bot, message, "chat-channel-id");
 				sendToChannel(bot, message, "log-channel-id");

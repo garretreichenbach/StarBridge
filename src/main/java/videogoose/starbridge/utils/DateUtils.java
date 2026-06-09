@@ -59,4 +59,33 @@ public class DateUtils {
 	public static String getTimeFormatted() {
 		return getTimeFormatted("MM/dd/yyyy '-' hh:mm:ss z");
 	}
+
+	/**
+	 * Format a duration in milliseconds into a compact human-readable string.
+	 *
+	 * <p>Breaks the duration into days, hours, minutes, and seconds, showing
+	 * only the non-zero leading units. For example, {@code 3661000} becomes
+	 * {@code "1h 1m 1s"}. Sub-second durations return {@code "0s"}.</p>
+	 *
+	 * @param millis the duration in milliseconds (treated as non-negative)
+	 * @return a compact formatted string like {@code "2d 3h 4m 5s"}
+	 */
+	public static String formatDuration(long millis) {
+		long remaining = Math.abs(millis);
+
+		long days = remaining / 86400000L;
+		remaining -= days * 86400000L;
+		long hours = remaining / 3600000L;
+		remaining -= hours * 3600000L;
+		long minutes = remaining / 60000L;
+		remaining -= minutes * 60000L;
+		long seconds = remaining / 1000L;
+
+		StringBuilder sb = new StringBuilder();
+		if (days > 0) sb.append(days).append("d ");
+		if (days > 0 || hours > 0) sb.append(hours).append("h ");
+		if (days > 0 || hours > 0 || minutes > 0) sb.append(minutes).append("m ");
+		sb.append(seconds).append("s");
+		return sb.toString();
+	}
 }

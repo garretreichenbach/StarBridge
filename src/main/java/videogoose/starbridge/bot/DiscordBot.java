@@ -27,6 +27,7 @@ import net.dv8tion.jda.api.utils.messages.MessageCreateData;
 import org.schema.game.common.controller.SegmentController;
 import org.schema.game.common.data.player.PlayerState;
 import org.schema.game.common.data.player.faction.FactionRelation;
+import org.schema.game.common.version.Version;
 import org.schema.game.network.objects.ChatMessage;
 import org.schema.game.server.data.GameServerState;
 import org.schema.game.server.data.ServerConfig;
@@ -147,7 +148,9 @@ public class DiscordBot extends ListenerAdapter implements Thread.UncaughtExcept
 		try {
 			int playerCount = GameServer.getServerState().getPlayerStatesByName().size();
 			int playerMax = (int) ServerConfig.MAX_CLIENTS.getCurrentState();
-			var chatChannelStats = "Players: " + playerCount + " / " + playerMax;
+			var serverVersion = "v" + Version.VERSION + " (build " + Version.BUILD + ")";
+			var chatChannelStats = "Players: " + playerCount + " / " + playerMax
+					+ " \nVersion: " + serverVersion;
 			var chatChannel = bot.getTextChannelById(ConfigManager.getMainConfig().getLong("chat-channel-id"));
 			if (chatChannel == null) {
 				instance.logWarning("chat-channel-id channel not found — skipping channel-info update");
@@ -156,6 +159,7 @@ public class DiscordBot extends ListenerAdapter implements Thread.UncaughtExcept
 			queueAction(chatChannel.getManager().setTopic(chatChannelStats));
 
 			var logChannelStats = "Clients: " + playerCount + " / " + playerMax
+					+ " \nVersion: " + serverVersion
 					+ " \nCurrent Uptime: " + (System.currentTimeMillis() - startTime);
 			var logChannel = bot.getTextChannelById(ConfigManager.getMainConfig().getLong("log-channel-id"));
 			if (logChannel == null) {

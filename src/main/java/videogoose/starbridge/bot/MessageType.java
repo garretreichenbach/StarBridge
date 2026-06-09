@@ -62,7 +62,8 @@ public enum MessageType {
 	LOG_INFO(new MessageCreateBuilder().addContent(":information_source: [INFO] %s").build(), ChannelTarget.LOG),
 	LOG_WARNING(new MessageCreateBuilder().addContent(":warning: [WARNING] %s").build(), ChannelTarget.LOG),
 	LOG_EXCEPTION(new MessageCreateBuilder().addContent(":exclamation: [EXCEPTION] %s").build(), ChannelTarget.LOG),
-	LOG_FATAL(new MessageCreateBuilder().addContent(":bangbang: [FATAL] %s").build(), ChannelTarget.LOG);
+	LOG_FATAL(new MessageCreateBuilder().addContent(":bangbang: [FATAL] %s").build(), ChannelTarget.LOG),
+	CHANGELOG(new MessageCreateBuilder().addContent(":scroll: %s").build(), ChannelTarget.CHANGELOG);
 
 	private final MessageCreateData builder;
 	private final ChannelTarget target;
@@ -171,6 +172,12 @@ public enum MessageType {
 			case LOG_FATAL -> {
 				if (args != null && args[0] instanceof String title) {
 					target.sendMessage(bot, buildFatalMessage(title, args.length >= 2 ? args[1] : null));
+				}
+			}
+			case CHANGELOG -> {
+				// 1-arg variant: pre-formatted changelog body (may be multi-line).
+				if (args != null && args.length == 1 && args[0] instanceof String a0) {
+					target.sendMessage(bot, builder.getContent().formatted(a0));
 				}
 			}
 		}
