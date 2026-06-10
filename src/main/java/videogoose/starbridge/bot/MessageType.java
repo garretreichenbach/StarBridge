@@ -115,7 +115,7 @@ public enum MessageType {
 			case SERVER_STARTING, SERVER_STOPPING, SERVER_RESTARTING, LOG_INFO, LOG_WARNING -> {
 				// 1-arg (or 0-arg for no-placeholder variants)
 				if (args != null && args.length == 1 && args[0] instanceof String a0) {
-					target.sendMessage(bot, builder.getContent() + " " + a0);
+					target.sendMessage(bot, builder.getContent().formatted(a0));
 					// Pure log/status — does NOT broadcast in-game (no change from original).
 				} else if ((args == null || args.length == 0) && !builder.getContent().contains("%s")) {
 					target.sendMessage(bot, builder.getContent());
@@ -124,7 +124,7 @@ public enum MessageType {
 			case LOG_DEBUG -> {
 				if (ConfigManager.getMainConfig().getBoolean("debug-mode")
 						&& args != null && args.length == 1 && args[0] instanceof String a0) {
-					target.sendMessage(bot, builder.getContent() + " " + a0);
+					target.sendMessage(bot, builder.getContent().formatted(a0));
 				}
 			}
 			case SERVER_STOPPING_TIMED, SERVER_RESTARTING_TIMED -> {

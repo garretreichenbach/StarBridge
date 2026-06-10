@@ -388,12 +388,20 @@ public class DiscordBot extends ListenerAdapter implements Thread.UncaughtExcept
 	 * @param message the raw text to broadcast.
 	 */
 	public void sendServerMessage(String sender, String message) {
+		// The game server may not be initialized yet (still starting) or already
+		// torn down (shutting down). If so there is nowhere to inject the message,
+		// so drop it without polluting the echo guard.
+		var serverState = GameServerState.instance;
+		if (serverState == null) {
+			instance.logInfo("[DEBUG] drop Discord->game relay; server not available: " + message);
+			return;
+		}
 		try {
 			var formatted = (sender != null) ? "[" + sender + "] " + message : message;
 			// Register in echo guard so the PlayerChatEvent fired by this injection
 			// is not relayed back to Discord (Discord->game->Discord feedback loop).
 			recentBridgeInjections.add(formatted);
-			for (RegisteredClientOnServer client : GameServerState.instance.getClients().values()) {
+			for (RegisteredClientOnServer client : serverState.getClients().values()) {
 				client.serverMessage(formatted);
 			}
 		} catch (Exception exception) {
@@ -412,12 +420,21 @@ public class DiscordBot extends ListenerAdapter implements Thread.UncaughtExcept
 	 * @param message the text to broadcast (without any sender prefix).
 	 */
 	public void sendBridgeMessage(String message) {
+		// The game server may not be initialized yet (still starting) or already
+		// torn down (shutting down). If so there is nowhere to inject the message,
+		// so drop it without polluting the echo guard.
+		var serverState = GameServerState.instance;
+		if (serverState == null) {
+			instance.logInfo("[DEBUG] drop bridge announcement; server not available: " + message);
+			return;
+		}
+
 		// Register before injecting so the PlayerChatEvent / Discord echo is
 		// already in the guard set by the time it arrives.
 		recentBridgeInjections.add(message);
 
 		try {
-			for (RegisteredClientOnServer client : GameServerState.instance.getClients().values()) {
+			for (RegisteredClientOnServer client : serverState.getClients().values()) {
 				client.serverMessage(message);
 			}
 		} catch (Exception exception) {

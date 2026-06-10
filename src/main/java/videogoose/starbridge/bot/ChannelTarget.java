@@ -1,7 +1,7 @@
 package videogoose.starbridge.bot;
 
 import net.dv8tion.jda.api.JDA;
-import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
+import net.dv8tion.jda.api.entities.channel.middleman.GuildMessageChannel;
 import org.schema.common.util.StringTools;
 import videogoose.starbridge.StarBridge;
 import videogoose.starbridge.manager.ConfigManager;
@@ -54,7 +54,10 @@ public enum ChannelTarget {
 	 */
 	private static void sendToChannel(JDA bot, String message, String configKey) {
 		long channelId = ConfigManager.getMainConfig().getLong(configKey);
-		TextChannel channel = bot.getTextChannelById(channelId);
+		// Look up by GuildMessageChannel rather than TextChannel so announcement/news
+		// channels (common for a changelog) are also resolved — getTextChannelById()
+		// only matches plain text channels and returns null for a NewsChannel.
+		GuildMessageChannel channel = bot.getChannelById(GuildMessageChannel.class, channelId);
 		if (channel == null) {
 			StarBridge.getInstance().logWarning(
 					"ChannelTarget: channel for config key '" + configKey + "' (id=" + channelId + ") not found — message dropped");
