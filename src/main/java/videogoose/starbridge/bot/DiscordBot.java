@@ -22,6 +22,7 @@ import net.dv8tion.jda.api.managers.AccountManager;
 import net.dv8tion.jda.api.modals.Modal;
 import net.dv8tion.jda.api.requests.GatewayIntent;
 import net.dv8tion.jda.api.requests.RestAction;
+import net.dv8tion.jda.api.utils.FileUpload;
 import net.dv8tion.jda.api.utils.messages.MessageCreateBuilder;
 import net.dv8tion.jda.api.utils.messages.MessageCreateData;
 import org.schema.game.common.controller.SegmentController;
@@ -45,6 +46,7 @@ import videogoose.starbridge.utils.ExceptionStreamWatcher;
 import java.io.InputStream;
 import java.net.URL;
 import java.net.URLConnection;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
@@ -199,13 +201,30 @@ public class DiscordBot extends ListenerAdapter implements Thread.UncaughtExcept
 		var fingerprint = parts[2];
 		switch (action) {
 			case "mute" -> {
+				// Acknowledge first: muteFingerprint() performs a blocking, synchronized disk
+				// write that can exceed Discord's ~3s interaction window and fail the interaction.
+				event.deferReply(true).queue();
 				ErrorManager.muteFingerprint(fingerprint);
-				event.reply("🔇 Muted error `" + fingerprint + "`. Future occurrences won't be posted.").setEphemeral(true).queue();
+				event.getHook().sendMessage("🔇 Muted error `" + fingerprint + "`. Future occurrences won't be posted.").queue();
 			}
 			case "stack" -> {
 				var entry = ErrorManager.getEntry(fingerprint);
 				if (entry == null) event.reply("That error is no longer tracked.").setEphemeral(true).queue();
 				else event.reply("```" + limit(entry.getFullText(), 1900) + "```").setEphemeral(true).queue();
+			}
+			case "copy" -> {
+				var text = ErrorManager.getCopyableText(fingerprint);
+				if (text == null) {
+					event.reply("Those details are no longer available.").setEphemeral(true).queue();
+				} else if (text.length() <= 1900) {
+					// Fits inline: Discord renders a one-click copy icon on code blocks.
+					event.reply("```\n" + text + "\n```").setEphemeral(true).queue();
+				} else {
+					// Too large for a message: attach the full text as a downloadable file.
+					var file = FileUpload.fromData(text.getBytes(StandardCharsets.UTF_8), "error-" + fingerprint + ".txt");
+					event.reply("📋 Full details attached — open the file to copy everything.")
+							.setEphemeral(true).addFiles(file).queue();
+				}
 			}
 			case "pat" -> {
 				var entry = ErrorManager.getEntry(fingerprint);
@@ -232,8 +251,11 @@ public class DiscordBot extends ListenerAdapter implements Thread.UncaughtExcept
 		}
 		var mapping = event.getValue("regex");
 		String regex = mapping == null ? null : mapping.getAsString();
+		// Acknowledge first: mutePattern() persists to disk synchronously and can exceed
+		// Discord's ~3s interaction window.
+		event.deferReply(true).queue();
 		boolean added = ErrorManager.mutePattern(regex);
-		event.reply(added ? "🔇 Muted errors matching `" + regex + "`." : "Invalid or duplicate pattern.").setEphemeral(true).queue();
+		event.getHook().sendMessage(added ? "🔇 Muted errors matching `" + regex + "`." : "Invalid or duplicate pattern.").queue();
 	}
 
 	private boolean isStaff(Member member) {
@@ -261,6 +283,12 @@ public class DiscordBot extends ListenerAdapter implements Thread.UncaughtExcept
 	public void onSlashCommandInteraction(SlashCommandInteractionEvent event) {
 		boolean canUse = true;
 		var command = CommandTypes.getFromName(event.getName());
+		// Acknowledge immediately. Commands query live game state and write config/DB to
+		// disk before producing output; that work can exceed Discord's ~3s interaction
+		// window and fail the command. Deferring first guarantees the ack lands in time,
+		// after which commands respond through event.getHook().
+		boolean ephemeral = command == null || command.permission.isAdminOnly();
+		event.deferReply(ephemeral).queue();
 		if (event.getGuild() != null) {
 			if (command != null) {
 				if (command.permission.isAdminOnly()) {
@@ -291,16 +319,16 @@ public class DiscordBot extends ListenerAdapter implements Thread.UncaughtExcept
 			}
 		}
 		if (!canUse) {
-			event.reply("You do not have permission to use this command.").setEphemeral(true).queue();
+			event.getHook().editOriginal("You do not have permission to use this command.").queue();
 		} else if (command != null) {
 			try {
 				command.execute(event);
 			} catch (Exception exception) {
 				instance.logException("An exception occurred while executing command /" + event.getName(), exception);
-				if (!event.isAcknowledged()) event.reply("An error occurred while trying to execute this command.").setEphemeral(true).queue();
+				event.getHook().editOriginal("An error occurred while trying to execute this command.").queue();
 			}
 		} else {
-			event.reply("An error occurred while trying to execute this command.").setEphemeral(true).queue();
+			event.getHook().editOriginal("An error occurred while trying to execute this command.").queue();
 		}
 	}
 

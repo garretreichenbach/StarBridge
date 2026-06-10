@@ -74,7 +74,7 @@ public enum CommandTypes {
 			PlayerState playerState = GameServer.getServerState().getPlayerFromNameIgnoreCaseWOException(name);
 			if(playerState != null) {
 				PlayerData playerData = ServerDatabase.getPlayerDataOrCreateIfNull(playerState.getName());
-				event.reply(playerData.toString()).queue();
+				event.getHook().editOriginal(playerData.toString()).queue();
 			} else {
 				List<Faction> factions = new ArrayList<>(GameServer.getServerState().getFactionManager().getFactionCollection());
 				Faction faction = factions.stream().filter(f -> f.getName().equalsIgnoreCase(name)).findFirst().orElse(null);
@@ -90,8 +90,8 @@ public enum CommandTypes {
 					}
 					builder.append("\n");
 					builder.append("\tDescription: ").append(faction.getDescription());
-					event.reply(builder.toString()).queue();
-				} else event.reply("Player or faction not found: " + name).queue();
+					event.getHook().editOriginal(builder.toString()).queue();
+				} else event.getHook().editOriginal("Player or faction not found: " + name).queue();
 			}
 		}
 
@@ -119,9 +119,10 @@ public enum CommandTypes {
 				PersistentObjectUtil.save(StarBridge.getInstance().getSkeleton());
 				String logMessage = "Successfully linked user " + event.getUser().getName() + " to " + playerData.getPlayerName();
 				StarBridge.getBot().removeLinkRequest(playerData);
-				event.reply(logMessage).queue();
+				event.getHook().editOriginal(logMessage).queue();
 				StarBridge.getInstance().logInfo(logMessage);
-				event.getHook().deleteOriginal().queue();
+			} else {
+				event.getHook().editOriginal("Invalid or expired link code. Run /link in-game to get a new one.").queue();
 			}
 		}
 
@@ -185,7 +186,7 @@ public enum CommandTypes {
 					builder = new StringBuilder();
 					builder.append("There are no players currently online.");
 				}
-				event.reply(builder.toString().trim()).queue();
+				event.getHook().editOriginal(builder.toString().trim()).queue();
 			} else if("staff".equalsIgnoreCase(type) || "admins".equalsIgnoreCase(type)) {
 				try {
 					builder.append("Current Online Staff:\n");
@@ -199,8 +200,8 @@ public enum CommandTypes {
 					builder = new StringBuilder();
 					builder.append("There are no staff currently online.");
 				}
-				event.reply(builder.toString().trim()).queue();
-			} else event.reply("Incorrect usage \"/" + message + "\".\nUsage: /list players or /list staff").queue();
+				event.getHook().editOriginal(builder.toString().trim()).queue();
+			} else event.getHook().editOriginal("Incorrect usage \"/" + message + "\".\nUsage: /list players or /list staff").queue();
 		}
 
 		@Override
@@ -280,26 +281,26 @@ public enum CommandTypes {
 				case "mute" -> {
 					String fp = Objects.requireNonNull(event.getOption("fingerprint")).getAsString().trim();
 					boolean added = ErrorManager.muteFingerprint(fp);
-					event.reply(added ? "Muted error `" + fp + "`." : "Error `" + fp + "` was already muted.").setEphemeral(true).queue();
+					event.getHook().editOriginal(added ? "Muted error `" + fp + "`." : "Error `" + fp + "` was already muted.").queue();
 				}
 				case "pattern" -> {
 					String regex = Objects.requireNonNull(event.getOption("regex")).getAsString();
 					boolean added = ErrorManager.mutePattern(regex);
-					event.reply(added ? "Muted errors matching `" + regex + "`." : "That pattern is already muted or invalid.").setEphemeral(true).queue();
+					event.getHook().editOriginal(added ? "Muted errors matching `" + regex + "`." : "That pattern is already muted or invalid.").queue();
 				}
 				case "unmute" -> {
 					String value = Objects.requireNonNull(event.getOption("value")).getAsString().trim();
 					boolean changed = ErrorManager.unmute(value);
-					event.reply(changed ? "Unmuted `" + value + "`." : "No muted fingerprint or pattern matched `" + value + "`.").setEphemeral(true).queue();
+					event.getHook().editOriginal(changed ? "Unmuted `" + value + "`." : "No muted fingerprint or pattern matched `" + value + "`.").queue();
 				}
 				case "threshold" -> {
 					String regex = Objects.requireNonNull(event.getOption("regex")).getAsString();
 					int count = Objects.requireNonNull(event.getOption("count")).getAsInt();
 					boolean ok = ErrorManager.setThreshold(regex, count);
-					event.reply(ok ? "Errors matching `" + regex + "` will only alert after " + count + " occurrence(s)." : "Invalid pattern.").setEphemeral(true).queue();
+					event.getHook().editOriginal(ok ? "Errors matching `" + regex + "` will only alert after " + count + " occurrence(s)." : "Invalid pattern.").queue();
 				}
-				case "stats" -> event.reply(ErrorManager.statsSummary()).setEphemeral(true).queue();
-				default -> event.replyEmbeds(ErrorManager.buildListEmbed()).setEphemeral(true).queue();
+				case "stats" -> event.getHook().editOriginal(ErrorManager.statsSummary()).queue();
+				default -> event.getHook().editOriginalEmbeds(ErrorManager.buildListEmbed()).queue();
 			}
 		}
 

@@ -18,8 +18,11 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Pattern;
@@ -55,6 +58,20 @@ public final class ErrorManager {
 	private static final Pattern DIGITS = Pattern.compile("\\d+");
 
 	private static final ConcurrentHashMap<String, ErrorEntry> entries = new ConcurrentHashMap<>();
+
+	/**
+	 * Full text of recent fatal reports, keyed by a content hash, so the "Copy details"
+	 * button can retrieve them later (fatal reports aren't tracked as {@link ErrorEntry}).
+	 * Bounded LRU so a crash-looping server can't leak memory.
+	 */
+	private static final int MAX_FATAL_REPORTS = 50;
+	private static final Map<String, String> fatalReports = Collections.synchronizedMap(
+			new LinkedHashMap<>(16, 0.75f, true) {
+				@Override
+				protected boolean removeEldestEntry(Map.Entry<String, String> eldest) {
+					return size() > MAX_FATAL_REPORTS;
+				}
+			});
 
 	private static final Set<String> mutedFingerprints = ConcurrentHashMap.newKeySet();
 	private static final List<MutePattern> mutePatterns = new ArrayList<>();
@@ -136,15 +153,24 @@ public final class ErrorManager {
 			var embed = new EmbedBuilder()
 					.setColor(0xB00020)
 					.setTitle(":bangbang: [FATAL] " + (throwable != null ? throwable.getClass().getSimpleName() : "Server crash"));
-			if(context != null && !context.isBlank()) embed.setDescription(limit(context, 2000));
+			var fullText = new StringBuilder();
+			if(context != null && !context.isBlank()) {
+				embed.setDescription(limit(context, 2000));
+				fullText.append(context).append('\n');
+			}
 			if(throwable != null) {
 				var trace = new StringBuilder();
 				appendThrowable(trace, throwable);
 				embed.addField("Stack Trace", "```" + limit(trace.toString(), 1000) + "```", false);
+				fullText.append(trace);
 			}
 			var builder = new MessageCreateBuilder().setEmbeds(embed.build());
 			Role staff = DiscordUtils.getStaffRole();
 			if(staff != null) builder.setContent(staff.getAsMention() + " A fatal error has occurred on the server.");
+			String copyId = sha12(fullText.toString());
+			fatalReports.put(copyId, fullText.toString());
+			builder.addComponents(ActionRow.of(
+					Button.success(BUTTON_PREFIX + ":copy:" + copyId, "Copy details")));
 			sendToLog(builder.build());
 		} catch(Exception ignored) {
 		}
@@ -182,7 +208,8 @@ public final class ErrorManager {
 				.addComponents(ActionRow.of(
 						Button.danger(BUTTON_PREFIX + ":mute:" + fp, "Mute"),
 						Button.secondary(BUTTON_PREFIX + ":pat:" + fp, "Mute pattern…"),
-						Button.primary(BUTTON_PREFIX + ":stack:" + fp, "Show stack")))
+						Button.primary(BUTTON_PREFIX + ":stack:" + fp, "Show stack"),
+						Button.success(BUTTON_PREFIX + ":copy:" + fp, "Copy details")))
 				.build();
 		sendToLog(message);
 	}
@@ -279,6 +306,17 @@ public final class ErrorManager {
 
 	public static ErrorEntry getEntry(String fingerprint) {
 		return entries.get(fingerprint);
+	}
+
+	/**
+	 * Returns the full text behind a "Copy details" button: a tracked exception's stack
+	 * (by fingerprint) or a stored fatal report (by content id), or {@code null} if it's
+	 * no longer available.
+	 */
+	public static String getCopyableText(String key) {
+		ErrorEntry entry = entries.get(key);
+		if(entry != null) return entry.getFullText();
+		return fatalReports.get(key);
 	}
 
 	public static Set<String> getMutedFingerprints() {
