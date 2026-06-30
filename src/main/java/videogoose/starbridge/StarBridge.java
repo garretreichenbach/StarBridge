@@ -9,6 +9,7 @@ import videogoose.starbridge.error.ErrorManager;
 import videogoose.starbridge.manager.ConfigManager;
 import videogoose.starbridge.manager.EventManager;
 import videogoose.starbridge.server.ChangelogTracker;
+import videogoose.starbridge.server.ServerDatabase;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -41,6 +42,8 @@ public class StarBridge extends StarMod {
 		ConfigManager.initialize();
 		ErrorManager.initialize();
 		EventManager.initialize(this);
+		// Console-only (not Discord): surfaces whether returning players actually loaded from disk.
+		super.logInfo(ServerDatabase.persistenceDiagnostics());
 		bot = DiscordBot.initialize(this);
 		long took = System.currentTimeMillis() - start;
 		CommandTypes.registerGameCommands();

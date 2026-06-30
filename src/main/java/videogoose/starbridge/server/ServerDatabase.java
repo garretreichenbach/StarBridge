@@ -7,6 +7,7 @@ import org.schema.game.common.data.player.faction.Faction;
 import videogoose.starbridge.StarBridge;
 import videogoose.starbridge.data.player.PlayerData;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Objects;
 
@@ -46,6 +47,21 @@ public class ServerDatabase {
 		ArrayList<Object> dataObjectList = PersistentObjectUtil.getObjects(instance, PlayerData.class);
 		for(Object dataObject : dataObjectList) playerDataList.add((PlayerData) dataObject);
 		return playerDataList;
+	}
+
+	/**
+	 * Reports the state of the persistent player store at startup. The "new player" message
+	 * wrongly firing for returning players after a restart means this store came back empty —
+	 * logging the loaded count and the backing file (path/exists/size) pins down whether the
+	 * data failed to load, was saved elsewhere, or never persisted. Loaded by StarLoader before
+	 * {@code onEnable}, so the count here is authoritative.
+	 */
+	public static String persistenceDiagnostics() {
+		int count = getAllPlayerData().size();
+		String contextId = GameCommon.getUniqueContextId();
+		File file = new File("moddata/" + instance.getName() + "/persistent/" + contextId + ".smdat");
+		return "Player store: loaded " + count + " record(s); context='" + contextId + "'; file="
+				+ file.getAbsolutePath() + " (exists=" + file.exists() + ", size=" + (file.exists() ? file.length() : 0) + " bytes)";
 	}
 
 	public static PlayerData addNewPlayerData(String playerName) {

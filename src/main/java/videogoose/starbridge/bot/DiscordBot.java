@@ -199,46 +199,59 @@ public class DiscordBot extends ListenerAdapter implements Thread.UncaughtExcept
 		if (parts.length < 3) return;
 		var action = parts[1];
 		var fingerprint = parts[2];
-		switch (action) {
-			case "mute" -> {
-				// Acknowledge first: muteFingerprint() performs a blocking, synchronized disk
-				// write that can exceed Discord's ~3s interaction window and fail the interaction.
-				event.deferReply(true).queue();
-				ErrorManager.muteFingerprint(fingerprint);
-				event.getHook().sendMessage("🔇 Muted error `" + fingerprint + "`. Future occurrences won't be posted.").queue();
-			}
-			case "stack" -> {
-				var entry = ErrorManager.getEntry(fingerprint);
-				if (entry == null) event.reply("That error is no longer tracked.").setEphemeral(true).queue();
-				else event.reply("```" + limit(entry.getFullText(), 1900) + "```").setEphemeral(true).queue();
-			}
-			case "copy" -> {
-				var text = ErrorManager.getCopyableText(fingerprint);
-				if (text == null) {
-					event.reply("Those details are no longer available.").setEphemeral(true).queue();
-				} else if (text.length() <= 1900) {
-					// Fits inline: Discord renders a one-click copy icon on code blocks.
-					event.reply("```\n" + text + "\n```").setEphemeral(true).queue();
-				} else {
-					// Too large for a message: attach the full text as a downloadable file.
-					var file = FileUpload.fromData(text.getBytes(StandardCharsets.UTF_8), "error-" + fingerprint + ".txt");
-					event.reply("📋 Full details attached — open the file to copy everything.")
-							.setEphemeral(true).addFiles(file).queue();
+		try {
+			switch (action) {
+				case "mute" -> {
+					// Acknowledge within Discord's ~3s window, then persist off the JDA gateway
+					// thread: muteFingerprint() does a blocking, synchronized config write that can
+					// stall the gateway and make this (and other) interactions fail intermittently.
+					event.deferReply(true).queue();
+					scheduler.execute(() -> {
+						try {
+							ErrorManager.muteFingerprint(fingerprint);
+							event.getHook().sendMessage("🔇 Muted error `" + fingerprint + "`. Future occurrences won't be posted.").queue();
+						} catch (Exception exception) {
+							event.getHook().sendMessage("⚠️ Couldn't mute `" + fingerprint + "` — it may not have been saved: " + exception.getMessage()).queue();
+						}
+					});
+				}
+				case "stack" -> {
+					var entry = ErrorManager.getEntry(fingerprint);
+					if (entry == null) event.reply("That error is no longer tracked (it predates the current bot session).").setEphemeral(true).queue();
+					else event.reply("```" + limit(entry.getFullText(), 1900) + "```").setEphemeral(true).queue();
+				}
+				case "copy" -> {
+					var text = ErrorManager.getCopyableText(fingerprint);
+					if (text == null) {
+						event.reply("Those details are no longer available (they predate the current bot session).").setEphemeral(true).queue();
+					} else if (text.length() <= 1900) {
+						// Fits inline: Discord renders a one-click copy icon on code blocks.
+						event.reply("```\n" + text + "\n```").setEphemeral(true).queue();
+					} else {
+						// Too large for a message: attach the full text as a downloadable file.
+						var file = FileUpload.fromData(text.getBytes(StandardCharsets.UTF_8), "error-" + fingerprint + ".txt");
+						event.reply("📋 Full details attached — open the file to copy everything.")
+								.setEphemeral(true).addFiles(file).queue();
+					}
+				}
+				case "pat" -> {
+					var entry = ErrorManager.getEntry(fingerprint);
+					String suggested = entry != null ? java.util.regex.Pattern.quote(entry.getExceptionClass()) : "";
+					var input = TextInput.create("regex", TextInputStyle.SHORT)
+							.setValue(suggested)
+							.setPlaceholder("e.g. java\\.io\\.FileNotFoundException")
+							.setRequired(true)
+							.build();
+					var modal = Modal.create(ErrorManager.BUTTON_PREFIX + ":patmodal", "Mute error pattern")
+							.addComponents(Label.of("Regex to mute", input))
+							.build();
+					event.replyModal(modal).queue();
 				}
 			}
-			case "pat" -> {
-				var entry = ErrorManager.getEntry(fingerprint);
-				String suggested = entry != null ? java.util.regex.Pattern.quote(entry.getExceptionClass()) : "";
-				var input = TextInput.create("regex", TextInputStyle.SHORT)
-						.setValue(suggested)
-						.setPlaceholder("e.g. java\\.io\\.FileNotFoundException")
-						.setRequired(true)
-						.build();
-				var modal = Modal.create(ErrorManager.BUTTON_PREFIX + ":patmodal", "Mute error pattern")
-						.addComponents(Label.of("Regex to mute", input))
-						.build();
-				event.replyModal(modal).queue();
-			}
+		} catch (Exception exception) {
+			// Never leave the interaction hanging as "This interaction failed": always respond.
+			if (event.isAcknowledged()) event.getHook().sendMessage("⚠️ Something went wrong handling that action.").queue();
+			else event.reply("⚠️ Something went wrong handling that action.").setEphemeral(true).queue();
 		}
 	}
 
@@ -251,11 +264,17 @@ public class DiscordBot extends ListenerAdapter implements Thread.UncaughtExcept
 		}
 		var mapping = event.getValue("regex");
 		String regex = mapping == null ? null : mapping.getAsString();
-		// Acknowledge first: mutePattern() persists to disk synchronously and can exceed
-		// Discord's ~3s interaction window.
+		// Acknowledge first, then persist off the JDA gateway thread: mutePattern() writes to
+		// disk synchronously and can exceed Discord's ~3s interaction window or stall the gateway.
 		event.deferReply(true).queue();
-		boolean added = ErrorManager.mutePattern(regex);
-		event.getHook().sendMessage(added ? "🔇 Muted errors matching `" + regex + "`." : "Invalid or duplicate pattern.").queue();
+		scheduler.execute(() -> {
+			try {
+				boolean added = ErrorManager.mutePattern(regex);
+				event.getHook().sendMessage(added ? "🔇 Muted errors matching `" + regex + "`." : "Invalid or duplicate pattern.").queue();
+			} catch (Exception exception) {
+				event.getHook().sendMessage("⚠️ Couldn't add that pattern: " + exception.getMessage()).queue();
+			}
+		});
 	}
 
 	private boolean isStaff(Member member) {
@@ -484,12 +503,18 @@ public class DiscordBot extends ListenerAdapter implements Thread.UncaughtExcept
 			}
 			case PlayerChatEvent playerChatEvent -> handlePlayerChatEvent(playerChatEvent);
 			case PlayerJoinWorldEvent playerJoinWorldEvent -> {
-				var pd = ServerDatabase.getPlayerData(playerJoinWorldEvent.getPlayerName());
+				// Resolve the in-game name from the PlayerState directly rather than the event's
+				// deprecated getPlayerName() wrapper: depending on the StarMade build that wrapper
+				// can surface the StarMade account/registry name, which publicly identifies the
+				// player. getName() is the in-game name shown in chat and over the player's head.
+				var player = playerJoinWorldEvent.getPlayerState();
+				String playerName = (player != null) ? player.getName() : playerJoinWorldEvent.getPlayerName();
+				var pd = ServerDatabase.getPlayerData(playerName);
 				if (pd == null) {
-					ServerDatabase.addNewPlayerData(playerJoinWorldEvent.getPlayerName());
-					MessageType.NEW_PLAYER_JOIN.sendMessage(playerJoinWorldEvent.getPlayerName());
+					ServerDatabase.addNewPlayerData(playerName);
+					MessageType.NEW_PLAYER_JOIN.sendMessage(playerName);
 				} else {
-					MessageType.PLAYER_JOIN.sendMessage(playerJoinWorldEvent.getPlayerName());
+					MessageType.PLAYER_JOIN.sendMessage(playerName);
 				}
 			}
 			case PlayerLeaveWorldEvent playerLeaveWorldEvent ->

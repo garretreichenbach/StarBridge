@@ -11,14 +11,18 @@ import videogoose.starbridge.StarBridge;
 import videogoose.starbridge.manager.ConfigManager;
 import videogoose.starbridge.utils.DiscordUtils;
 
+import java.io.File;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -72,6 +76,14 @@ public final class ErrorManager {
 					return size() > MAX_FATAL_REPORTS;
 				}
 			});
+
+	/**
+	 * Cap on the number of per-error text files kept on disk (see {@link #persistText}).
+	 * Buttons live forever on Discord messages but {@link #entries}/{@link #fatalReports}
+	 * are in-memory, so "Show stack"/"Copy details" would break after a restart; persisting
+	 * the text lets those buttons keep working. Bounded so a crash loop can't fill the disk.
+	 */
+	private static final int MAX_PERSISTED = 200;
 
 	private static final Set<String> mutedFingerprints = ConcurrentHashMap.newKeySet();
 	private static final List<MutePattern> mutePatterns = new ArrayList<>();
@@ -169,6 +181,7 @@ public final class ErrorManager {
 			if(staff != null) builder.setContent(staff.getAsMention() + " A fatal error has occurred on the server.");
 			String copyId = sha12(fullText.toString());
 			fatalReports.put(copyId, fullText.toString());
+			persistText(copyId, throwable != null ? throwable.getClass().getName() : "", fullText.toString());
 			builder.addComponents(ActionRow.of(
 					Button.success(BUTTON_PREFIX + ":copy:" + copyId, "Copy details")));
 			sendToLog(builder.build());
@@ -191,6 +204,8 @@ public final class ErrorManager {
 		// (the occurrence is still counted and surfaces on the next report once ready).
 		if(StarBridge.getBot() == null) return;
 		entry.markPosted(now);
+		// Save the text so this message's buttons keep working after a restart.
+		persistText(entry.getFingerprint(), entry.getExceptionClass(), entry.getFullText());
 		var embed = new EmbedBuilder()
 				.setColor(0xE67E22)
 				.setTitle(":exclamation: " + entry.simpleClassName() + (count > 1 ? " (×" + count + ")" : ""));
@@ -217,6 +232,57 @@ public final class ErrorManager {
 	private static void sendToLog(MessageCreateData data) {
 		var bot = StarBridge.getBot();
 		if(bot != null) bot.sendToLogChannel(data);
+	}
+
+	// ---------------------------------------------------------------------
+	// On-disk text store so "Show stack" / "Copy details" survive restarts
+	// ---------------------------------------------------------------------
+
+	private static File errorsDir() {
+		File dir = new File(StarBridge.getInstance().getSkeleton().getResourcesFolder(), "errors");
+		if(!dir.exists()) dir.mkdirs();
+		return dir;
+	}
+
+	private static File textFile(String key) {
+		return new File(errorsDir(), key.replaceAll("[^a-zA-Z0-9_-]", "_") + ".txt");
+	}
+
+	/**
+	 * Saves an error's full text keyed by its fingerprint (or a fatal report's content id),
+	 * so the buttons attached to that Discord message keep working after a bot restart.
+	 * Stores the exception class on the first line and the full trace after it.
+	 */
+	private static void persistText(String key, String exceptionClass, String fullText) {
+		try {
+			File file = textFile(key);
+			String body = (exceptionClass == null ? "" : exceptionClass) + "\n" + (fullText == null ? "" : fullText);
+			Files.write(file.toPath(), body.getBytes(StandardCharsets.UTF_8));
+			prunePersisted();
+		} catch(Exception ignored) {
+			// Persistence is best-effort; never let it break error reporting.
+		}
+	}
+
+	/** Returns {@code [exceptionClass, fullText]} for a persisted key, or {@code null}. */
+	private static String[] readPersisted(String key) {
+		try {
+			File file = textFile(key);
+			if(!file.exists()) return null;
+			String content = new String(Files.readAllBytes(file.toPath()), StandardCharsets.UTF_8);
+			int nl = content.indexOf('\n');
+			if(nl < 0) return new String[]{"", content};
+			return new String[]{content.substring(0, nl), content.substring(nl + 1)};
+		} catch(Exception e) {
+			return null;
+		}
+	}
+
+	private static void prunePersisted() {
+		File[] files = errorsDir().listFiles((d, n) -> n.endsWith(".txt"));
+		if(files == null || files.length <= MAX_PERSISTED) return;
+		Arrays.sort(files, Comparator.comparingLong(File::lastModified));
+		for(int i = 0; i < files.length - MAX_PERSISTED; i++) files[i].delete();
 	}
 
 	// ---------------------------------------------------------------------
@@ -305,7 +371,12 @@ public final class ErrorManager {
 	}
 
 	public static ErrorEntry getEntry(String fingerprint) {
-		return entries.get(fingerprint);
+		ErrorEntry entry = entries.get(fingerprint);
+		if(entry != null) return entry;
+		// Fall back to the on-disk text so buttons on pre-restart messages still resolve.
+		String[] persisted = readPersisted(fingerprint);
+		if(persisted != null) return new ErrorEntry(fingerprint, persisted[0], "", persisted[1], System.currentTimeMillis());
+		return null;
 	}
 
 	/**
@@ -316,7 +387,11 @@ public final class ErrorManager {
 	public static String getCopyableText(String key) {
 		ErrorEntry entry = entries.get(key);
 		if(entry != null) return entry.getFullText();
-		return fatalReports.get(key);
+		String fatal = fatalReports.get(key);
+		if(fatal != null) return fatal;
+		// Fall back to the on-disk text so "Copy details" works after a restart.
+		String[] persisted = readPersisted(key);
+		return persisted != null ? persisted[1] : null;
 	}
 
 	public static Set<String> getMutedFingerprints() {
