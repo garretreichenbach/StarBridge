@@ -1,6 +1,5 @@
 package videogoose.starbridge;
 
-import api.listener.events.Event;
 import api.mod.StarMod;
 import videogoose.starbridge.bot.DiscordBot;
 import videogoose.starbridge.bot.MessageType;
@@ -67,7 +66,7 @@ public class StarBridge extends StarMod {
 	@Override
 	public void onDisable() {
 		// Runs at most once, whether triggered by the mod lifecycle or the JVM shutdown hook.
-		// Crashes are reported via ServerCrashEvent and the exception stream watcher, so this
+		// Crashes are reported via ServerCrashListener and the exception stream watcher, so this
 		// no longer guesses "unexpected shutdown" (which false-alarmed on clean exits).
 		if(!disabled.compareAndSet(false, true)) return;
 		super.logInfo("Server Stopping...");
@@ -92,9 +91,5 @@ public class StarBridge extends StarMod {
 		super.logException(message, exception);
 		// Route through the registry for dedup/rate-limit/mute instead of posting directly.
 		ErrorManager.report(message, exception);
-	}
-
-	public void handleEvent(Event event) {
-		bot.handleEvent(event);
 	}
 }

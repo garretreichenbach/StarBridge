@@ -1,12 +1,13 @@
 package videogoose.starbridge.bot;
 
 import api.common.GameServer;
-import api.listener.events.Event;
-import api.listener.events.faction.FactionCreateEvent;
-import api.listener.events.faction.FactionRelationChangeEvent;
-import api.listener.events.player.*;
-import api.mod.config.FileConfiguration;
-import api.utils.game.PlayerUtils;
+import api.chat.ChatCommand;
+import api.chat.CommandContext;
+import api.chat.CommandRegistry;
+import api.event.player.PlayerJoinFactionContext;
+import api.config.FileConfiguration;
+import api.mod.StarLoader;
+import api.player.PlayerUtils;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.entities.*;
@@ -26,7 +27,9 @@ import net.dv8tion.jda.api.utils.FileUpload;
 import net.dv8tion.jda.api.utils.messages.MessageCreateBuilder;
 import net.dv8tion.jda.api.utils.messages.MessageCreateData;
 import org.schema.game.common.controller.SegmentController;
+import org.schema.game.common.controller.damage.Damager;
 import org.schema.game.common.data.player.PlayerState;
+import org.schema.game.common.data.player.faction.Faction;
 import org.schema.game.common.data.player.faction.FactionRelation;
 import org.schema.game.common.version.Version;
 import org.schema.game.network.objects.ChatMessage;
@@ -392,12 +395,12 @@ public class DiscordBot extends ListenerAdapter implements Thread.UncaughtExcept
 	/**
 	 * Sends a message attributed to a Discord user into the in-game chat and
 	 * registers the injected text in the echo guard so that the resulting
-	 * {@link api.listener.events.player.PlayerChatEvent} is not re-relayed to
+	 * {@link api.event.player.PlayerChatListener} is not re-relayed to
 	 * Discord.
 	 *
 	 * <p>The formatted string injected into the game is {@code "[sender] message"}.
 	 * That same string is registered in the echo guard so that when the game
-	 * fires a PlayerChatEvent for the injection, {@link #handleChannelMessage}
+	 * fires a PlayerChatListener for the injection, {@link #handleChannelMessage}
 	 * recognises it and drops the relay.
 	 *
 	 * <p>Use {@link #sendBridgeMessage(String)} for server-synthesized
@@ -417,7 +420,7 @@ public class DiscordBot extends ListenerAdapter implements Thread.UncaughtExcept
 		}
 		try {
 			var formatted = (sender != null) ? "[" + sender + "] " + message : message;
-			// Register in echo guard so the PlayerChatEvent fired by this injection
+			// Register in echo guard so the PlayerChatListener fired by this injection
 			// is not relayed back to Discord (Discord->game->Discord feedback loop).
 			recentBridgeInjections.add(formatted);
 			for (RegisteredClientOnServer client : serverState.getClients().values()) {
@@ -434,7 +437,7 @@ public class DiscordBot extends ListenerAdapter implements Thread.UncaughtExcept
 	 *
 	 * <p>Use this for all server-synthesized messages (join/leave notifications,
 	 * faction events, kill messages, etc.) so the echo guard can recognise them
-	 * when they arrive back from Discord or from a PlayerChatEvent.
+	 * when they arrive back from Discord or from a PlayerChatListener.
 	 *
 	 * @param message the text to broadcast (without any sender prefix).
 	 */
@@ -448,7 +451,7 @@ public class DiscordBot extends ListenerAdapter implements Thread.UncaughtExcept
 			return;
 		}
 
-		// Register before injecting so the PlayerChatEvent / Discord echo is
+		// Register before injecting so the PlayerChatListener / Discord echo is
 		// already in the guard set by the time it arrives.
 		recentBridgeInjections.add(message);
 
@@ -481,149 +484,110 @@ public class DiscordBot extends ListenerAdapter implements Thread.UncaughtExcept
 		}
 	}
 
-	/**
-	 * Game -> Discord + game-internal routing.
-	 *
-	 * <p>The PlayerChatEvent case is the only path that relays game messages to
-	 * Discord.  Before relaying it checks the echo guard — if the message
-	 * matches a recent bridge injection it was likely a server announcement
-	 * printed in-game and picked up by the chat listener (i.e. a feedback loop).
-	 */
-	public void handleEvent(Event event) {
-		if (!event.isServer()) return;
-		switch (event) {
-			case PlayerCustomCommandEvent playerCustomCommandEvent -> {
-				if (playerCustomCommandEvent.getCommand().isAdminOnly() && !playerCustomCommandEvent.getSender().isAdmin()) {
-					return;
-				}
-				StarBridge.getInstance().logInfo(
-						playerCustomCommandEvent.getSender().getName()
-								+ " executed command: "
-								+ playerCustomCommandEvent.getCommand().getCommand());
-			}
-			case PlayerChatEvent playerChatEvent -> handlePlayerChatEvent(playerChatEvent);
-			case PlayerJoinWorldEvent playerJoinWorldEvent -> {
-				// Resolve the in-game name from the PlayerState directly rather than the event's
-				// deprecated getPlayerName() wrapper: depending on the StarMade build that wrapper
-				// can surface the StarMade account/registry name, which publicly identifies the
-				// player. getName() is the in-game name shown in chat and over the player's head.
-				var player = playerJoinWorldEvent.getPlayerState();
-				String playerName = (player != null) ? player.getName() : playerJoinWorldEvent.getPlayerName();
-				var pd = ServerDatabase.getPlayerData(playerName);
-				if (pd == null) {
-					ServerDatabase.addNewPlayerData(playerName);
-					MessageType.NEW_PLAYER_JOIN.sendMessage(playerName);
-				} else {
-					MessageType.PLAYER_JOIN.sendMessage(playerName);
-				}
-			}
-			case PlayerLeaveWorldEvent playerLeaveWorldEvent ->
-					MessageType.PLAYER_LEAVE.sendMessage(playerLeaveWorldEvent.getPlayerName());
-			case FactionCreateEvent factionCreateEvent -> {
-				var player = factionCreateEvent.getPlayer();
-				var faction = factionCreateEvent.getFaction();
-				String playerName = (player != null) ? player.getName() : "<unknown>";
-				String factionName = (faction != null) ? faction.getName() : "<unknown>";
-				MessageType.FACTION_CREATE.sendMessage(playerName, factionName);
-			}
-			case PlayerJoinFactionEvent playerJoinFactionEvent -> {
-				var player = playerJoinFactionEvent.getPlayer();
-				String playerName = (player != null) ? player.toString() : "<unknown>";
-				String factionName = (player != null) ? player.getFactionName() : "<unknown>";
-				if (factionName == null) {
-					factionName = "<unknown>";
-					instance.logWarning("PlayerJoinFactionEvent: null factionName for player " + playerName);
-				}
-				MessageType.PLAYER_JOIN_FACTION.sendMessage(playerName, factionName);
-			}
-			case PlayerLeaveFactionEvent playerLeaveFactionEvent -> {
-				var player = playerLeaveFactionEvent.getPlayer();
-				var faction = playerLeaveFactionEvent.getFaction();
-				String playerName = (player != null) ? player.toString() : "<unknown>";
-				String factionName = (faction != null) ? faction.getName() : "<unknown>";
-				MessageType.PLAYER_LEAVE_FACTION.sendMessage(playerName, factionName);
-			}
-			case PlayerDeathEvent playerDeathEvent -> {
-				if (playerDeathEvent.getDamager().isSegmentController()) {
-					var sc = (SegmentController) playerDeathEvent.getDamager();
-					var player = playerDeathEvent.getPlayer();
-					String pFaction = (player != null && player.getFactionId() != 0) ? player.getFactionName() : "No Faction";
-					String eFaction = (sc.getFactionId() != 0) ? sc.getFaction().getName() : "No Faction";
-					String pName = (player != null) ? player.getName() : "<unknown>";
-					MessageType.PLAYER_KILL_EVENT.sendMessage(pName, pFaction, sc.getRealName(), eFaction);
-				} else if (playerDeathEvent.getDamager() instanceof PlayerState killerState) {
-					var player = playerDeathEvent.getPlayer();
-					String killerFaction = (killerState.getFactionId() != 0) ? killerState.getFactionName() : "No Faction";
-					String killedFaction = (player != null && player.getFactionId() != 0) ? player.getFactionName() : "No Faction";
-					String killedName = (player != null) ? player.getName() : "<unknown>";
-					if (killerState.equals(player)) {
-						MessageType.PLAYER_SUICIDE_EVENT.sendMessage(killedName, killedFaction);
-					} else {
-						MessageType.PLAYER_KILL_EVENT.sendMessage(killedName, killedFaction, killerState.getName(), killerFaction);
-					}
-				} else {
-					var player = playerDeathEvent.getPlayer();
-					String pFaction = (player != null && player.getFactionId() != 0) ? player.getFactionName() : "No Faction";
-					String pName = (player != null) ? player.getName() : "<unknown>";
-					MessageType.PLAYER_DEATH_EVENT.sendMessage(pName, pFaction);
-				}
-			}
-			case FactionRelationChangeEvent factionRelationChangeEvent -> {
-				if (factionRelationChangeEvent.getFrom().getIdFaction() <= 0
-						|| factionRelationChangeEvent.getTo().getIdFaction() <= 0) return;
-				var from = factionRelationChangeEvent.getFrom();
-				var to = factionRelationChangeEvent.getTo();
-				String fromName = (from != null) ? from.getName() : "<unknown>";
-				String toName = (to != null) ? to.getName() : "<unknown>";
-				var oldRelation = factionRelationChangeEvent.getOldRelation();
-				var newRelation = factionRelationChangeEvent.getNewRelation();
-				switch (oldRelation) {
-					case NEUTRAL -> {
-						switch (newRelation) {
-							case FRIEND -> MessageType.FACTION_ALLY.sendMessage(fromName, toName);
-							case ENEMY -> MessageType.FACTION_DECLARE_WAR.sendMessage(fromName, toName);
-							default -> { /* no action */ }
-						}
-					}
-					case ENEMY -> {
-						switch (newRelation) {
-							case NEUTRAL -> MessageType.FACTION_PEACE.sendMessage(fromName, toName);
-							case FRIEND -> {
-								MessageType.FACTION_PEACE.sendMessage(fromName, toName);
-								MessageType.FACTION_ALLY.sendMessage(fromName, toName);
-							}
-							default -> { /* no action */ }
-						}
-					}
-					case FRIEND -> {
-						switch (newRelation) {
-							case NEUTRAL -> MessageType.FACTION_CANCEL_ALLY.sendMessage(fromName, toName);
-							case ENEMY -> {
-								MessageType.FACTION_CANCEL_ALLY.sendMessage(fromName, toName);
-								MessageType.FACTION_DECLARE_WAR.sendMessage(fromName, toName);
-							}
-							default -> { /* no action */ }
-						}
-					}
-				}
-			}
-			default -> { /* unhandled event type */ }
+	// -------------------------------------------------------------------------
+	// Game -> Discord routing, called from EventManager (server side only)
+	// -------------------------------------------------------------------------
+
+	public void onPlayerCommand(ChatCommand command, CommandContext ctx) {
+		// Only mod commands; engine ones also route through the registry now.
+		if (StarLoader.qualifiedName(command).startsWith(CommandRegistry.VANILLA_NAMESPACE + ":")) return;
+		StarBridge.getInstance().logInfo(ctx.getSource().getName() + " executed command: " + command.getName());
+	}
+
+	public void onPlayerJoinWorld(RegisteredClientOnServer client, PlayerState player) {
+		// Use the in-game name, never the StarMade account/registry name, which publicly identifies the player.
+		String playerName = (player != null) ? player.getName() : client.getPlayerName();
+		var pd = ServerDatabase.getPlayerData(playerName);
+		if (pd == null) {
+			ServerDatabase.addNewPlayerData(playerName);
+			MessageType.NEW_PLAYER_JOIN.sendMessage(playerName);
+		} else {
+			MessageType.PLAYER_JOIN.sendMessage(playerName);
 		}
 	}
 
-	// -------------------------------------------------------------------------
-	// Private helpers
-	// -------------------------------------------------------------------------
+	public void onFactionCreate(Faction faction, PlayerState player) {
+		String playerName = (player != null) ? player.getName() : "<unknown>";
+		String factionName = (faction != null) ? faction.getName() : "<unknown>";
+		MessageType.FACTION_CREATE.sendMessage(playerName, factionName);
+	}
+
+	public void onPlayerJoinFaction(PlayerJoinFactionContext context) {
+		// Fires before the join, so the player's own faction is still the old one.
+		var player = context.getPlayer();
+		var faction = GameServer.getServerState().getFactionManager().getFaction(context.getNewFactionId());
+		String playerName = (player != null) ? player.getName() : "<unknown>";
+		String factionName = (faction != null) ? faction.getName() : "<unknown>";
+		MessageType.PLAYER_JOIN_FACTION.sendMessage(playerName, factionName);
+	}
+
+	public void onPlayerLeaveFaction(Faction faction, String playerName) {
+		String factionName = (faction != null) ? faction.getName() : "<unknown>";
+		MessageType.PLAYER_LEAVE_FACTION.sendMessage(playerName != null ? playerName : "<unknown>", factionName);
+	}
+
+	public void onPlayerDeath(PlayerState player, Damager damager) {
+		String pFaction = (player != null && player.getFactionId() != 0) ? player.getFactionName() : "No Faction";
+		String pName = (player != null) ? player.getName() : "<unknown>";
+		if (damager != null && damager.isSegmentController()) {
+			var sc = (SegmentController) damager;
+			String eFaction = (sc.getFactionId() != 0) ? sc.getFaction().getName() : "No Faction";
+			MessageType.PLAYER_KILL_EVENT.sendMessage(pName, pFaction, sc.getRealName(), eFaction);
+		} else if (damager instanceof PlayerState killerState) {
+			if (killerState.equals(player)) {
+				MessageType.PLAYER_SUICIDE_EVENT.sendMessage(pName, pFaction);
+			} else {
+				String killerFaction = (killerState.getFactionId() != 0) ? killerState.getFactionName() : "No Faction";
+				MessageType.PLAYER_KILL_EVENT.sendMessage(pName, pFaction, killerState.getName(), killerFaction);
+			}
+		} else {
+			MessageType.PLAYER_DEATH_EVENT.sendMessage(pName, pFaction);
+		}
+	}
+
+	public void onFactionRelationChange(Faction from, Faction to, FactionRelation.RType oldRelation, FactionRelation.RType newRelation) {
+		if (from == null || to == null || from.getIdFaction() <= 0 || to.getIdFaction() <= 0) return;
+		String fromName = from.getName();
+		String toName = to.getName();
+		switch (oldRelation) {
+			case NEUTRAL -> {
+				switch (newRelation) {
+					case FRIEND -> MessageType.FACTION_ALLY.sendMessage(fromName, toName);
+					case ENEMY -> MessageType.FACTION_DECLARE_WAR.sendMessage(fromName, toName);
+					default -> { /* no action */ }
+				}
+			}
+			case ENEMY -> {
+				switch (newRelation) {
+					case NEUTRAL -> MessageType.FACTION_PEACE.sendMessage(fromName, toName);
+					case FRIEND -> {
+						MessageType.FACTION_PEACE.sendMessage(fromName, toName);
+						MessageType.FACTION_ALLY.sendMessage(fromName, toName);
+					}
+					default -> { /* no action */ }
+				}
+			}
+			case FRIEND -> {
+				switch (newRelation) {
+					case NEUTRAL -> MessageType.FACTION_CANCEL_ALLY.sendMessage(fromName, toName);
+					case ENEMY -> {
+						MessageType.FACTION_CANCEL_ALLY.sendMessage(fromName, toName);
+						MessageType.FACTION_DECLARE_WAR.sendMessage(fromName, toName);
+					}
+					default -> { /* no action */ }
+				}
+			}
+		}
+	}
 
 	/**
-	 * Handles the PlayerChatEvent — the single game->Discord relay path.
+	 * Handles a player chat message — the single game->Discord relay path.
 	 *
 	 * <p>Public-channel messages are forwarded to Discord as GAME-origin envelopes.
 	 * The echo guard is checked first: if the text matches a recent bridge
 	 * injection the event is a feedback echo and is silently dropped.
 	 */
-	private void handlePlayerChatEvent(PlayerChatEvent playerChatEvent) {
-		var rawMessage = playerChatEvent.getMessage();
+	public void onPlayerChat(ChatMessage rawMessage) {
 		String message = rawMessage.text
 				.replace("@", "")
 				.replace("\"", "");
@@ -650,6 +614,10 @@ public class DiscordBot extends ListenerAdapter implements Thread.UncaughtExcept
 					"An exception occurred while trying to handle a chat event", exception);
 		}
 	}
+
+	// -------------------------------------------------------------------------
+	// Private helpers
+	// -------------------------------------------------------------------------
 
 	/**
 	 * Routes CHANNEL-type chat messages.  Only PUBLIC-channel messages are
@@ -777,7 +745,7 @@ public class DiscordBot extends ListenerAdapter implements Thread.UncaughtExcept
 	/**
 	 * Single Discord->Discord relay path: sends a message to the configured
 	 * chat channel and also registers its plain-text content in the echo guard
-	 * so that if the same text arrives back via a PlayerChatEvent it is dropped.
+	 * so that if the same text arrives back via a PlayerChatListener it is dropped.
 	 *
 	 * @param message the JDA message payload to send.
 	 */
@@ -789,7 +757,7 @@ public class DiscordBot extends ListenerAdapter implements Thread.UncaughtExcept
 				return;
 			}
 			// Register plain-text content so the echo guard can drop it if it
-			// arrives back as a PlayerChatEvent.
+			// arrives back as a PlayerChatListener.
 			String content = message.getContent();
 			if (content != null && !content.isEmpty()) {
 				recentBridgeInjections.add(content);

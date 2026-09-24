@@ -2,17 +2,19 @@ package videogoose.starbridge.commands;
 
 import api.common.GameServer;
 import api.mod.StarLoader;
-import api.mod.StarMod;
-import api.mod.config.PersistentObjectUtil;
-import api.utils.game.PlayerUtils;
-import api.utils.game.chat.CommandInterface;
+import api.config.PersistentObjectUtil;
+import api.player.PlayerUtils;
+import api.chat.ChatCommand;
+import api.chat.CommandArg;
+import api.chat.CommandContext;
+import api.chat.CommandException;
+import api.player.Permissions;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.commands.build.CommandData;
 import net.dv8tion.jda.api.interactions.commands.build.OptionData;
 import net.dv8tion.jda.api.interactions.commands.build.SubcommandData;
 import net.dv8tion.jda.internal.interactions.CommandDataImpl;
-import org.jetbrains.annotations.Nullable;
 import org.schema.common.util.linAlg.Vector3i;
 import org.schema.game.common.data.player.PlayerState;
 import org.schema.game.common.data.player.faction.Faction;
@@ -226,19 +228,19 @@ public enum CommandTypes {
 				if(playerData != null) {
 					boolean hasPermission = (boolean) playerData.getPermission("rename_system");
 					if(stellarSystem.getOwnerFaction() != sender.getFactionId() && !sender.isAdmin()) {
-						api.utils.game.PlayerUtils.sendMessage(sender, "You do not have permission to rename this system!");
+						PlayerUtils.sendMessage(sender, "You do not have permission to rename this system!");
 						return false;
 					}
 					if(!hasPermission && !ConfigManager.getMainConfig().getBoolean("debug-mode")) {
-						api.utils.game.PlayerUtils.sendMessage(sender, "You do not have permission to rename systems!");
+						PlayerUtils.sendMessage(sender, "You do not have permission to rename systems!");
 						return false;
 					}
 					if(args[0].length() > 32) {
-						api.utils.game.PlayerUtils.sendMessage(sender, "System name cannot be longer than 32 characters!");
+						PlayerUtils.sendMessage(sender, "System name cannot be longer than 32 characters!");
 						return false;
 					}
 					ConfigManager.getSystemNamesConfig().set(centerOriginPos, args[0]);
-					api.utils.game.PlayerUtils.sendMessage(sender, "System name has been changed to: " + args[0] + ", will take effect on next server restart.");
+					PlayerUtils.sendMessage(sender, "System name has been changed to: " + args[0] + ", will take effect on next server restart.");
 				}
 			} catch(Exception exception) {
 				StarBridge.getInstance().logException("Error executing rename_system command", exception);
@@ -329,7 +331,7 @@ public enum CommandTypes {
 	private final String description;
 	private final String[] usages;
 	private final ICommandExecutor executor;
-	private final CommandInterface commandInterface;
+	private final ChatCommand gameCommand;
 
 	CommandTypes(String command, String[] aliases, String description, String[] usages, IPermissibleAction permission, ICommandExecutor executor) {
 		this.command = command;
@@ -338,9 +340,9 @@ public enum CommandTypes {
 		this.usages = usages;
 		this.permission = permission;
 		this.executor = executor;
-		commandInterface = new CommandInterface() {
+		gameCommand = new ChatCommand() {
 			@Override
-			public String getCommand() {
+			public String getName() {
 				return command;
 			}
 
@@ -354,24 +356,20 @@ public enum CommandTypes {
 				return description;
 			}
 
+			// Commands parse their own String[] args; one optional greedy arg keeps the registry's arity check out of the way.
 			@Override
-			public boolean isAdminOnly() {
-				return permission.isAdminOnly();
+			public CommandArg[] getArgs() {
+				return new CommandArg[]{CommandArg.greedy("args", String.join(" | ", usages)).optional()};
 			}
 
 			@Override
-			public boolean onCommand(PlayerState playerState, String[] strings) {
-				return executor.executeGame(playerState, strings);
+			public Permissions.Default getPermissionDefault() {
+				return permission.isAdminOnly() ? Permissions.Default.OP : Permissions.Default.TRUE;
 			}
 
 			@Override
-			public void serverAction(@Nullable PlayerState playerState, String[] strings) {
-				executor.executeGame(playerState, strings);
-			}
-
-			@Override
-			public StarMod getMod() {
-				return StarBridge.getInstance();
+			public void execute(CommandContext ctx) throws CommandException {
+				if(!executor.executeGame(ctx.getSender(), ctx.rawArgs())) throw new CommandException("Incorrect usage. " + String.join(", ", usages));
 			}
 		};
 	}
@@ -391,11 +389,8 @@ public enum CommandTypes {
 
 	public static void registerGameCommands() {
 		for(CommandTypes commandType : values()) {
-			CommandInterface command = commandType.commandInterface;
-			if(command != null) {
-				StarLoader.registerCommand(command);
-				StarBridge.getInstance().logInfo("Registered Game command: " + commandType.command);
-			}
+			StarLoader.registerCommand(StarBridge.getInstance(), commandType.gameCommand);
+			StarBridge.getInstance().logInfo("Registered Game command: " + commandType.command);
 		}
 	}
 
@@ -436,7 +431,7 @@ public enum CommandTypes {
 		executor.executeDiscord(event);
 	}
 
-	public CommandInterface getGameCommand() {
-		return commandInterface;
+	public ChatCommand getGameCommand() {
+		return gameCommand;
 	}
 }

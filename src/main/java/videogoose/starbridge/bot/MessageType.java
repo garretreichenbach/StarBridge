@@ -20,7 +20,7 @@ import java.util.Arrays;
  * <p><b>Echo-guard contract:</b> Every case that calls
  * {@link DiscordBot#sendBridgeMessage(String)} registers the injected text with
  * the echo guard so the bridge won't re-relay it when it echoes back from
- * Discord or appears in a {@link api.listener.events.player.PlayerChatEvent}.
+ * Discord or appears in a {@link api.event.player.PlayerChatListener}.
  *
  * <p><b>sendServerMessage vs sendBridgeMessage:</b>
  * <ul>

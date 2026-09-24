@@ -1,6 +1,6 @@
 package videogoose.starbridge.error;
 
-import api.mod.config.FileConfiguration;
+import api.config.FileConfiguration;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.components.actionrow.ActionRow;
 import net.dv8tion.jda.api.components.buttons.Button;

@@ -1,6 +1,6 @@
 package videogoose.starbridge.manager;
 
-import api.mod.config.FileConfiguration;
+import api.config.FileConfiguration;
 import videogoose.starbridge.StarBridge;
 
 /**

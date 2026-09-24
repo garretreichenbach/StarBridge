@@ -2,7 +2,7 @@ package videogoose.starbridge.server;
 
 import api.common.GameCommon;
 import api.mod.ModSkeleton;
-import api.mod.config.PersistentObjectUtil;
+import api.config.PersistentObjectUtil;
 import org.schema.game.common.data.player.faction.Faction;
 import videogoose.starbridge.StarBridge;
 import videogoose.starbridge.data.player.PlayerData;
@@ -16,37 +16,28 @@ public class ServerDatabase {
 	private static final ModSkeleton instance = StarBridge.getInstance().getSkeleton();
 
 	public static PlayerData getFromDiscordID(long discordID) {
-		ArrayList<Object> dataObjectList = PersistentObjectUtil.getObjects(instance, PlayerData.class);
-		for(Object dataObject : dataObjectList) {
-			PlayerData playerData = (PlayerData) dataObject;
+		for(PlayerData playerData : PersistentObjectUtil.getCopyOfObjects(instance, PlayerData.class)) {
 			if(playerData.getDiscordId() == discordID) return playerData;
 		}
 		return null;
 	}
 
 	public static PlayerData getPlayerData(String playerName) {
-		ArrayList<Object> dataObjectList = PersistentObjectUtil.getObjects(instance, PlayerData.class);
-		for(Object dataObject : dataObjectList) {
-			PlayerData playerData = (PlayerData) dataObject;
+		for(PlayerData playerData : PersistentObjectUtil.getCopyOfObjects(instance, PlayerData.class)) {
 			if(playerData.getPlayerName().equals(playerName)) return playerData;
 		}
 		return null;
 	}
 
 	public static PlayerData getPlayerDataOrCreateIfNull(String playerName) {
-		ArrayList<Object> dataObjectList = PersistentObjectUtil.getObjects(instance, PlayerData.class);
-		for(Object dataObject : dataObjectList) {
-			PlayerData playerData = (PlayerData) dataObject;
+		for(PlayerData playerData : PersistentObjectUtil.getCopyOfObjects(instance, PlayerData.class)) {
 			if(playerData.getPlayerName().equals(playerName)) return playerData;
 		}
 		return addNewPlayerData(playerName);
 	}
 
 	public static ArrayList<PlayerData> getAllPlayerData() {
-		ArrayList<PlayerData> playerDataList = new ArrayList<>();
-		ArrayList<Object> dataObjectList = PersistentObjectUtil.getObjects(instance, PlayerData.class);
-		for(Object dataObject : dataObjectList) playerDataList.add((PlayerData) dataObject);
-		return playerDataList;
+		return PersistentObjectUtil.getCopyOfObjects(instance, PlayerData.class);
 	}
 
 	/**
@@ -73,9 +64,7 @@ public class ServerDatabase {
 
 	public static void updatePlayerData(PlayerData playerData) {
 		ArrayList<PlayerData> toRemove = new ArrayList<>();
-		ArrayList<Object> dataObjectList = PersistentObjectUtil.getObjects(instance, PlayerData.class);
-		for(Object dataObject : dataObjectList) {
-			PlayerData pData = (PlayerData) dataObject;
+		for(PlayerData pData : PersistentObjectUtil.getCopyOfObjects(instance, PlayerData.class)) {
 			if(pData.getPlayerName().equals(playerData.getPlayerName()) || pData.getPlayerName().isEmpty()) toRemove.add(pData);
 		}
 		for(PlayerData remove : toRemove) PersistentObjectUtil.removeObject(instance, remove);
